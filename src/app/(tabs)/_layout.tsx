@@ -1,6 +1,39 @@
 import { FontAwesome } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
+import React, { useEffect, useRef } from "react";
+import { Animated, StyleSheet } from "react-native";
 import { PointProvider } from "../../PointContext";
+
+// Komponen Khusus untuk Tombol Melayang & Beranimasi
+const FloatingTukarButton = ({ children }) => {
+  const scaleValue = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    // Membuat animasi denyut (pulse) yang berulang terus-menerus
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(scaleValue, {
+          toValue: 1.1, // Membesar 10%
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleValue, {
+          toValue: 1, // Kembali ke ukuran normal
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ]),
+    ).start();
+  }, [scaleValue]);
+
+  return (
+    <Animated.View
+      style={[styles.floatingButton, { transform: [{ scale: scaleValue }] }]}
+    >
+      {children}
+    </Animated.View>
+  );
+};
 
 export default function TabLayout() {
   return (
@@ -9,10 +42,17 @@ export default function TabLayout() {
         screenOptions={{
           tabBarActiveTintColor: "#10B981",
           headerShown: false,
-          tabBarStyle: { paddingBottom: 5, height: 60 }, // Sedikit memperbesar area navigasi
+          tabBarShowLabel: true,
+          tabBarStyle: {
+            height: 65,
+            paddingBottom: 10,
+            borderTopWidth: 1,
+            borderTopColor: "#F3F4F6",
+            backgroundColor: "#FFFFFF",
+            elevation: 10, // Memberikan bayangan pada tab bar
+          },
         }}
       >
-        {/* 1. Kiri Luar */}
         <Tabs.Screen
           name="index"
           options={{
@@ -23,7 +63,6 @@ export default function TabLayout() {
           }}
         />
 
-        {/* 2. Kiri Dalam */}
         <Tabs.Screen
           name="history"
           options={{
@@ -34,19 +73,19 @@ export default function TabLayout() {
           }}
         />
 
-        {/* 3. TENGAH (Menu Utama) */}
+        {/* Menu Tukar dengan Tombol Melayang */}
         <Tabs.Screen
           name="exchange"
           options={{
-            title: "Tukar",
-            // Ikon dibuat lebih besar (size 32) agar terlihat menonjol di tengah
-            tabBarIcon: ({ color }) => (
-              <FontAwesome name="qrcode" size={32} color={color} />
+            title: "", // Sengaja dikosongkan agar teks tidak bertabrakan dengan tombol melayang
+            tabBarIcon: () => (
+              <FloatingTukarButton>
+                <FontAwesome name="qrcode" size={32} color="#FFFFFF" />
+              </FloatingTukarButton>
             ),
           }}
         />
 
-        {/* 4. Kanan Dalam */}
         <Tabs.Screen
           name="reward"
           options={{
@@ -57,7 +96,6 @@ export default function TabLayout() {
           }}
         />
 
-        {/* 5. Kanan Luar */}
         <Tabs.Screen
           name="profile"
           options={{
@@ -71,3 +109,22 @@ export default function TabLayout() {
     </PointProvider>
   );
 }
+
+// Gaya (Style) khusus untuk membuat tombolnya melayang
+const styles = StyleSheet.create({
+  floatingButton: {
+    top: -20, // Menarik tombol ke atas agar keluar dari batas tab bar
+    justifyContent: "center",
+    alignItems: "center",
+    width: 65,
+    height: 65,
+    borderRadius: 35, // Membuatnya bulat sempurna
+    backgroundColor: "#10B981",
+    // Efek bayangan hijau agar terlihat glowing
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+});
