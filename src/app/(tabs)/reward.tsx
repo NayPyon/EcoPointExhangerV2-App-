@@ -1,7 +1,9 @@
 import { FontAwesome } from "@expo/vector-icons";
-import React from "react";
+import { useFocusEffect } from "expo-router"; // <--- Kita pakai alat pelacak fokus ini
+import React, { useCallback, useRef } from "react";
 import {
   Alert,
+  Animated,
   FlatList,
   StyleSheet,
   Text,
@@ -10,10 +12,47 @@ import {
 } from "react-native";
 import { usePoints } from "../../PointContext";
 
+// Komponen Bungkusan Animasi
+const AnimatedCard = ({ children, index }) => {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(50)).current;
+
+  // useFocusEffect akan menjalankan animasi SETIAP KALI tab ini diklik
+  useFocusEffect(
+    useCallback(() => {
+      // 1. Kembalikan posisi kartu ke bawah dan sembunyikan (transparan)
+      opacity.setValue(0);
+      translateY.setValue(50);
+
+      // 2. Mainkan animasinya lagi
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 400,
+          delay: index * 100,
+          useNativeDriver: true,
+        }),
+        Animated.spring(translateY, {
+          toValue: 0,
+          friction: 7,
+          tension: 40,
+          delay: index * 100,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, []),
+  );
+
+  return (
+    <Animated.View style={{ opacity, transform: [{ translateY }] }}>
+      {children}
+    </Animated.View>
+  );
+};
+
 export default function RewardScreen() {
   const { points } = usePoints();
 
-  // Daftar katalog hadiah
   const rewardItems = [
     {
       id: "1",
@@ -59,7 +98,6 @@ export default function RewardScreen() {
     },
   ];
 
-  // Fungsi untuk menangani tombol tukar
   const handleRedeem = (item) => {
     if (points >= item.cost) {
       Alert.alert(
@@ -81,51 +119,51 @@ export default function RewardScreen() {
       const selisih = item.cost - points;
       Alert.alert(
         "Poin Tidak Cukup",
-        `Kamu butuh ${selisih} poin lagi untuk menukar hadiah ini. Ayo semangat daur ulangnya!`,
+        `Kamu butuh ${selisih} poin lagi untuk menukar hadiah ini.`,
       );
     }
   };
 
-  const renderRewardItem = ({ item }) => (
-    <View style={styles.card}>
-      <View style={[styles.iconBox, { backgroundColor: item.color + "1A" }]}>
-        <FontAwesome name={item.icon} size={32} color={item.color} />
-      </View>
-      <View style={styles.cardContent}>
-        <Text style={styles.titleText}>{item.title}</Text>
-        <View style={styles.costBadge}>
-          <FontAwesome name="star" size={12} color="#F59E0B" />
-          <Text style={styles.costText}>{item.cost} Poin</Text>
+  const renderRewardItem = ({ item, index }) => (
+    <AnimatedCard index={index}>
+      <View style={styles.card}>
+        <View style={[styles.iconBox, { backgroundColor: item.color + "1A" }]}>
+          <FontAwesome name={item.icon} size={32} color={item.color} />
         </View>
+        <View style={styles.cardContent}>
+          <Text style={styles.titleText}>{item.title}</Text>
+          <View style={styles.costBadge}>
+            <FontAwesome name="star" size={12} color="#F59E0B" />
+            <Text style={styles.costText}>{item.cost} Poin</Text>
+          </View>
+        </View>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          style={[
+            styles.redeemButton,
+            points < item.cost && styles.redeemButtonDisabled,
+          ]}
+          onPress={() => handleRedeem(item)}
+        >
+          <Text style={styles.redeemButtonText}>Tukar</Text>
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity
-        style={[
-          styles.redeemButton,
-          points < item.cost && styles.redeemButtonDisabled,
-        ]}
-        onPress={() => handleRedeem(item)}
-      >
-        <Text style={styles.redeemButtonText}>Tukar</Text>
-      </TouchableOpacity>
-    </View>
+    </AnimatedCard>
   );
 
   return (
     <View style={styles.container}>
-      {/* Bagian Header Info Poin */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Katalog Reward</Text>
         <Text style={styles.headerSubtitle}>
           Tukarkan poinmu dengan hadiah menarik
         </Text>
-
         <View style={styles.pointCard}>
           <Text style={styles.pointCardLabel}>Poin Tersedia</Text>
           <Text style={styles.pointCardValue}>{points}</Text>
         </View>
       </View>
 
-      {/* Daftar Hadiah */}
       <FlatList
         data={rewardItems}
         keyExtractor={(item) => item.id}

@@ -1,46 +1,72 @@
 import { FontAwesome } from "@expo/vector-icons";
-import React from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { Animated, FlatList, StyleSheet, Text, View } from "react-native";
 import { usePoints } from "../../PointContext";
 
+// Komponen Bungkusan Animasi
+const AnimatedCard = ({ children, index }) => {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(50)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 500,
+        delay: index * 150, // Muncul bergantian setiap 150ms
+        useNativeDriver: true,
+      }),
+      Animated.spring(translateY, {
+        toValue: 0,
+        friction: 7,
+        tension: 40,
+        delay: index * 150,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View style={{ opacity, transform: [{ translateY }] }}>
+      {children}
+    </Animated.View>
+  );
+};
+
 export default function HistoryScreen() {
-  // Mengambil data riwayat dari penyimpan global
   const { historyList } = usePoints();
 
-  // Desain untuk masing-masing kartu riwayat
-  const renderHistoryItem = ({ item }) => (
-    <View style={styles.card}>
-      <View style={styles.iconWrapper}>
-        <FontAwesome name="recycle" size={20} color="#10B981" />
+  // Menambahkan index agar animasinya bisa bergantian
+  const renderHistoryItem = ({ item, index }) => (
+    <AnimatedCard index={index}>
+      <View style={styles.card}>
+        <View style={styles.iconWrapper}>
+          <FontAwesome name="recycle" size={20} color="#10B981" />
+        </View>
+        <View style={styles.textWrapper}>
+          <Text style={styles.titleText}>{item.title}</Text>
+          <Text style={styles.dateText}>{item.date}</Text>
+        </View>
+        <View style={styles.pointWrapper}>
+          <Text style={styles.pointText}>{item.points}</Text>
+        </View>
       </View>
-
-      <View style={styles.textWrapper}>
-        <Text style={styles.titleText}>{item.title}</Text>
-        <Text style={styles.dateText}>{item.date}</Text>
-      </View>
-
-      <View style={styles.pointWrapper}>
-        <Text style={styles.pointText}>{item.points}</Text>
-      </View>
-    </View>
+    </AnimatedCard>
   );
 
   return (
     <View style={styles.container}>
-      {/* Bagian Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Riwayat Penukaran</Text>
         <Text style={styles.headerSubtitle}>Jejak perjalanan daur ulangmu</Text>
       </View>
 
-      {/* Daftar Riwayat */}
       <FlatList
         data={historyList}
         keyExtractor={(item) => item.id}
         renderItem={renderHistoryItem}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
-        // Tampilan jika data masih kosong
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <FontAwesome name="inbox" size={50} color="#D1D5DB" />

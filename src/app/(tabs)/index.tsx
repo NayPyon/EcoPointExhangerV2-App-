@@ -8,11 +8,14 @@ import {
   View,
 } from "react-native";
 import { usePoints } from "../../PointContext";
+// 1. Import senjata rahasia kita
+import { BlurView } from "expo-blur";
+import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 
 export default function HomeScreen() {
   const { points, totalBottles, addPoints } = usePoints();
 
-  // Sistem Leveling Sederhana
   const targetPoints = 1000;
   const progressPercentage = Math.min((points / targetPoints) * 100, 100);
 
@@ -22,47 +25,68 @@ export default function HomeScreen() {
     return "Eco-Starter 🌱";
   };
 
+  // Fungsi dengan efek getaran (Haptic Feedback)
+  const handleSimulatePress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); // Getaran tebal/mantap
+    addPoints(50, 5, "Simulasi Masukkan 5 Botol");
+  };
+
+  const handleBellPress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); // Getaran ringan/halus
+  };
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header dengan Sapaan */}
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Halo, Nayaka! 👋</Text>
           <Text style={styles.subtitle}>Mari selamatkan bumi hari ini.</Text>
         </View>
-        <TouchableOpacity activeOpacity={0.7} style={styles.notificationIcon}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          style={styles.notificationIcon}
+          onPress={handleBellPress}
+        >
           <FontAwesome name="bell-o" size={24} color="#111827" />
           <View style={styles.badge} />
         </TouchableOpacity>
       </View>
 
-      {/* Kartu Poin Utama dengan Progress Bar */}
-      <View style={styles.pointCard}>
-        <View style={styles.pointHeader}>
-          <Text style={styles.levelBadge}>{getLevelName()}</Text>
-          <FontAwesome name="leaf" size={20} color="#D1FAE5" />
-        </View>
-
-        <Text style={styles.pointLabel}>Total Poin</Text>
-        <Text style={styles.pointValue}>{points}</Text>
-
-        {/* Komponen Progress Bar */}
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBarBackground}>
-            <View
-              style={[
-                styles.progressBarFill,
-                { width: `${progressPercentage}%` },
-              ]}
-            />
+      {/* 2. Linear Gradient: Membuat warna kartu mengkilat dan berdimensi */}
+      <View style={styles.cardWrapper}>
+        <LinearGradient
+          colors={["#059669", "#10B981", "#34D399"]} // Gradasi dari gelap ke terang
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.pointCard}
+        >
+          <View style={styles.pointHeader}>
+            {/* 3. Glassmorphism: Efek kaca buram (frosted glass) pada label level */}
+            <BlurView intensity={40} tint="light" style={styles.glassBadge}>
+              <Text style={styles.levelText}>{getLevelName()}</Text>
+            </BlurView>
+            <FontAwesome name="leaf" size={24} color="#D1FAE5" />
           </View>
-          <Text style={styles.progressText}>
-            {points} / {targetPoints} Poin menuju level berikutnya
-          </Text>
-        </View>
+
+          <Text style={styles.pointLabel}>Total Poin</Text>
+          <Text style={styles.pointValue}>{points}</Text>
+
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBarBackground}>
+              <View
+                style={[
+                  styles.progressBarFill,
+                  { width: `${progressPercentage}%` },
+                ]}
+              />
+            </View>
+            <Text style={styles.progressText}>
+              {points} / {targetPoints} Poin menuju level berikutnya
+            </Text>
+          </View>
+        </LinearGradient>
       </View>
 
-      {/* Statistik Mini */}
       <View style={styles.statsContainer}>
         <View style={styles.statBox}>
           <FontAwesome name="recycle" size={24} color="#10B981" />
@@ -76,13 +100,12 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Tombol Simulasi (Dengan efek tekan activeOpacity) */}
       <View style={styles.actionContainer}>
         <Text style={styles.sectionTitle}>Uji Coba Sistem</Text>
         <TouchableOpacity
           activeOpacity={0.8}
           style={styles.simulateButton}
-          onPress={() => addPoints(50, 5, "Simulasi Masukkan 5 Botol")}
+          onPress={handleSimulatePress}
         >
           <FontAwesome
             name="plus-circle"
@@ -109,20 +132,13 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 20,
   },
-
-  // Perhatikan di sini, kita tambahkan fontFamily
-  greeting: {
-    fontSize: 24,
-    color: "#111827",
-    fontFamily: "Poppins_700Bold", // Membuat tulisan jadi tebal (Bold)
-  },
+  greeting: { fontSize: 24, color: "#111827", fontFamily: "Poppins_700Bold" },
   subtitle: {
     fontSize: 14,
     color: "#6B7280",
     marginTop: 4,
-    fontFamily: "Poppins_400Regular", // Membuat tulisan jadi standar (Regular)
+    fontFamily: "Poppins_400Regular",
   },
-
   notificationIcon: {
     padding: 8,
     backgroundColor: "#FFFFFF",
@@ -145,17 +161,17 @@ const styles = StyleSheet.create({
     borderColor: "#FFFFFF",
   },
 
-  pointCard: {
-    backgroundColor: "#10B981",
+  cardWrapper: {
     marginHorizontal: 20,
     borderRadius: 24,
-    padding: 24,
     shadowColor: "#10B981",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.4,
+    shadowRadius: 15,
+    elevation: 10,
+    overflow: "hidden",
   },
+  pointCard: { padding: 24 },
   pointHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -163,34 +179,41 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
 
-  // Font untuk level dan poin
-  levelBadge: {
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+  glassBadge: {
     borderRadius: 20,
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontFamily: "Poppins_600SemiBold",
     overflow: "hidden",
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.3)",
   },
+  levelText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontFamily: "Poppins_600SemiBold",
+  },
+
   pointLabel: {
     color: "#D1FAE5",
     fontSize: 14,
     marginBottom: 4,
-    fontFamily: "Poppins_400Regular",
+    fontFamily: "Poppins_500Medium",
   },
   pointValue: {
     color: "#FFFFFF",
     fontSize: 48,
     marginBottom: 20,
     fontFamily: "Poppins_700Bold",
+    textShadowColor: "rgba(0, 0, 0, 0.1)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
 
   progressContainer: { marginTop: 10 },
   progressBarBackground: {
     height: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.25)",
     borderRadius: 4,
     overflow: "hidden",
   },
@@ -200,7 +223,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   progressText: {
-    color: "#D1FAE5",
+    color: "#E5E7EB",
     fontSize: 12,
     marginTop: 8,
     fontFamily: "Poppins_500Medium",
@@ -210,7 +233,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    marginTop: 20,
+    marginTop: 25,
   },
   statBox: {
     flex: 1,
@@ -220,15 +243,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: 5,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowRadius: 10,
+    elevation: 3,
   },
-
-  // Font untuk statistik
   statNumber: {
-    fontSize: 20,
+    fontSize: 22,
     color: "#111827",
     marginTop: 12,
     fontFamily: "Poppins_700Bold",
@@ -237,10 +258,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#6B7280",
     marginTop: 4,
-    fontFamily: "Poppins_400Regular",
+    fontFamily: "Poppins_500Medium",
   },
 
-  actionContainer: { padding: 20, marginTop: 10, paddingBottom: 100 },
+  actionContainer: { padding: 20, marginTop: 15, paddingBottom: 100 },
   sectionTitle: {
     fontSize: 18,
     color: "#111827",
@@ -249,16 +270,16 @@ const styles = StyleSheet.create({
   },
   simulateButton: {
     flexDirection: "row",
-    backgroundColor: "#3B82F6",
-    paddingVertical: 16,
+    backgroundColor: "#111827",
+    paddingVertical: 18,
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#3B82F6",
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 10,
+    elevation: 5,
   },
   simulateButtonText: {
     color: "#FFFFFF",
