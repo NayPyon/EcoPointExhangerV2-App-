@@ -292,10 +292,25 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: "#FFFFFF",
   },
-  name: { fontSize: 22, fontWeight: "bold", color: "#111827", marginBottom: 4 },
-  bio: { fontSize: 14, color: "#10B981", fontWeight: "500", marginBottom: 8 },
+  name: {
+    fontSize: 22,
+    color: "#111827",
+    marginBottom: 4,
+    fontFamily: "Poppins_700Bold",
+  },
+  bio: {
+    fontSize: 14,
+    color: "#10B981",
+    marginBottom: 8,
+    fontFamily: "Poppins_500Medium",
+  },
   locationRow: { flexDirection: "row", alignItems: "center" },
-  locationText: { fontSize: 13, color: "#6B7280", marginLeft: 6 },
+  locationText: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginLeft: 6,
+    fontFamily: "Poppins_400Regular",
+  },
   statsContainer: {
     flexDirection: "row",
     backgroundColor: "#FFFFFF",
@@ -313,14 +328,27 @@ const styles = StyleSheet.create({
   divider: { width: 1, backgroundColor: "#F3F4F6" },
   statValue: {
     fontSize: 24,
-    fontWeight: "bold",
     color: "#111827",
     marginBottom: 4,
+    fontFamily: "Poppins_700Bold",
   },
-  statLabel: { fontSize: 12, color: "#6B7280" },
+  statLabel: {
+    fontSize: 12,
+    color: "#6B7280",
+    fontFamily: "Poppins_400Regular",
+  },
   walletInfo: { flexDirection: "row", justifyContent: "center", marginTop: 15 },
-  walletLabel: { fontSize: 13, color: "#6B7280", marginRight: 5 },
-  walletStatus: { fontSize: 13, fontWeight: "bold", color: "#EF4444" },
+  walletLabel: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginRight: 5,
+    fontFamily: "Poppins_400Regular",
+  },
+  walletStatus: {
+    fontSize: 13,
+    color: "#EF4444",
+    fontFamily: "Poppins_700Bold",
+  },
   menuContainer: { marginTop: 15, paddingHorizontal: 20 },
   menuItem: {
     flexDirection: "row",
@@ -339,16 +367,20 @@ const styles = StyleSheet.create({
   },
   menuLeft: { flexDirection: "row", alignItems: "center" },
   iconWrapper: { width: 30, alignItems: "center", marginRight: 15 },
-  menuText: { fontSize: 15, fontWeight: "600", color: "#374151" },
+  menuText: {
+    fontSize: 15,
+    color: "#374151",
+    fontFamily: "Poppins_600SemiBold",
+  },
   versionText: {
     textAlign: "center",
     color: "#9CA3AF",
     fontSize: 12,
     marginTop: 20,
     marginBottom: 40,
+    fontFamily: "Poppins_400Regular",
   },
 
-  // Gaya untuk Modal (Jendela Pop-up)
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
@@ -367,13 +399,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
   },
-  modalTitle: { fontSize: 18, fontWeight: "bold", color: "#111827" },
-  modalSubtitle: { fontSize: 14, color: "#6B7280", marginBottom: 20 },
+  modalTitle: { fontSize: 18, color: "#111827", fontFamily: "Poppins_700Bold" },
+  modalSubtitle: {
+    fontSize: 14,
+    color: "#6B7280",
+    marginBottom: 20,
+    fontFamily: "Poppins_400Regular",
+  },
   inputLabel: {
     fontSize: 13,
-    fontWeight: "600",
     color: "#374151",
     marginBottom: 8,
+    fontFamily: "Poppins_600SemiBold",
   },
   inputField: {
     backgroundColor: "#F3F4F6",
@@ -382,6 +419,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginBottom: 16,
     color: "#111827",
+    fontFamily: "Poppins_500Medium",
   },
   saveButton: {
     backgroundColor: "#10B981",
@@ -390,7 +428,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 10,
   },
-  saveButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "bold" },
+  saveButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontFamily: "Poppins_700Bold",
+  },
   walletOption: {
     flexDirection: "row",
     alignItems: "center",
@@ -403,7 +445,7 @@ const styles = StyleSheet.create({
   walletOptionText: {
     flex: 1,
     fontSize: 16,
-    fontWeight: "600",
     color: "#374151",
+    fontFamily: "Poppins_600SemiBold",
   },
 });

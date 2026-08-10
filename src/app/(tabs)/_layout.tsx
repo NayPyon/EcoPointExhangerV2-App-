@@ -43,6 +43,11 @@ export default function TabLayout() {
           tabBarActiveTintColor: "#10B981",
           headerShown: false,
           tabBarShowLabel: true,
+          // Tambahkan baris ini di bawah tabBarShowLabel
+          tabBarLabelStyle: {
+            fontFamily: "Poppins_500Medium",
+            fontSize: 10,
+          },
           tabBarStyle: {
             height: 65,
             paddingBottom: 10,
@@ -80,7 +85,7 @@ export default function TabLayout() {
             title: "", // Sengaja dikosongkan agar teks tidak bertabrakan dengan tombol melayang
             tabBarIcon: () => (
               <FloatingTukarButton>
-                <FontAwesome name="qrcode" size={32} color="#FFFFFF" />
+                <FontAwesome name="recycle" size={32} color="#FFFFFF" />
               </FloatingTukarButton>
             ),
           }}

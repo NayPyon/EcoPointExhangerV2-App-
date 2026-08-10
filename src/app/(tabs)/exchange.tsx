@@ -1,11 +1,6 @@
 import { FontAwesome } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 
 export default function ExchangeScreen() {
@@ -102,9 +97,9 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 22,
-    fontWeight: "bold",
     color: "#111827",
     marginBottom: 5,
+    fontFamily: "Poppins_700Bold",
   },
   subtitle: {
     fontSize: 14,
@@ -112,6 +107,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 20,
     paddingHorizontal: 10,
+    fontFamily: "Poppins_400Regular",
   },
   card: {
     backgroundColor: "#FFFFFF",
@@ -132,13 +128,18 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
     marginBottom: 20,
   },
-  tokenLabel: { fontSize: 12, color: "#9CA3AF", marginBottom: 4 },
+  tokenLabel: {
+    fontSize: 12,
+    color: "#9CA3AF",
+    marginBottom: 4,
+    fontFamily: "Poppins_400Regular",
+  },
   tokenText: {
     fontSize: 18,
-    fontWeight: "bold",
     color: "#10B981",
     letterSpacing: 1,
     marginBottom: 15,
+    fontFamily: "Poppins_700Bold",
   },
   timerRow: {
     flexDirection: "row",
@@ -151,9 +152,9 @@ const styles = StyleSheet.create({
   },
   timerText: {
     fontSize: 13,
-    fontWeight: "600",
     color: "#F59E0B",
     marginLeft: 6,
+    fontFamily: "Poppins_600SemiBold",
   },
   button: {
     flexDirection: "row",
@@ -165,5 +166,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: "100%",
   },
-  buttonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "600" },
+  buttonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontFamily: "Poppins_600SemiBold",
+  },
 });
