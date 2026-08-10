@@ -1,103 +1,143 @@
-import { Text, View, StyleSheet, TouchableOpacity } from 'react-native';
+import { FontAwesome } from "@expo/vector-icons";
+import React from "react";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { usePoints } from "../../PointContext"; // Mengambil data poin global
 
-export default function Index() {
+export default function HomeScreen() {
+  const { points, totalBottles, addPoints } = usePoints();
+
   return (
-    <View style={styles.container}>
-      {/* Header Hijau */}
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Header Sapaan */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Plastic Exchange</Text>
-        <Text style={styles.headerSubtitle}>Recycle & Earn</Text>
+        <Text style={styles.greeting}>Halo, Nayaka! 👋</Text>
+        <Text style={styles.subGreeting}>
+          Ayo kumpulkan poin daur ulangmu hari ini.
+        </Text>
       </View>
 
-      {/* Card Info Saldo */}
-      <View style={styles.card}>
-        <Text style={styles.cardLabel}>Real-time Weight</Text>
-        <Text style={styles.weightText}>1.25 kg</Text>
-        
-        <View style={styles.divider} />
-        
-        <Text style={styles.cardLabel}>Total Reward</Text>
-        <Text style={styles.coinText}>6,250 Coins</Text>
+      {/* Kartu Utama Saldo Poin */}
+      <View style={styles.cardBalance}>
+        <Text style={styles.balanceLabel}>Total Poin Kamu</Text>
+        <Text style={styles.balanceValue}>{points} Poin</Text>
+        <View style={styles.statsRow}>
+          <FontAwesome
+            name="recycle"
+            size={16}
+            color="#FFFFFF"
+            style={{ marginRight: 6 }}
+          />
+          <Text style={styles.statText}>{totalBottles} Botol Terkumpul</Text>
+        </View>
       </View>
 
-      {/* Tombol Tukar */}
-      <TouchableOpacity style={styles.button}>
-        <Text style={styles.buttonText}>Exchange Now →</Text>
-      </TouchableOpacity>
-    </View>
+      {/* Area Simulasi / Fitur Cepat */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Aksi Cepat</Text>
+
+        <TouchableOpacity
+          style={styles.simulationButton}
+          onPress={() => addPoints(50, 5)}
+        >
+          <FontAwesome
+            name="plus-circle"
+            size={20}
+            color="#FFFFFF"
+            style={{ marginRight: 10 }}
+          />
+          <Text style={styles.simulationText}>
+            Simulasi Masukkan 5 Botol (+50 Poin)
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
   );
 }
 
-// Kumpulan gaya (style) untuk mempercantik tampilan
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#F3F4F6', // Latar belakang abu-abu terang
-    alignItems: 'center' 
+  container: {
+    flex: 1,
+    backgroundColor: "#F9FAFB",
+    paddingHorizontal: 20,
+    paddingTop: 50,
   },
-  header: { 
-    backgroundColor: '#10B981', // Warna hijau khas eco-friendly
-    width: '100%', 
-    paddingTop: 60,
-    paddingBottom: 50, 
-    alignItems: 'center', 
-    borderBottomLeftRadius: 30, 
-    borderBottomRightRadius: 30 
+  header: {
+    marginBottom: 24,
   },
-  headerTitle: { 
-    fontSize: 28, 
-    fontWeight: 'bold', 
-    color: 'white' 
+  greeting: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#111827",
   },
-  headerSubtitle: { 
-    fontSize: 14, 
-    color: '#D1FAE5', 
-    marginTop: 5 
+  subGreeting: {
+    fontSize: 14,
+    color: "#6B7280",
+    marginTop: 4,
   },
-  card: { 
-    backgroundColor: 'white', 
-    width: '85%', 
-    padding: 30, 
-    borderRadius: 20, 
-    marginTop: -35, // Efek menumpuk di atas header
-    shadowColor: '#000', 
-    shadowOpacity: 0.1, 
-    shadowRadius: 10, 
-    elevation: 5, 
-    alignItems: 'center' 
+  cardBalance: {
+    backgroundColor: "#10B981",
+    borderRadius: 20,
+    padding: 24,
+    alignItems: "center",
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+    marginBottom: 24,
   },
-  cardLabel: { 
-    fontSize: 14, 
-    color: '#6B7280', 
-    marginBottom: 5 
+  balanceLabel: {
+    fontSize: 14,
+    color: "#D1FAE5",
+    marginBottom: 8,
+    fontWeight: "500",
   },
-  weightText: { 
-    fontSize: 40, 
-    fontWeight: 'bold', 
-    color: '#111827' 
+  balanceValue: {
+    fontSize: 38,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+    marginBottom: 16,
   },
-  divider: { 
-    height: 1, 
-    backgroundColor: '#E5E7EB', 
-    width: '100%', 
-    marginVertical: 20 
+  statsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 20,
   },
-  coinText: { 
-    fontSize: 32, 
-    fontWeight: 'bold', 
-    color: '#10B981' 
+  statText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+    fontSize: 13,
   },
-  button: { 
-    backgroundColor: '#10B981', 
-    padding: 18, 
-    borderRadius: 15, 
-    width: '85%', 
-    alignItems: 'center', 
-    marginTop: 30 
+  section: {
+    marginTop: 10,
   },
-  buttonText: { 
-    color: 'white', 
-    fontSize: 16, 
-    fontWeight: 'bold' 
-  }
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#111827",
+    marginBottom: 12,
+  },
+  simulationButton: {
+    flexDirection: "row",
+    backgroundColor: "#3B82F6",
+    padding: 16,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 2,
+  },
+  simulationText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+    fontSize: 15,
+  },
 });
