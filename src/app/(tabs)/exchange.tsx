@@ -1,22 +1,53 @@
 import { FontAwesome } from "@expo/vector-icons";
-import React, { useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from "react-native";
 import QRCode from "react-native-qrcode-svg";
 
 export default function ExchangeScreen() {
-  const [qrToken, setQrToken] = useState("ECO-SESSION-2026-NAYAKA");
+  const [qrToken, setQrToken] = useState("ECO-SESSION-INITIAL");
+  const [timeLeft, setTimeLeft] = useState(15); // Waktu hitung mundur (15 detik)
 
+  // Fungsi untuk membuat token baru secara acak
   const generateNewToken = () => {
-    const randomCode =
-      "ECO-SESSION-" + Math.floor(100000 + Math.random() * 900000);
+    const randomCode = "ECO-" + Math.floor(10000000 + Math.random() * 90000000);
     setQrToken(randomCode);
+    setTimeLeft(15); // Reset waktu kembali ke 15 detik
   };
+
+  // Efek untuk menjalankan timer otomatis saat halaman dibuka
+  useEffect(() => {
+    // Generate token pertama kali saat halaman dimuat
+    generateNewToken();
+
+    // Membuat interval yang berjalan setiap 1 detik (1000 ms)
+    const timer = setInterval(() => {
+      setTimeLeft((prevTime) => {
+        if (prevTime <= 1) {
+          // Jika waktu habis, buat token baru
+          const randomCode =
+            "ECO-" + Math.floor(10000000 + Math.random() * 90000000);
+          setQrToken(randomCode);
+          return 15; // Reset waktu
+        }
+        return prevTime - 1; // Kurangi 1 detik
+      });
+    }, 1000);
+
+    // Membersihkan interval saat pengguna pindah dari halaman ini agar tidak membebani memori
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <View style={styles.container}>
       <Text style={styles.headerTitle}>Sesi Tukar Sampah</Text>
       <Text style={styles.subtitle}>
-        Tunjukkan QR Code ini ke scanner mesin untuk memulai penimbangan botol.
+        Tunjukkan QR Code ini ke scanner mesin. Token otomatis diperbarui demi
+        keamanan.
       </Text>
 
       <View style={styles.card}>
@@ -32,6 +63,21 @@ export default function ExchangeScreen() {
         <Text style={styles.tokenLabel}>Kode Sesi Aktif:</Text>
         <Text style={styles.tokenText}>{qrToken}</Text>
 
+        {/* Indikator Hitung Mundur */}
+        <View style={styles.timerRow}>
+          <FontAwesome
+            name="clock-o"
+            size={16}
+            color={timeLeft <= 5 ? "#EF4444" : "#F59E0B"}
+          />
+          <Text
+            style={[styles.timerText, timeLeft <= 5 && { color: "#EF4444" }]}
+          >
+            Diperbarui dalam {timeLeft} detik
+          </Text>
+        </View>
+
+        {/* Tombol manual (opsional, jika user tidak sabar menunggu) */}
         <TouchableOpacity style={styles.button} onPress={generateNewToken}>
           <FontAwesome
             name="refresh"
@@ -39,7 +85,7 @@ export default function ExchangeScreen() {
             color="#FFFFFF"
             style={{ marginRight: 8 }}
           />
-          <Text style={styles.buttonText}>Refresh Token Sesi</Text>
+          <Text style={styles.buttonText}>Perbarui Sekarang</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -86,31 +132,38 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
     marginBottom: 20,
   },
-  tokenLabel: {
-    fontSize: 12,
-    color: "#9CA3AF",
-    marginBottom: 4,
-  },
+  tokenLabel: { fontSize: 12, color: "#9CA3AF", marginBottom: 4 },
   tokenText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
     color: "#10B981",
     letterSpacing: 1,
+    marginBottom: 15,
+  },
+  timerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FEF3C7",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
     marginBottom: 20,
+  },
+  timerText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#F59E0B",
+    marginLeft: 6,
   },
   button: {
     flexDirection: "row",
     backgroundColor: "#10B981",
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     width: "100%",
   },
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "600",
-  },
+  buttonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "600" },
 });
