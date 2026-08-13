@@ -3,37 +3,59 @@ import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 
+// 1. Import senjata Firebase kita
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+// Pastikan jumlah titik-titiknya sesuai dengan letak firebaseConfig.ts milikmu!
+import { db } from "../../firebaseConfig";
+
 export default function ExchangeScreen() {
   const [qrToken, setQrToken] = useState("ECO-SESSION-INITIAL");
-  const [timeLeft, setTimeLeft] = useState(15); // Waktu hitung mundur (15 detik)
+  const [timeLeft, setTimeLeft] = useState(15);
 
-  // Fungsi untuk membuat token baru secara acak
   const generateNewToken = () => {
     const randomCode = "ECO-" + Math.floor(10000000 + Math.random() * 90000000);
     setQrToken(randomCode);
-    setTimeLeft(15); // Reset waktu kembali ke 15 detik
+    setTimeLeft(15);
   };
 
-  // Efek untuk menjalankan timer otomatis saat halaman dibuka
+  // 2. JEMBATAN AWAN: Mengirim token ke Firebase secara otomatis
   useEffect(() => {
-    // Generate token pertama kali saat halaman dimuat
+    const simpanTokenKeCloud = async () => {
+      // Jangan kirim token dummy awal ke database
+      if (qrToken === "ECO-SESSION-INITIAL") return;
+
+      try {
+        // Menyimpan kode ke koleksi "Sesi_Aktif" khusus untuk akunmu
+        await setDoc(doc(db, "Sesi_Aktif", "Nayaka"), {
+          kode_sesi: qrToken,
+          waktu_dibuat: serverTimestamp(),
+          status: "menunggu_mesin", // Status awal menunggu ESP32 melakukan scan
+        });
+        console.log("Token berhasil diamankan ke awan:", qrToken);
+      } catch (error) {
+        console.error("Gagal mengirim token ke awan:", error);
+      }
+    };
+
+    simpanTokenKeCloud();
+  }, [qrToken]); // Efek ini akan otomatis "terpancing" setiap kali qrToken berubah
+
+  // 3. Efek Timer Bawaanmu (Tidak ada yang diubah)
+  useEffect(() => {
     generateNewToken();
 
-    // Membuat interval yang berjalan setiap 1 detik (1000 ms)
     const timer = setInterval(() => {
       setTimeLeft((prevTime) => {
         if (prevTime <= 1) {
-          // Jika waktu habis, buat token baru
           const randomCode =
             "ECO-" + Math.floor(10000000 + Math.random() * 90000000);
           setQrToken(randomCode);
-          return 15; // Reset waktu
+          return 15;
         }
-        return prevTime - 1; // Kurangi 1 detik
+        return prevTime - 1;
       });
     }, 1000);
 
-    // Membersihkan interval saat pengguna pindah dari halaman ini agar tidak membebani memori
     return () => clearInterval(timer);
   }, []);
 
@@ -72,7 +94,6 @@ export default function ExchangeScreen() {
           </Text>
         </View>
 
-        {/* Tombol manual (opsional, jika user tidak sabar menunggu) */}
         <TouchableOpacity style={styles.button} onPress={generateNewToken}>
           <FontAwesome
             name="refresh"
@@ -87,6 +108,7 @@ export default function ExchangeScreen() {
   );
 }
 
+// Styling tetap sama persis dengan desain aslimu
 const styles = StyleSheet.create({
   container: {
     flex: 1,

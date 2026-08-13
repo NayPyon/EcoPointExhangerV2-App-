@@ -14,14 +14,14 @@ import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 
 export default function HomeScreen() {
-  const { points, totalBottles, addPoints } = usePoints();
+  const { totalPoin, totalBottles, hariKonsisten } = usePoints();
 
   const targetPoints = 1000;
-  const progressPercentage = Math.min((points / targetPoints) * 100, 100);
+  const progressPercentage = Math.min((totalPoin / targetPoints) * 100, 100);
 
   const getLevelName = () => {
-    if (points >= 1000) return "Eco-Master 👑";
-    if (points >= 500) return "Eco-Warrior ⚔️";
+    if (totalPoin >= 1000) return "Eco-Master 👑";
+    if (totalPoin >= 500) return "Eco-Warrior ⚔️";
     return "Eco-Starter 🌱";
   };
 
@@ -69,7 +69,7 @@ export default function HomeScreen() {
           </View>
 
           <Text style={styles.pointLabel}>Total Poin</Text>
-          <Text style={styles.pointValue}>{points}</Text>
+          <Text style={styles.pointValue}>{totalPoin}</Text>
 
           <View style={styles.progressContainer}>
             <View style={styles.progressBarBackground}>
@@ -81,7 +81,7 @@ export default function HomeScreen() {
               />
             </View>
             <Text style={styles.progressText}>
-              {points} / {targetPoints} Poin menuju level berikutnya
+              {totalPoin} / {targetPoints} Poin menuju level berikutnya
             </Text>
           </View>
         </LinearGradient>
@@ -90,12 +90,14 @@ export default function HomeScreen() {
       <View style={styles.statsContainer}>
         <View style={styles.statBox}>
           <FontAwesome name="recycle" size={24} color="#10B981" />
+          {/* Mengganti angka 12 menjadi totalBottles */}
           <Text style={styles.statNumber}>{totalBottles}</Text>
           <Text style={styles.statLabel}>Botol Didaur</Text>
         </View>
         <View style={styles.statBox}>
           <FontAwesome name="fire" size={24} color="#F59E0B" />
-          <Text style={styles.statNumber}>3 Hari</Text>
+          {/* Mengganti angka 3 menjadi hariKonsisten */}
+          <Text style={styles.statNumber}>{hariKonsisten} Hari</Text>
           <Text style={styles.statLabel}>Konsisten</Text>
         </View>
       </View>
