@@ -1,451 +1,221 @@
-import { FontAwesome } from "@expo/vector-icons";
-import React, { useState } from "react";
+import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
+import React from "react";
 import {
   Alert,
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { usePoints } from "../../PointContext";
+import { usePoints } from "../../PointContext"; // Narik data poin asli
 
 export default function ProfileScreen() {
-  const { points, totalBottles } = usePoints();
+  const { totalPoin } = usePoints();
 
-  // State untuk mengontrol jendela Pop-up (Modal)
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [walletModalVisible, setWalletModalVisible] = useState(false);
-
-  // State untuk data profil (Bisa diedit)
-  const [name, setName] = useState("Nayaka");
-  const [bio, setBio] = useState("Pejuang Lingkungan (Eco-Warrior)");
-  const [location, setLocation] = useState("Denpasar, Bali");
-
-  // State E-Wallet yang aktif
-  const [activeWallet, setActiveWallet] = useState("Belum terhubung");
-
-  const handleMenuPress = (actionId, title) => {
-    switch (actionId) {
-      case "edit":
-        setEditModalVisible(true);
-        break;
-      case "wallet":
-        setWalletModalVisible(true);
-        break;
-      case "logout":
-        Alert.alert(
-          "Konfirmasi Keluar",
-          "Apakah kamu yakin ingin keluar dari sesi aplikasi saat ini?",
-          [
-            { text: "Batal", style: "cancel" },
-            {
-              text: "Ya, Keluar",
-              style: "destructive",
-              onPress: () => console.log("Proses Logout..."),
-            },
-          ],
-        );
-        break;
-      default:
-        Alert.alert(
-          "Fitur Segera Hadir",
-          `Halaman pengaturan untuk "${title}" sedang dalam tahap pengembangan.`,
-        );
-        break;
-    }
-  };
-
-  const menuItems = [
-    { id: "1", actionId: "edit", icon: "edit", title: "Edit Profil" },
+  // Daftar menu yang ada di Profil
+  const MENU_ITEMS = [
+    { id: "1", title: "Edit Profil", icon: "user", color: "#3B82F6" },
+    { id: "2", title: "Keamanan Akun", icon: "shield", color: "#10B981" },
+    { id: "3", title: "Pengaturan Notifikasi", icon: "bell", color: "#F59E0B" },
     {
-      id: "2",
-      actionId: "wallet",
-      icon: "credit-card",
-      title: "Metode Pencairan (E-Wallet)",
+      id: "4",
+      title: "Bantuan & FAQ",
+      icon: "question-circle",
+      color: "#8B5CF6",
     },
-    { id: "3", actionId: "notif", icon: "bell-o", title: "Notifikasi" },
-    { id: "4", actionId: "security", icon: "shield", title: "Keamanan Akun" },
     {
       id: "5",
-      actionId: "help",
-      icon: "question-circle-o",
-      title: "Bantuan & Dukungan",
-    },
-    {
-      id: "6",
-      actionId: "logout",
-      icon: "sign-out",
-      title: "Keluar",
-      color: "#EF4444",
+      title: "Tentang Aplikasi",
+      icon: "info-circle",
+      color: "#6B7280",
     },
   ];
 
+  // Logika saat tombol keluar ditekan
+  const handleLogout = () => {
+    Alert.alert(
+      "Keluar Akun",
+      "Apakah kamu yakin ingin keluar dari aplikasi EcoPoint?",
+      [
+        { text: "Batal", style: "cancel" },
+        {
+          text: "Keluar",
+          style: "destructive",
+          onPress: () => console.log("Proses Log Out..."),
+          // Nanti logika hapus sesi / Firebase Auth bisa ditaruh di sini
+        },
+      ],
+    );
+  };
+
   return (
-    <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Area Header Profil */}
-        <View style={styles.header}>
-          <View style={styles.avatarWrapper}>
-            <FontAwesome name="user-circle" size={90} color="#D1D5DB" />
-            <TouchableOpacity style={styles.editAvatarButton}>
-              <FontAwesome name="camera" size={14} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.name}>{name}</Text>
-          <Text style={styles.bio}>{bio}</Text>
-          <View style={styles.locationRow}>
-            <FontAwesome name="map-marker" size={14} color="#9CA3AF" />
-            <Text style={styles.locationText}>{location}</Text>
-          </View>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* 1. Bagian Header (Foto Profil & Info Singkat) */}
+      <View style={styles.headerCard}>
+        <View style={styles.avatarContainer}>
+          <FontAwesome name="user" size={40} color="#10B981" />
         </View>
+        <Text style={styles.name}>Nayaka</Text>
+        <Text style={styles.email}>nayaka@ecopoint.id</Text>
 
-        {/* Area Statistik */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statBox}>
-            <Text style={styles.statValue}>{points}</Text>
-            <Text style={styles.statLabel}>Total Poin</Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.statBox}>
-            <Text style={styles.statValue}>{totalBottles}</Text>
-            <Text style={styles.statLabel}>Botol Didaur</Text>
-          </View>
+        {/* Lencana Poin yang terhubung dengan PointContext */}
+        <View style={styles.badgeContainer}>
+          <FontAwesome name="star" size={14} color="#F59E0B" />
+          <Text style={styles.badgeText}>{totalPoin} Poin Terkumpul</Text>
         </View>
+      </View>
 
-        {/* Info Wallet Aktif */}
-        <View style={styles.walletInfo}>
-          <Text style={styles.walletLabel}>Status Pencairan:</Text>
-          <Text
-            style={[
-              styles.walletStatus,
-              activeWallet !== "Belum terhubung" && { color: "#10B981" },
-            ]}
-          >
-            {activeWallet}
-          </Text>
-        </View>
+      {/* 2. Daftar Menu Pengaturan */}
+      <View style={styles.menuContainer}>
+        <Text style={styles.sectionTitle}>Pengaturan Akun</Text>
 
-        {/* Area Daftar Menu */}
-        <View style={styles.menuContainer}>
-          {menuItems.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.menuItem}
-              onPress={() => handleMenuPress(item.actionId, item.title)}
+        {MENU_ITEMS.map((item) => (
+          <TouchableOpacity key={item.id} style={styles.menuItem}>
+            <View
+              style={[styles.iconBox, { backgroundColor: item.color + "15" }]}
             >
-              <View style={styles.menuLeft}>
-                <View style={styles.iconWrapper}>
-                  <FontAwesome
-                    name={item.icon}
-                    size={20}
-                    color={item.color || "#4B5563"}
-                  />
-                </View>
-                <Text
-                  style={[styles.menuText, item.color && { color: item.color }]}
-                >
-                  {item.title}
-                </Text>
-              </View>
-              <FontAwesome name="angle-right" size={20} color="#D1D5DB" />
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <Text style={styles.versionText}>Eco-Point v1.0.0</Text>
-      </ScrollView>
-
-      {/* ========================================== */}
-      {/* MODAL 1: EDIT PROFIL */}
-      {/* ========================================== */}
-      <Modal visible={editModalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Edit Profil</Text>
-              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                <FontAwesome name="close" size={24} color="#6B7280" />
-              </TouchableOpacity>
+              <FontAwesome
+                name={item.icon as any}
+                size={20}
+                color={item.color}
+              />
             </View>
+            <Text style={styles.menuText}>{item.title}</Text>
+            <MaterialIcons name="chevron-right" size={24} color="#9CA3AF" />
+          </TouchableOpacity>
+        ))}
+      </View>
 
-            <Text style={styles.inputLabel}>Nama Panggilan</Text>
-            <TextInput
-              style={styles.inputField}
-              value={name}
-              onChangeText={setName}
-            />
+      {/* 3. Tombol Keluar (Merah) */}
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <MaterialIcons name="logout" size={24} color="#EF4444" />
+        <Text style={styles.logoutText}>Keluar Akun</Text>
+      </TouchableOpacity>
 
-            <Text style={styles.inputLabel}>Bio Singkat</Text>
-            <TextInput
-              style={styles.inputField}
-              value={bio}
-              onChangeText={setBio}
-            />
-
-            <Text style={styles.inputLabel}>Lokasi Domisili</Text>
-            <TextInput
-              style={styles.inputField}
-              value={location}
-              onChangeText={setLocation}
-            />
-
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={() => setEditModalVisible(false)}
-            >
-              <Text style={styles.saveButtonText}>Simpan Perubahan</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* ========================================== */}
-      {/* MODAL 2: PILIH E-WALLET */}
-      {/* ========================================== */}
-      <Modal visible={walletModalVisible} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Hubungkan E-Wallet</Text>
-              <TouchableOpacity onPress={() => setWalletModalVisible(false)}>
-                <FontAwesome name="close" size={24} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.modalSubtitle}>
-              Pilih dompet digital untuk mencairkan poinmu.
-            </Text>
-
-            <TouchableOpacity
-              style={styles.walletOption}
-              onPress={() => {
-                setActiveWallet("Terhubung ke GoPay");
-                setWalletModalVisible(false);
-              }}
-            >
-              <FontAwesome
-                name="google-wallet"
-                size={24}
-                color="#00AED6"
-                style={{ width: 35 }}
-              />
-              <Text style={styles.walletOptionText}>GoPay</Text>
-              <FontAwesome
-                name="check-circle"
-                size={20}
-                color={activeWallet.includes("GoPay") ? "#10B981" : "#E5E7EB"}
-              />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.walletOption}
-              onPress={() => {
-                setActiveWallet("Terhubung ke OVO");
-                setWalletModalVisible(false);
-              }}
-            >
-              <FontAwesome
-                name="credit-card-alt"
-                size={20}
-                color="#4C3494"
-                style={{ width: 35 }}
-              />
-              <Text style={styles.walletOptionText}>OVO</Text>
-              <FontAwesome
-                name="check-circle"
-                size={20}
-                color={activeWallet.includes("OVO") ? "#10B981" : "#E5E7EB"}
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    </View>
+      {/* 4. Versi Aplikasi (Detail kecil biar terlihat pro) */}
+      <Text style={styles.version}>EcoPoint v1.0.0 (Beta)</Text>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB" },
-  header: {
-    alignItems: "center",
-    paddingTop: 50,
-    paddingBottom: 25,
+  container: {
+    flex: 1,
+    backgroundColor: "#F3F4F6",
+  },
+  headerCard: {
     backgroundColor: "#FFFFFF",
+    paddingTop: 60,
+    paddingBottom: 30,
+    alignItems: "center",
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
     shadowRadius: 10,
-    elevation: 3,
+    elevation: 5,
   },
-  avatarWrapper: { position: "relative", marginBottom: 15 },
-  editAvatarButton: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    backgroundColor: "#10B981",
-    padding: 8,
-    borderRadius: 20,
-    borderWidth: 3,
+  avatarContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "#D1FAE5",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+    borderWidth: 4,
     borderColor: "#FFFFFF",
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   name: {
     fontSize: 22,
+    fontWeight: "bold",
     color: "#111827",
     marginBottom: 4,
-    fontFamily: "Poppins_700Bold",
   },
-  bio: {
+  email: {
     fontSize: 14,
-    color: "#10B981",
-    marginBottom: 8,
-    fontFamily: "Poppins_500Medium",
-  },
-  locationRow: { flexDirection: "row", alignItems: "center" },
-  locationText: {
-    fontSize: 13,
     color: "#6B7280",
-    marginLeft: 6,
-    fontFamily: "Poppins_400Regular",
+    marginBottom: 12,
   },
-  statsContainer: {
+  badgeContainer: {
     flexDirection: "row",
-    backgroundColor: "#FFFFFF",
-    marginHorizontal: 20,
-    marginTop: 20,
-    borderRadius: 16,
-    paddingVertical: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    alignItems: "center",
+    backgroundColor: "#FEF3C7",
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: 20,
   },
-  statBox: { flex: 1, alignItems: "center" },
-  divider: { width: 1, backgroundColor: "#F3F4F6" },
-  statValue: {
-    fontSize: 24,
+  badgeText: {
+    color: "#B45309",
+    fontWeight: "bold",
+    fontSize: 13,
+    marginLeft: 6,
+  },
+  menuContainer: {
+    paddingHorizontal: 20,
+    marginTop: 24,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
     color: "#111827",
-    marginBottom: 4,
-    fontFamily: "Poppins_700Bold",
+    marginBottom: 16,
   },
-  statLabel: {
-    fontSize: 12,
-    color: "#6B7280",
-    fontFamily: "Poppins_400Regular",
-  },
-  walletInfo: { flexDirection: "row", justifyContent: "center", marginTop: 15 },
-  walletLabel: {
-    fontSize: 13,
-    color: "#6B7280",
-    marginRight: 5,
-    fontFamily: "Poppins_400Regular",
-  },
-  walletStatus: {
-    fontSize: 13,
-    color: "#EF4444",
-    fontFamily: "Poppins_700Bold",
-  },
-  menuContainer: { marginTop: 15, paddingHorizontal: 20 },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     backgroundColor: "#FFFFFF",
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    padding: 16,
     borderRadius: 16,
     marginBottom: 12,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.03,
     shadowRadius: 5,
     elevation: 1,
   },
-  menuLeft: { flexDirection: "row", alignItems: "center" },
-  iconWrapper: { width: 30, alignItems: "center", marginRight: 15 },
+  iconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 16,
+  },
   menuText: {
+    flex: 1,
     fontSize: 15,
     color: "#374151",
-    fontFamily: "Poppins_600SemiBold",
+    fontWeight: "500",
   },
-  versionText: {
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FEE2E2",
+    marginHorizontal: 20,
+    marginTop: 20,
+    paddingVertical: 16,
+    borderRadius: 16,
+  },
+  logoutText: {
+    color: "#EF4444",
+    fontSize: 16,
+    fontWeight: "bold",
+    marginLeft: 8,
+  },
+  version: {
     textAlign: "center",
     color: "#9CA3AF",
     fontSize: 12,
-    marginTop: 20,
+    marginTop: 24,
     marginBottom: 40,
-    fontFamily: "Poppins_400Regular",
-  },
-
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
-  },
-  modalContent: {
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    paddingBottom: 40,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  modalTitle: { fontSize: 18, color: "#111827", fontFamily: "Poppins_700Bold" },
-  modalSubtitle: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginBottom: 20,
-    fontFamily: "Poppins_400Regular",
-  },
-  inputLabel: {
-    fontSize: 13,
-    color: "#374151",
-    marginBottom: 8,
-    fontFamily: "Poppins_600SemiBold",
-  },
-  inputField: {
-    backgroundColor: "#F3F4F6",
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 15,
-    marginBottom: 16,
-    color: "#111827",
-    fontFamily: "Poppins_500Medium",
-  },
-  saveButton: {
-    backgroundColor: "#10B981",
-    padding: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 10,
-  },
-  saveButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontFamily: "Poppins_700Bold",
-  },
-  walletOption: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  walletOptionText: {
-    flex: 1,
-    fontSize: 16,
-    color: "#374151",
-    fontFamily: "Poppins_600SemiBold",
   },
 });

@@ -1,4 +1,8 @@
 import { FontAwesome } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
+import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
 import React from "react";
 import {
   ScrollView,
@@ -8,10 +12,6 @@ import {
   View,
 } from "react-native";
 import { usePoints } from "../../PointContext";
-// 1. Import senjata rahasia kita
-import { BlurView } from "expo-blur";
-import * as Haptics from "expo-haptics";
-import { LinearGradient } from "expo-linear-gradient";
 
 export default function HomeScreen() {
   const { totalPoin, totalBottles, hariKonsisten } = usePoints();
@@ -25,14 +25,9 @@ export default function HomeScreen() {
     return "Eco-Starter 🌱";
   };
 
-  // Fungsi dengan efek getaran (Haptic Feedback)
-  const handleSimulatePress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); // Getaran tebal/mantap
-    addPoints(50, 5, "Simulasi Masukkan 5 Botol");
-  };
-
   const handleBellPress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); // Getaran ringan/halus
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push("/notifications");
   };
 
   return (
@@ -52,16 +47,14 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* 2. Linear Gradient: Membuat warna kartu mengkilat dan berdimensi */}
       <View style={styles.cardWrapper}>
         <LinearGradient
-          colors={["#059669", "#10B981", "#34D399"]} // Gradasi dari gelap ke terang
+          colors={["#059669", "#10B981", "#34D399"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.pointCard}
         >
           <View style={styles.pointHeader}>
-            {/* 3. Glassmorphism: Efek kaca buram (frosted glass) pada label level */}
             <BlurView intensity={40} tint="light" style={styles.glassBadge}>
               <Text style={styles.levelText}>{getLevelName()}</Text>
             </BlurView>
@@ -90,42 +83,24 @@ export default function HomeScreen() {
       <View style={styles.statsContainer}>
         <View style={styles.statBox}>
           <FontAwesome name="recycle" size={24} color="#10B981" />
-          {/* Mengganti angka 12 menjadi totalBottles */}
           <Text style={styles.statNumber}>{totalBottles}</Text>
           <Text style={styles.statLabel}>Botol Didaur</Text>
         </View>
         <View style={styles.statBox}>
           <FontAwesome name="fire" size={24} color="#F59E0B" />
-          {/* Mengganti angka 3 menjadi hariKonsisten */}
           <Text style={styles.statNumber}>{hariKonsisten} Hari</Text>
           <Text style={styles.statLabel}>Konsisten</Text>
         </View>
-      </View>
-
-      <View style={styles.actionContainer}>
-        <Text style={styles.sectionTitle}>Uji Coba Sistem</Text>
-        <TouchableOpacity
-          activeOpacity={0.8}
-          style={styles.simulateButton}
-          onPress={handleSimulatePress}
-        >
-          <FontAwesome
-            name="plus-circle"
-            size={20}
-            color="#FFFFFF"
-            style={{ marginRight: 10 }}
-          />
-          <Text style={styles.simulateButtonText}>
-            Simulasi Masukkan 5 Botol (+50 Poin)
-          </Text>
-        </TouchableOpacity>
       </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB" },
+  container: {
+    flex: 1,
+    backgroundColor: "#F9FAFB",
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -134,7 +109,11 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 20,
   },
-  greeting: { fontSize: 24, color: "#111827", fontFamily: "Poppins_700Bold" },
+  greeting: {
+    fontSize: 24,
+    color: "#111827",
+    fontFamily: "Poppins_700Bold",
+  },
   subtitle: {
     fontSize: 14,
     color: "#6B7280",
@@ -162,7 +141,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#FFFFFF",
   },
-
   cardWrapper: {
     marginHorizontal: 20,
     borderRadius: 24,
@@ -173,14 +151,15 @@ const styles = StyleSheet.create({
     elevation: 10,
     overflow: "hidden",
   },
-  pointCard: { padding: 24 },
+  pointCard: {
+    padding: 24,
+  },
   pointHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 15,
   },
-
   glassBadge: {
     borderRadius: 20,
     overflow: "hidden",
@@ -195,7 +174,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: "Poppins_600SemiBold",
   },
-
   pointLabel: {
     color: "#D1FAE5",
     fontSize: 14,
@@ -211,8 +189,9 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
-
-  progressContainer: { marginTop: 10 },
+  progressContainer: {
+    marginTop: 10,
+  },
   progressBarBackground: {
     height: 8,
     backgroundColor: "rgba(255, 255, 255, 0.25)",
@@ -230,7 +209,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontFamily: "Poppins_500Medium",
   },
-
   statsContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -261,31 +239,5 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     marginTop: 4,
     fontFamily: "Poppins_500Medium",
-  },
-
-  actionContainer: { padding: 20, marginTop: 15, paddingBottom: 100 },
-  sectionTitle: {
-    fontSize: 18,
-    color: "#111827",
-    marginBottom: 15,
-    fontFamily: "Poppins_700Bold",
-  },
-  simulateButton: {
-    flexDirection: "row",
-    backgroundColor: "#111827",
-    paddingVertical: 18,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  simulateButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontFamily: "Poppins_600SemiBold",
   },
 });
