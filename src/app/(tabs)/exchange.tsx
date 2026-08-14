@@ -1,4 +1,5 @@
 import { FontAwesome } from "@expo/vector-icons";
+import { doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -8,17 +9,16 @@ import {
   View,
 } from "react-native";
 import QRCode from "react-native-qrcode-svg";
-
-// 1. Tambahkan onSnapshot untuk mendengarkan perubahan dari awan
-import { doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
-import { db } from "../../firebaseConfig";
+import { db } from "../../firebaseConfig"; // Sesuaikan lokasi file-mu
 
 export default function ExchangeScreen() {
   const [qrToken, setQrToken] = useState("ECO-SESSION-INITIAL");
   const [timeLeft, setTimeLeft] = useState(60);
 
-  // STATE BARU: Untuk memantau status pintu saat ini
+  // STATE BARU: Pantau Status, Botol, dan Poin
   const [statusSesi, setStatusSesi] = useState("menunggu_mesin");
+  const [jumlahBotol, setJumlahBotol] = useState(0);
+  const [totalPoin, setTotalPoin] = useState(0);
 
   const generateNewToken = () => {
     const randomCode = "ECO-" + Math.floor(10000000 + Math.random() * 90000000);
@@ -26,7 +26,7 @@ export default function ExchangeScreen() {
     setTimeLeft(60);
   };
 
-  // 2. JEMBATAN AWAN: Mengirim token ke Firebase
+  // 1. Mengirim Token Awal ke Firebase
   useEffect(() => {
     const simpanTokenKeCloud = async () => {
       if (qrToken === "ECO-SESSION-INITIAL") return;
@@ -35,6 +35,8 @@ export default function ExchangeScreen() {
           kode_sesi: qrToken,
           waktu_dibuat: serverTimestamp(),
           status: "menunggu_mesin",
+          botol: 0,
+          poin: 0,
         });
       } catch (error) {
         console.error("Gagal mengirim token:", error);
@@ -43,28 +45,23 @@ export default function ExchangeScreen() {
     simpanTokenKeCloud();
   }, [qrToken]);
 
-  // 3. MATA-MATA FIREBASE: Mendengarkan balasan dari Node.js / Mesin
+  // 2. MATA-MATA FIREBASE: Mendengarkan Perubahan Data secara Real-Time
   useEffect(() => {
     const unsub = onSnapshot(doc(db, "Sesi_Aktif", "Nayaka"), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        // Kalau status berubah di Firebase, aplikasimu akan tahu!
-        if (data.status) {
-          setStatusSesi(data.status);
-        }
+        if (data.status) setStatusSesi(data.status);
+        if (data.botol !== undefined) setJumlahBotol(data.botol);
+        if (data.poin !== undefined) setTotalPoin(data.poin);
       }
     });
     return () => unsub();
   }, []);
 
-  // 4. TIMER PINTAR: Akan berhenti otomatis kalau pintu terbuka
+  // 3. TIMER: Otomatis berhenti jika status bukan "menunggu_mesin"
   useEffect(() => {
-    // Kalau statusnya bukan "menunggu_mesin", hentikan timer!
-    if (statusSesi !== "menunggu_mesin") {
-      return;
-    }
+    if (statusSesi !== "menunggu_mesin") return;
 
-    // Kalau status "menunggu_mesin", jalankan timer normal
     generateNewToken();
     const timer = setInterval(() => {
       setTimeLeft((prevTime) => {
@@ -79,18 +76,19 @@ export default function ExchangeScreen() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [statusSesi]); // Timer ini akan bereaksi setiap kali statusSesi berubah
+  }, [statusSesi]);
 
-  // 5. TAMPILAN UI/UX DINAMIS
+  // 4. UI / UX DINAMIS
   return (
     <View style={styles.container}>
       <Text style={styles.headerTitle}>Sesi Tukar Sampah</Text>
 
-      {/* Jika masih menunggu scan */}
+      {/* --- UI KONDISI 1: TAMPILAN QR CODE (Menunggu Mesin) --- */}
       {statusSesi === "menunggu_mesin" && (
         <>
           <Text style={styles.subtitle}>
-            Tunjukkan QR Code ini ke scanner mesin.
+            Tunjukkan QR Code ini ke scanner mesin. Token otomatis diperbarui
+            demi keamanan.
           </Text>
           <View style={styles.card}>
             <View style={styles.qrWrapper}>
@@ -131,53 +129,76 @@ export default function ExchangeScreen() {
         </>
       )}
 
-      {/* Jika pintu sudah terbuka (QR Code Hilang, Timer Berhenti) */}
+      {/* --- UI KONDISI 2: TAMPILAN DASHBOARD POIN (Pintu Terbuka) --- */}
       {statusSesi === "pintu_terbuka" && (
-        <View style={styles.card}>
-          <FontAwesome
-            name="unlock-alt"
-            size={60}
-            color="#10B981"
-            style={{ marginBottom: 15 }}
-          />
-          <Text style={[styles.tokenText, { fontSize: 22 }]}>
-            Pintu Terbuka!
-          </Text>
+        <>
           <Text style={styles.subtitle}>
-            Silakan masukkan botol plastik atau kaleng logam Anda ke dalam
-            mesin.
+            Mesin telah mengenali Anda. Silakan masukkan sampah satu per satu.
           </Text>
+          <View style={styles.card}>
+            <FontAwesome
+              name="unlock-alt"
+              size={50}
+              color="#10B981"
+              style={{ marginBottom: 10 }}
+            />
+            <Text style={[styles.tokenText, { fontSize: 24, marginBottom: 5 }]}>
+              Pintu Terbuka
+            </Text>
 
-          <ActivityIndicator
-            size="large"
-            color="#10B981"
-            style={{ marginVertical: 20 }}
-          />
-          <Text style={styles.tokenLabel}>Menghitung sampah yang masuk...</Text>
+            <ActivityIndicator
+              size="small"
+              color="#10B981"
+              style={{ marginBottom: 20 }}
+            />
 
-          {/* Tombol Simulasi Selesai */}
-          <TouchableOpacity
-            style={[
-              styles.button,
-              { backgroundColor: "#EF4444", marginTop: 20 },
-            ]}
-            onPress={() =>
-              setDoc(
-                doc(db, "Sesi_Aktif", "Nayaka"),
-                { status: "selesai" },
-                { merge: true },
-              )
-            }
-          >
-            <Text style={styles.buttonText}>Akhiri Sesi & Tutup Pintu</Text>
-          </TouchableOpacity>
-        </View>
+            {/* KOTAK INDIKATOR REAL-TIME */}
+            <View style={styles.statsContainer}>
+              <View style={styles.statBox}>
+                <Text style={styles.statLabel}>Sampah Masuk</Text>
+                <Text style={styles.statValue}>{jumlahBotol}</Text>
+                <Text style={styles.statUnit}>Item</Text>
+              </View>
+              <View style={styles.divider} />
+              <View style={styles.statBox}>
+                <Text style={styles.statLabel}>Total Poin</Text>
+                <Text style={[styles.statValue, { color: "#F59E0B" }]}>
+                  {totalPoin}
+                </Text>
+                <Text style={styles.statUnit}>EcoPoints</Text>
+              </View>
+            </View>
+
+            {/* TOMBOL SELESAI */}
+            <TouchableOpacity
+              style={[
+                styles.button,
+                { backgroundColor: "#EF4444", marginTop: 10 },
+              ]}
+              onPress={() =>
+                setDoc(
+                  doc(db, "Sesi_Aktif", "Nayaka"),
+                  { status: "selesai" },
+                  { merge: true },
+                )
+              }
+            >
+              <FontAwesome
+                name="check-circle"
+                size={18}
+                color="#FFFFFF"
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.buttonText}>Akhiri Sesi & Tutup Pintu</Text>
+            </TouchableOpacity>
+          </View>
+        </>
       )}
     </View>
   );
 }
 
-// Styling biarkan sama seperti sebelumnya...
+// Tambahan Styling Baru di Bawah
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -261,5 +282,41 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 15,
     fontFamily: "Poppins_600SemiBold",
+  },
+
+  // STYLING KHUSUS UNTUK KOTAK STATISTIK DASHBOARD
+  statsContainer: {
+    flexDirection: "row",
+    width: "100%",
+    backgroundColor: "#F9FAFB",
+    borderRadius: 15,
+    paddingVertical: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  statBox: {
+    flex: 1,
+    alignItems: "center",
+  },
+  divider: {
+    width: 1,
+    backgroundColor: "#E5E7EB",
+  },
+  statLabel: {
+    fontSize: 12,
+    color: "#6B7280",
+    fontFamily: "Poppins_400Regular",
+    marginBottom: 5,
+  },
+  statValue: {
+    fontSize: 32,
+    color: "#111827",
+    fontFamily: "Poppins_700Bold",
+  },
+  statUnit: {
+    fontSize: 12,
+    color: "#9CA3AF",
+    fontFamily: "Poppins_400Regular",
   },
 });
