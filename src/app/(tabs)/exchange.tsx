@@ -1,114 +1,183 @@
 import { FontAwesome } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import QRCode from "react-native-qrcode-svg";
 
-// 1. Import senjata Firebase kita
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
-// Pastikan jumlah titik-titiknya sesuai dengan letak firebaseConfig.ts milikmu!
+// 1. Tambahkan onSnapshot untuk mendengarkan perubahan dari awan
+import { doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
 
 export default function ExchangeScreen() {
   const [qrToken, setQrToken] = useState("ECO-SESSION-INITIAL");
-  const [timeLeft, setTimeLeft] = useState(15);
+  const [timeLeft, setTimeLeft] = useState(60);
+
+  // STATE BARU: Untuk memantau status pintu saat ini
+  const [statusSesi, setStatusSesi] = useState("menunggu_mesin");
 
   const generateNewToken = () => {
     const randomCode = "ECO-" + Math.floor(10000000 + Math.random() * 90000000);
     setQrToken(randomCode);
-    setTimeLeft(15);
+    setTimeLeft(60);
   };
 
-  // 2. JEMBATAN AWAN: Mengirim token ke Firebase secara otomatis
+  // 2. JEMBATAN AWAN: Mengirim token ke Firebase
   useEffect(() => {
     const simpanTokenKeCloud = async () => {
-      // Jangan kirim token dummy awal ke database
       if (qrToken === "ECO-SESSION-INITIAL") return;
-
       try {
-        // Menyimpan kode ke koleksi "Sesi_Aktif" khusus untuk akunmu
         await setDoc(doc(db, "Sesi_Aktif", "Nayaka"), {
           kode_sesi: qrToken,
           waktu_dibuat: serverTimestamp(),
-          status: "menunggu_mesin", // Status awal menunggu ESP32 melakukan scan
+          status: "menunggu_mesin",
         });
-        console.log("Token berhasil diamankan ke awan:", qrToken);
       } catch (error) {
-        console.error("Gagal mengirim token ke awan:", error);
+        console.error("Gagal mengirim token:", error);
       }
     };
-
     simpanTokenKeCloud();
-  }, [qrToken]); // Efek ini akan otomatis "terpancing" setiap kali qrToken berubah
+  }, [qrToken]);
 
-  // 3. Efek Timer Bawaanmu (Tidak ada yang diubah)
+  // 3. MATA-MATA FIREBASE: Mendengarkan balasan dari Node.js / Mesin
   useEffect(() => {
-    generateNewToken();
+    const unsub = onSnapshot(doc(db, "Sesi_Aktif", "Nayaka"), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        // Kalau status berubah di Firebase, aplikasimu akan tahu!
+        if (data.status) {
+          setStatusSesi(data.status);
+        }
+      }
+    });
+    return () => unsub();
+  }, []);
 
+  // 4. TIMER PINTAR: Akan berhenti otomatis kalau pintu terbuka
+  useEffect(() => {
+    // Kalau statusnya bukan "menunggu_mesin", hentikan timer!
+    if (statusSesi !== "menunggu_mesin") {
+      return;
+    }
+
+    // Kalau status "menunggu_mesin", jalankan timer normal
+    generateNewToken();
     const timer = setInterval(() => {
       setTimeLeft((prevTime) => {
         if (prevTime <= 1) {
           const randomCode =
             "ECO-" + Math.floor(10000000 + Math.random() * 90000000);
           setQrToken(randomCode);
-          return 15;
+          return 60;
         }
         return prevTime - 1;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [statusSesi]); // Timer ini akan bereaksi setiap kali statusSesi berubah
 
+  // 5. TAMPILAN UI/UX DINAMIS
   return (
     <View style={styles.container}>
       <Text style={styles.headerTitle}>Sesi Tukar Sampah</Text>
-      <Text style={styles.subtitle}>
-        Tunjukkan QR Code ini ke scanner mesin. Token otomatis diperbarui demi
-        keamanan.
-      </Text>
 
-      <View style={styles.card}>
-        <View style={styles.qrWrapper}>
-          <QRCode
-            value={qrToken}
-            size={200}
-            color="#111827"
-            backgroundColor="#FFFFFF"
-          />
-        </View>
-
-        <Text style={styles.tokenLabel}>Kode Sesi Aktif:</Text>
-        <Text style={styles.tokenText}>{qrToken}</Text>
-
-        {/* Indikator Hitung Mundur */}
-        <View style={styles.timerRow}>
-          <FontAwesome
-            name="clock-o"
-            size={16}
-            color={timeLeft <= 5 ? "#EF4444" : "#F59E0B"}
-          />
-          <Text
-            style={[styles.timerText, timeLeft <= 5 && { color: "#EF4444" }]}
-          >
-            Diperbarui dalam {timeLeft} detik
+      {/* Jika masih menunggu scan */}
+      {statusSesi === "menunggu_mesin" && (
+        <>
+          <Text style={styles.subtitle}>
+            Tunjukkan QR Code ini ke scanner mesin.
           </Text>
-        </View>
+          <View style={styles.card}>
+            <View style={styles.qrWrapper}>
+              <QRCode
+                value={qrToken}
+                size={200}
+                color="#111827"
+                backgroundColor="#FFFFFF"
+              />
+            </View>
+            <Text style={styles.tokenLabel}>Kode Sesi Aktif:</Text>
+            <Text style={styles.tokenText}>{qrToken}</Text>
+            <View style={styles.timerRow}>
+              <FontAwesome
+                name="clock-o"
+                size={16}
+                color={timeLeft <= 5 ? "#EF4444" : "#F59E0B"}
+              />
+              <Text
+                style={[
+                  styles.timerText,
+                  timeLeft <= 5 && { color: "#EF4444" },
+                ]}
+              >
+                Diperbarui dalam {timeLeft} detik
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.button} onPress={generateNewToken}>
+              <FontAwesome
+                name="refresh"
+                size={18}
+                color="#FFFFFF"
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.buttonText}>Perbarui Sekarang</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
 
-        <TouchableOpacity style={styles.button} onPress={generateNewToken}>
+      {/* Jika pintu sudah terbuka (QR Code Hilang, Timer Berhenti) */}
+      {statusSesi === "pintu_terbuka" && (
+        <View style={styles.card}>
           <FontAwesome
-            name="refresh"
-            size={18}
-            color="#FFFFFF"
-            style={{ marginRight: 8 }}
+            name="unlock-alt"
+            size={60}
+            color="#10B981"
+            style={{ marginBottom: 15 }}
           />
-          <Text style={styles.buttonText}>Perbarui Sekarang</Text>
-        </TouchableOpacity>
-      </View>
+          <Text style={[styles.tokenText, { fontSize: 22 }]}>
+            Pintu Terbuka!
+          </Text>
+          <Text style={styles.subtitle}>
+            Silakan masukkan botol plastik atau kaleng logam Anda ke dalam
+            mesin.
+          </Text>
+
+          <ActivityIndicator
+            size="large"
+            color="#10B981"
+            style={{ marginVertical: 20 }}
+          />
+          <Text style={styles.tokenLabel}>Menghitung sampah yang masuk...</Text>
+
+          {/* Tombol Simulasi Selesai */}
+          <TouchableOpacity
+            style={[
+              styles.button,
+              { backgroundColor: "#EF4444", marginTop: 20 },
+            ]}
+            onPress={() =>
+              setDoc(
+                doc(db, "Sesi_Aktif", "Nayaka"),
+                { status: "selesai" },
+                { merge: true },
+              )
+            }
+          >
+            <Text style={styles.buttonText}>Akhiri Sesi & Tutup Pintu</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
 
-// Styling tetap sama persis dengan desain aslimu
+// Styling biarkan sama seperti sebelumnya...
 const styles = StyleSheet.create({
   container: {
     flex: 1,
