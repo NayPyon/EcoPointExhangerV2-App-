@@ -1,4 +1,5 @@
 import { FontAwesome } from "@expo/vector-icons";
+import { useIsFocused } from "@react-navigation/native";
 import { doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
@@ -14,6 +15,8 @@ import { db } from "../../firebaseConfig"; // Sesuaikan lokasi file-mu
 export default function ExchangeScreen() {
   const [qrToken, setQrToken] = useState("ECO-SESSION-INITIAL");
   const [timeLeft, setTimeLeft] = useState(60);
+
+  const isFocused = useIsFocused(); // Akan bernilai true jika dilihat, false jika pindah tab
 
   // STATE BARU: Pantau Status, Botol, dan Poin
   const [statusSesi, setStatusSesi] = useState("menunggu_mesin");
@@ -58,9 +61,10 @@ export default function ExchangeScreen() {
     return () => unsub();
   }, []);
 
-  // 3. TIMER: Otomatis berhenti jika status bukan "menunggu_mesin"
+  // 3. TIMER: Otomatis berhenti jika status bukan "menunggu_mesin" ATAU layar tidak dilihat
   useEffect(() => {
-    if (statusSesi !== "menunggu_mesin") return;
+    // Kuncinya di sini: Kalau layar tidak dilihat (!isFocused), timer jangan dijalankan!
+    if (statusSesi !== "menunggu_mesin" || !isFocused) return;
 
     generateNewToken();
     const timer = setInterval(() => {
@@ -76,7 +80,33 @@ export default function ExchangeScreen() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [statusSesi]);
+  }, [statusSesi, isFocused]); // isFocused dimasukkan ke sini agar bereaksi saat pindah tab
+
+  // ---> TAMBAHAN BARU: Membatalkan sesi di awan saat user pindah tab
+  // ---> TAMBAHAN BARU YANG DIPERBAIKI: Mengatur sesi saat masuk & keluar tab
+  useEffect(() => {
+    if (isFocused) {
+      // SAAT KEMBALI KE TAB INI:
+      // Kalau sebelumnya mati atau baru saja ditekan tombol "Selesai",
+      // bangunkan lagi aplikasinya dan buat token baru!
+      if (statusSesi === "tidak_aktif" || statusSesi === "selesai") {
+        setStatusSesi("menunggu_mesin");
+        generateNewToken(); // Ini akan otomatis mengirim token baru ke Firebase
+      }
+    } else {
+      // SAAT PINDAH TAB:
+      // Matikan sesi di awan hanya jika sedang dalam fase menunggu (QR tampil)
+      if (statusSesi === "menunggu_mesin") {
+        setDoc(
+          doc(db, "Sesi_Aktif", "Nayaka"),
+          {
+            status: "tidak_aktif",
+          },
+          { merge: true },
+        );
+      }
+    }
+  }, [isFocused, statusSesi]); // Pastikan statusSesi dimasukkan ke dalam kurung siku ini
 
   // 4. UI / UX DINAMIS
   return (
