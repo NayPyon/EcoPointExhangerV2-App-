@@ -1,10 +1,15 @@
 import {
+  Inter_400Regular,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from "@expo-google-fonts/inter";
+import {
   Poppins_400Regular,
   Poppins_500Medium,
   Poppins_600SemiBold,
   Poppins_700Bold,
-  useFonts,
 } from "@expo-google-fonts/poppins";
+import { useFonts } from "expo-font"; // Menggunakan useFonts utama dari expo agar bisa menggabungkan banyak font
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
@@ -18,6 +23,9 @@ export default function RootLayout() {
     Poppins_500Medium,
     Poppins_600SemiBold,
     Poppins_700Bold,
+    Inter_400Regular,
+    Inter_600SemiBold,
+    Inter_700Bold,
   });
 
   useEffect(() => {

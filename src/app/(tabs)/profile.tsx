@@ -1,100 +1,130 @@
-import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
-import React from "react";
+import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
+import { doc, onSnapshot } from "firebase/firestore";
+import React, { useEffect, useState } from "react";
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { usePoints } from "../../PointContext"; // Narik data poin asli
+import { db } from "../../firebaseConfig";
 
 export default function ProfileScreen() {
-  const { totalPoin } = usePoints();
+  const [userData, setUserData] = useState({
+    total_plastik: 0,
+    total_logam: 0,
+  });
 
-  // Daftar menu yang ada di Profil
-  const MENU_ITEMS = [
-    { id: "1", title: "Edit Profil", icon: "user", color: "#3B82F6" },
-    { id: "2", title: "Keamanan Akun", icon: "shield", color: "#10B981" },
-    { id: "3", title: "Pengaturan Notifikasi", icon: "bell", color: "#F59E0B" },
-    {
-      id: "4",
-      title: "Bantuan & FAQ",
-      icon: "question-circle",
-      color: "#8B5CF6",
-    },
-    {
-      id: "5",
-      title: "Tentang Aplikasi",
-      icon: "info-circle",
-      color: "#6B7280",
-    },
-  ];
+  // MATA-MATA FIREBASE: Mendengarkan Brankas Utama
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "Users", "Nayaka"), (docSnap) => {
+      if (docSnap.exists()) {
+        setUserData(docSnap.data());
+      }
+    });
+    return () => unsub();
+  }, []);
 
-  // Logika saat tombol keluar ditekan
-  const handleLogout = () => {
-    Alert.alert(
-      "Keluar Akun",
-      "Apakah kamu yakin ingin keluar dari aplikasi EcoPoint?",
-      [
-        { text: "Batal", style: "cancel" },
-        {
-          text: "Keluar",
-          style: "destructive",
-          onPress: () => console.log("Proses Log Out..."),
-          // Nanti logika hapus sesi / Firebase Auth bisa ditaruh di sini
-        },
-      ],
-    );
-  };
+  // --- RUMUS SULAP ECO-IMPACT ---
+  const p = userData.total_plastik || 0;
+  const l = userData.total_logam || 0;
+
+  // Emisi CO2 Terkurangi (kg)
+  const co2Saved = (p * 0.08 + l * 0.2).toFixed(2);
+
+  // Energi Dihemat (kWh)
+  const energySaved = (p * 0.02 + l * 0.15).toFixed(2);
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* 1. Bagian Header (Foto Profil & Info Singkat) */}
-      <View style={styles.headerCard}>
-        <View style={styles.avatarContainer}>
-          <FontAwesome name="user" size={40} color="#10B981" />
+    <ScrollView style={styles.container}>
+      {/* HEADER PROFIL */}
+      <View style={styles.headerContainer}>
+        <View style={styles.avatarWrapper}>
+          <FontAwesome name="leaf" size={40} color="#10B981" />
         </View>
-        <Text style={styles.name}>Nayaka</Text>
-        <Text style={styles.email}>nayaka@ecopoint.id</Text>
+        <Text style={styles.userName}>Nayaka Alkaesyah S.</Text>
+        <Text style={styles.userSubtitle}>Eco-Warrior Level 2</Text>
+      </View>
 
-        {/* Lencana Poin yang terhubung dengan PointContext */}
-        <View style={styles.badgeContainer}>
-          <FontAwesome name="star" size={14} color="#F59E0B" />
-          <Text style={styles.badgeText}>{totalPoin} Poin Terkumpul</Text>
+      {/* JUDUL BAGIAN DAMPAK */}
+      <View style={styles.impactHeader}>
+        <Text style={styles.sectionTitle}>Dampak Lingkunganmu</Text>
+        <Text style={styles.sectionSubtitle}>
+          Kontribusimu sangat berarti bagi bumi!
+        </Text>
+      </View>
+
+      {/* KARTU DAMPAK LINGKUNGAN */}
+      <View style={styles.impactContainer}>
+        {/* Kartu 1: Karbon */}
+        <View style={styles.impactCard}>
+          <View style={[styles.iconBox, { backgroundColor: "#D1FAE5" }]}>
+            <MaterialCommunityIcons
+              name="molecule-co2"
+              size={28}
+              color="#10B981"
+            />
+          </View>
+          <View style={styles.impactTextContainer}>
+            <Text style={styles.impactValue}>
+              {co2Saved} <Text style={styles.impactUnit}>kg</Text>
+            </Text>
+            <Text style={styles.impactLabel}>Emisi Karbon Dicegah</Text>
+          </View>
+        </View>
+
+        {/* Kartu 2: Energi */}
+        <View style={styles.impactCard}>
+          <View style={[styles.iconBox, { backgroundColor: "#FEF3C7" }]}>
+            <FontAwesome name="bolt" size={28} color="#F59E0B" />
+          </View>
+          <View style={styles.impactTextContainer}>
+            <Text style={styles.impactValue}>
+              {energySaved} <Text style={styles.impactUnit}>kWh</Text>
+            </Text>
+            <Text style={styles.impactLabel}>Energi Listrik Dihemat</Text>
+          </View>
         </View>
       </View>
 
-      {/* 2. Daftar Menu Pengaturan */}
+      {/* TOMBOL PENGATURAN & BANTUAN */}
       <View style={styles.menuContainer}>
-        <Text style={styles.sectionTitle}>Pengaturan Akun</Text>
+        <TouchableOpacity style={styles.menuItem}>
+          <FontAwesome
+            name="user-circle-o"
+            size={20}
+            color="#6B7280"
+            style={styles.menuIcon}
+          />
+          <Text style={styles.menuText}>Edit Profil</Text>
+          <FontAwesome name="chevron-right" size={14} color="#D1D5DB" />
+        </TouchableOpacity>
 
-        {MENU_ITEMS.map((item) => (
-          <TouchableOpacity key={item.id} style={styles.menuItem}>
-            <View
-              style={[styles.iconBox, { backgroundColor: item.color + "15" }]}
-            >
-              <FontAwesome
-                name={item.icon as any}
-                size={20}
-                color={item.color}
-              />
-            </View>
-            <Text style={styles.menuText}>{item.title}</Text>
-            <MaterialIcons name="chevron-right" size={24} color="#9CA3AF" />
-          </TouchableOpacity>
-        ))}
+        <TouchableOpacity style={styles.menuItem}>
+          <FontAwesome
+            name="history"
+            size={20}
+            color="#6B7280"
+            style={styles.menuIcon}
+          />
+          <Text style={styles.menuText}>Riwayat Penukaran</Text>
+          <FontAwesome name="chevron-right" size={14} color="#D1D5DB" />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.menuItem}>
+          <FontAwesome
+            name="question-circle-o"
+            size={20}
+            color="#6B7280"
+            style={styles.menuIcon}
+          />
+          <Text style={styles.menuText}>Pusat Bantuan</Text>
+          <FontAwesome name="chevron-right" size={14} color="#D1D5DB" />
+        </TouchableOpacity>
       </View>
 
-      {/* 3. Tombol Keluar (Merah) */}
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <MaterialIcons name="logout" size={24} color="#EF4444" />
-        <Text style={styles.logoutText}>Keluar Akun</Text>
-      </TouchableOpacity>
-
-      {/* 4. Versi Aplikasi (Detail kecil biar terlihat pro) */}
-      <Text style={styles.version}>EcoPoint v1.0.0 (Beta)</Text>
+      <Text style={styles.versionText}>EcoPoint App v1.0.0</Text>
     </ScrollView>
   );
 }
@@ -102,120 +132,128 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: "#F9FAFB",
   },
-  headerCard: {
-    backgroundColor: "#FFFFFF",
-    paddingTop: 60,
-    paddingBottom: 30,
+  headerContainer: {
+    backgroundColor: "#111827", // Warna gelap biar elegan dan kontras
+    paddingTop: 70,
+    paddingBottom: 40,
     alignItems: "center",
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 5,
   },
-  avatarContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+  avatarWrapper: {
+    width: 90,
+    height: 90,
     backgroundColor: "#D1FAE5",
+    borderRadius: 45,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
-    borderWidth: 4,
-    borderColor: "#FFFFFF",
-    shadowColor: "#10B981",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    marginBottom: 15,
+    borderWidth: 3,
+    borderColor: "#10B981",
   },
-  name: {
+  userName: {
+    fontFamily: "Poppins_700Bold",
     fontSize: 22,
-    fontWeight: "bold",
-    color: "#111827",
+    color: "#FFFFFF",
     marginBottom: 4,
   },
-  email: {
+  userSubtitle: {
+    fontFamily: "Poppins_600SemiBold",
     fontSize: 14,
-    color: "#6B7280",
-    marginBottom: 12,
+    color: "#10B981",
   },
-  badgeContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FEF3C7",
-    paddingVertical: 6,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-  },
-  badgeText: {
-    color: "#B45309",
-    fontWeight: "bold",
-    fontSize: 13,
-    marginLeft: 6,
-  },
-  menuContainer: {
+  impactHeader: {
+    marginTop: 25,
     paddingHorizontal: 20,
-    marginTop: 24,
+    marginBottom: 15,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
+    fontFamily: "Poppins_700Bold",
+    fontSize: 20,
     color: "#111827",
-    marginBottom: 16,
+  },
+  sectionSubtitle: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 14,
+    color: "#6B7280",
+    marginTop: 2,
+  },
+  impactContainer: {
+    paddingHorizontal: 20,
+  },
+  impactCard: {
+    flexDirection: "row",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 20,
+    alignItems: "center",
+    marginBottom: 15,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#F3F4F6",
+  },
+  iconBox: {
+    width: 55,
+    height: 55,
+    borderRadius: 15,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 15,
+  },
+  impactTextContainer: {
+    flex: 1,
+  },
+  impactValue: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 24,
+    color: "#111827",
+  },
+  impactUnit: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 16,
+    color: "#6B7280",
+  },
+  impactLabel: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    color: "#6B7280",
+    marginTop: 2,
+  },
+  menuContainer: {
+    backgroundColor: "#FFFFFF",
+    marginTop: 20,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: "#E5E7EB",
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 5,
-    elevation: 1,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderColor: "#F9FAFB",
   },
-  iconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 16,
+  menuIcon: {
+    width: 30,
   },
   menuText: {
+    fontFamily: "Inter_600SemiBold",
     flex: 1,
-    fontSize: 15,
-    color: "#374151",
-    fontWeight: "500",
-  },
-  logoutButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FEE2E2",
-    marginHorizontal: 20,
-    marginTop: 20,
-    paddingVertical: 16,
-    borderRadius: 16,
-  },
-  logoutText: {
-    color: "#EF4444",
     fontSize: 16,
-    fontWeight: "bold",
-    marginLeft: 8,
+    color: "#374151",
   },
-  version: {
+  versionText: {
+    fontFamily: "Inter_400Regular",
     textAlign: "center",
     color: "#9CA3AF",
     fontSize: 12,
-    marginTop: 24,
+    marginTop: 30,
     marginBottom: 40,
   },
 });

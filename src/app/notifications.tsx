@@ -2,11 +2,11 @@ import { FontAwesome } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
 import {
-    FlatList,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 export default function NotificationsScreen() {
@@ -93,8 +93,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#F3F4F6",
   },
   headerTitle: {
+    fontFamily: "Poppins_700Bold",
     fontSize: 18,
-    fontWeight: "bold",
     color: "#111827",
   },
   listContainer: {
@@ -123,20 +123,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
+    fontFamily: "Poppins_600SemiBold",
     fontSize: 15,
-    fontWeight: "bold",
     color: "#111827",
     marginBottom: 4,
   },
   desc: {
+    fontFamily: "Inter_400Regular",
     fontSize: 13,
     color: "#6B7280",
     marginBottom: 8,
     lineHeight: 18,
   },
   time: {
+    fontFamily: "Inter_600SemiBold",
     fontSize: 11,
     color: "#9CA3AF",
-    fontWeight: "600",
   },
 });

@@ -43,9 +43,8 @@ export default function TabLayout() {
           tabBarActiveTintColor: "#10B981",
           headerShown: false,
           tabBarShowLabel: true,
-          // Tambahkan baris ini di bawah tabBarShowLabel
           tabBarLabelStyle: {
-            fontFamily: "Poppins_500Medium",
+            fontFamily: "Poppins_600SemiBold", // Disesuaikan dengan font yang di-load
             fontSize: 10,
           },
           tabBarStyle: {

@@ -164,20 +164,20 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   headerLabel: {
+    fontFamily: "Poppins_600SemiBold",
     color: "#D1FAE5",
     fontSize: 14,
     marginBottom: 8,
-    fontWeight: "600",
   },
   headerValue: {
+    fontFamily: "Inter_700Bold",
     color: "#FFFFFF",
     fontSize: 40,
-    fontWeight: "bold",
   },
   sectionTitle: {
+    fontFamily: "Poppins_700Bold",
     fontSize: 18,
     color: "#111827",
-    fontWeight: "bold",
     marginBottom: 16,
   },
   listContainer: {
@@ -207,9 +207,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
+    fontFamily: "Poppins_600SemiBold",
     fontSize: 15,
     color: "#111827",
-    fontWeight: "bold",
     marginBottom: 6,
   },
   pointBadge: {
@@ -222,9 +222,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   pointText: {
+    fontFamily: "Inter_700Bold",
     color: "#B45309",
     fontSize: 12,
-    fontWeight: "bold",
     marginLeft: 4,
   },
   button: {
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F3F4F6",
   },
   buttonText: {
-    fontWeight: "bold",
+    fontFamily: "Poppins_600SemiBold",
     fontSize: 14,
   },
   textActive: {

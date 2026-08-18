@@ -42,7 +42,7 @@ export default function HomeScreen() {
           style={styles.notificationIcon}
           onPress={handleBellPress}
         >
-          <FontAwesome name="bell-o" size={24} color="#111827" />
+          <FontAwesome name="bell-o" size={22} color="#111827" />
           <View style={styles.badge} />
         </TouchableOpacity>
       </View>
@@ -61,8 +61,11 @@ export default function HomeScreen() {
             <FontAwesome name="leaf" size={24} color="#D1FAE5" />
           </View>
 
-          <Text style={styles.pointLabel}>Total Poin</Text>
-          <Text style={styles.pointValue}>{totalPoin}</Text>
+          {/* Bagian Poin Dibuat Ke Tengah (Center) agar seimbang */}
+          <View style={styles.pointContent}>
+            <Text style={styles.pointLabel}>Total Poin Saat Ini</Text>
+            <Text style={styles.pointValue}>{totalPoin}</Text>
+          </View>
 
           <View style={styles.progressContainer}>
             <View style={styles.progressBarBackground}>
@@ -82,12 +85,16 @@ export default function HomeScreen() {
 
       <View style={styles.statsContainer}>
         <View style={styles.statBox}>
-          <FontAwesome name="recycle" size={24} color="#10B981" />
+          <View style={styles.iconCircle}>
+            <FontAwesome name="recycle" size={26} color="#10B981" />
+          </View>
           <Text style={styles.statNumber}>{totalBottles}</Text>
           <Text style={styles.statLabel}>Botol Didaur</Text>
         </View>
         <View style={styles.statBox}>
-          <FontAwesome name="fire" size={24} color="#F59E0B" />
+          <View style={[styles.iconCircle, { backgroundColor: "#FEF3C7" }]}>
+            <FontAwesome name="fire" size={26} color="#F59E0B" />
+          </View>
           <Text style={styles.statNumber}>{hariKonsisten} Hari</Text>
           <Text style={styles.statLabel}>Konsisten</Text>
         </View>
@@ -110,18 +117,18 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   greeting: {
-    fontSize: 24,
-    color: "#111827",
     fontFamily: "Poppins_700Bold",
+    fontSize: 22, // Sedikit dikecilkan agar proporsional
+    color: "#111827",
   },
   subtitle: {
+    fontFamily: "Inter_400Regular",
     fontSize: 14,
     color: "#6B7280",
     marginTop: 4,
-    fontFamily: "Poppins_400Regular",
   },
   notificationIcon: {
-    padding: 8,
+    padding: 10, // Area sentuh diperbesar
     backgroundColor: "#FFFFFF",
     borderRadius: 50,
     shadowColor: "#000",
@@ -145,10 +152,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     borderRadius: 24,
     shadowColor: "#10B981",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.4,
-    shadowRadius: 15,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3, // Shadow sedikit diperhalus
+    shadowRadius: 12,
+    elevation: 8,
     overflow: "hidden",
   },
   pointCard: {
@@ -158,7 +165,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 15,
+    marginBottom: 10, // Margin disesuaikan
   },
   glassBadge: {
     borderRadius: 20,
@@ -170,27 +177,31 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255, 255, 255, 0.3)",
   },
   levelText: {
+    fontFamily: "Poppins_600SemiBold",
     color: "#FFFFFF",
     fontSize: 13,
-    fontFamily: "Poppins_600SemiBold",
+  },
+  pointContent: {
+    alignItems: "center", // Poin ke tengah
+    justifyContent: "center",
+    marginVertical: 10,
   },
   pointLabel: {
+    fontFamily: "Inter_400Regular",
     color: "#D1FAE5",
-    fontSize: 14,
-    marginBottom: 4,
-    fontFamily: "Poppins_500Medium",
+    fontSize: 13,
+    marginBottom: -5, // Merapatkan jarak teks ke angka
   },
   pointValue: {
+    fontFamily: "Inter_700Bold",
     color: "#FFFFFF",
-    fontSize: 48,
-    marginBottom: 20,
-    fontFamily: "Poppins_700Bold",
+    fontSize: 64, // Angka diperbesar agar lebih heroik
     textShadowColor: "rgba(0, 0, 0, 0.1)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
   progressContainer: {
-    marginTop: 10,
+    marginTop: 15,
   },
   progressBarBackground: {
     height: 8,
@@ -204,10 +215,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   progressText: {
+    fontFamily: "Inter_600SemiBold",
     color: "#E5E7EB",
-    fontSize: 12,
+    fontSize: 11,
     marginTop: 8,
-    fontFamily: "Poppins_500Medium",
+    textAlign: "center", // Teks progress ke tengah
   },
   statsContainer: {
     flexDirection: "row",
@@ -218,26 +230,35 @@ const styles = StyleSheet.create({
   statBox: {
     flex: 1,
     backgroundColor: "#FFFFFF",
-    padding: 20,
+    paddingVertical: 24, // Padding atas bawah diperbesar
+    paddingHorizontal: 16,
     borderRadius: 20,
     alignItems: "center",
-    marginHorizontal: 5,
+    marginHorizontal: 6, // Jarak antar kotak
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.04,
     shadowRadius: 10,
-    elevation: 3,
+    elevation: 2,
+  },
+  iconCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#D1FAE5", // Lingkaran latar belakang ikon
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12, // Jarak ikon ke angka
   },
   statNumber: {
-    fontSize: 22,
+    fontFamily: "Inter_700Bold",
+    fontSize: 20,
     color: "#111827",
-    marginTop: 12,
-    fontFamily: "Poppins_700Bold",
   },
   statLabel: {
+    fontFamily: "Inter_400Regular",
     fontSize: 13,
     color: "#6B7280",
-    marginTop: 4,
-    fontFamily: "Poppins_500Medium",
+    marginTop: 2,
   },
 });

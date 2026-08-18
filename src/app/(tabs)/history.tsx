@@ -1,5 +1,11 @@
-import { FontAwesome } from "@expo/vector-icons";
-import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
+import { Feather, FontAwesome } from "@expo/vector-icons";
+import {
+  collection,
+  onSnapshot,
+  orderBy,
+  query,
+  where,
+} from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -8,103 +14,117 @@ import {
   Text,
   View,
 } from "react-native";
-// Pastikan jumlah titik-titik untuk import db ini sesuai (biasanya ../../firebaseConfig)
-import { db } from "../../firebaseConfig";
+import { db } from "../../firebaseConfig"; // Sila pastikan laluan (path) ke firebaseConfig ini betul
 
 export default function HistoryScreen() {
-  const [riwayat, setRiwayat] = useState([]);
+  const [riwayatData, setRiwayatData] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Membuat query untuk menyedot data dari koleksi 'Riwayat_Transaksi'
-    // orderBy('timestamp', 'desc') memastikan data terbaru ada di urutan paling atas
+    // Mengambil data riwayat milik Nayaka, disusun mengikut tarikh terbaru
     const q = query(
-      collection(db, "Riwayat_Transaksi"),
-      orderBy("timestamp", "desc"),
+      collection(db, "Riwayat"),
+      where("user", "==", "Nayaka"),
+      orderBy("tanggal", "desc"),
     );
 
-    // 2. onSnapshot akan memantau perubahan data secara real-time
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const dataHistory: any = [];
-        snapshot.forEach((doc) => {
-          dataHistory.push({
-            id: doc.id,
-            ...doc.data(),
-          });
-        });
+    const unsub = onSnapshot(q, (querySnapshot) => {
+      const data = [];
+      querySnapshot.forEach((doc) => {
+        data.push({ id: doc.id, ...doc.data() });
+      });
+      setRiwayatData(data);
+      setLoading(false);
+    });
 
-        setRiwayat(dataHistory);
-        setLoading(false);
-      },
-      (error) => {
-        console.error("Gagal menarik data riwayat:", error);
-        setLoading(false);
-      },
-    );
-
-    // Membersihkan memori saat pindah layar
-    return () => unsubscribe();
+    return () => unsub();
   }, []);
 
-  // Fungsi untuk merapikan format waktu dari Firebase
-  const formatTanggal = (timestamp: any) => {
-    if (!timestamp) return "Waktu tidak diketahui";
-    const date = timestamp.toDate(); // Ubah format Firebase ke format Javascript
+  const formatTanggal = (timestamp) => {
+    if (!timestamp) return "Baru sahaja";
+    const date = timestamp.toDate();
     return date.toLocaleDateString("id-ID", {
       day: "numeric",
-      month: "long",
+      month: "short",
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
     });
   };
 
-  // Desain untuk setiap baris kartu riwayat
-  const renderItem = ({ item }: { item: any }) => (
-    <View style={styles.card}>
-      <View style={styles.iconContainer}>
-        <FontAwesome name="recycle" size={24} color="#10B981" />
-      </View>
-      <View style={styles.infoContainer}>
-        <Text style={styles.title}>Tukar {item.total_botol || 0} Botol</Text>
-        <Text style={styles.date}>{formatTanggal(item.timestamp)}</Text>
-      </View>
-      <View style={styles.pointContainer}>
-        <Text style={styles.pointText}>+{item.poin_didapat || 0} Poin</Text>
-      </View>
-    </View>
-  );
+  const renderItem = ({ item }) => {
+    const isKredit = item.tipe === "tukar_voucher";
 
-  // Tampilan saat data masih loading
-  if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#10B981" />
+      <View style={styles.historyCard}>
+        <View
+          style={[
+            styles.iconContainer,
+            { backgroundColor: isKredit ? "#FEE2E2" : "#D1FAE5" },
+          ]}
+        >
+          <Feather
+            name={isKredit ? "arrow-up-right" : "arrow-down-left"}
+            size={20}
+            color={isKredit ? "#EF4444" : "#10B981"}
+          />
+        </View>
+
+        <View style={styles.detailsContainer}>
+          <Text style={styles.titleText}>
+            {isKredit ? "Penukaran Hadiah" : "Penyetoran Sampah"}
+          </Text>
+          <Text style={styles.dateText}>{formatTanggal(item.tanggal)}</Text>
+
+          <Text style={styles.subText}>
+            {isKredit
+              ? `Klaim ${item.nama_hadiah || "Voucher"}`
+              : `Berhasil menyetor ${item.plastik || 0} Plastik & ${item.logam || 0} Logam`}
+          </Text>
+        </View>
+
+        <View style={styles.pointsContainer}>
+          <Text
+            style={[
+              styles.pointsText,
+              { color: isKredit ? "#EF4444" : "#10B981" },
+            ]}
+          >
+            {isKredit ? "-" : "+"}
+            {item.poin}
+          </Text>
+          <Text style={styles.ptsLabel}>pts</Text>
+        </View>
       </View>
     );
-  }
+  };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.headerTitle}>Riwayat Penukaran</Text>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Aktivitas</Text>
+        <Text style={styles.headerSubtitle}>
+          Riwayat penggunaan poin dan penyetoran
+        </Text>
+      </View>
 
-      {riwayat.length === 0 ? (
-        // Tampilan jika belum ada transaksi sama sekali
-        <View style={styles.emptyContainer}>
-          <FontAwesome name="inbox" size={50} color="#D1D5DB" />
-          <Text style={styles.emptyText}>
-            Belum ada riwayat penukaran botol.
-          </Text>
-          <Text style={styles.emptySubText}>
-            Ayo mulai selamatkan bumi hari ini!
+      {loading ? (
+        <ActivityIndicator
+          size="large"
+          color="#10B981"
+          style={{ marginTop: 50 }}
+        />
+      ) : riwayatData.length === 0 ? (
+        <View style={styles.emptyState}>
+          <FontAwesome name="list-alt" size={50} color="#D1D5DB" />
+          <Text style={styles.emptyStateTitle}>Belum Ada Aktivitas</Text>
+          <Text style={styles.emptyStateText}>
+            Semua riwayat transaksi masuk dan keluar poinmu akan muncul di sini.
           </Text>
         </View>
       ) : (
-        // Tampilan list daftar riwayat
         <FlatList
-          data={riwayat}
+          data={riwayatData}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.listContainer}
@@ -116,87 +136,92 @@ export default function HistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F3F4F6",
-    paddingTop: 50,
+  container: { flex: 1, backgroundColor: "#F9FAFB" },
+  header: {
+    backgroundColor: "#FFFFFF",
+    paddingTop: 60,
+    paddingBottom: 20,
     paddingHorizontal: 20,
-  },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#F3F4F6",
+    borderBottomWidth: 1,
+    borderColor: "#E5E7EB",
   },
   headerTitle: {
-    fontSize: 24,
+    fontFamily: "Poppins_700Bold",
+    fontSize: 22,
     color: "#111827",
-    marginBottom: 20,
-    fontWeight: "bold", // Hapus baris ini kalau font Poppins sudah tersetting global
   },
-  listContainer: {
-    paddingBottom: 20,
+  headerSubtitle: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 14,
+    color: "#6B7280",
+    marginTop: 4,
   },
-  card: {
+  listContainer: { padding: 20 },
+  historyCard: {
     flexDirection: "row",
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
     padding: 16,
+    borderRadius: 16,
     marginBottom: 12,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#F3F4F6",
   },
   iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#D1FAE5",
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
+    marginRight: 14,
   },
-  infoContainer: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 16,
+  detailsContainer: { flex: 1 },
+  titleText: {
+    fontFamily: "Poppins_600SemiBold",
+    fontSize: 15,
     color: "#111827",
-    fontWeight: "600",
-    marginBottom: 4,
   },
-  date: {
+  dateText: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 11,
+    color: "#9CA3AF",
+    marginTop: 1,
+  },
+  subText: {
+    fontFamily: "Inter_400Regular",
     fontSize: 12,
     color: "#6B7280",
+    marginTop: 4,
   },
-  pointContainer: {
-    backgroundColor: "#DEF7EC",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
+  pointsContainer: { alignItems: "flex-end", justifyContent: "center" },
+  pointsText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 16,
   },
-  pointText: {
-    color: "#046C4E",
-    fontWeight: "bold",
-    fontSize: 14,
+  ptsLabel: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 11,
+    color: "#9CA3AF",
   },
-  emptyContainer: {
+  emptyState: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: -50,
+    paddingHorizontal: 40,
+    marginTop: 100,
   },
-  emptyText: {
+  emptyStateTitle: {
+    fontFamily: "Poppins_600SemiBold",
     fontSize: 16,
-    color: "#6B7280",
+    color: "#374151",
     marginTop: 16,
-    fontWeight: "600",
   },
-  emptySubText: {
-    fontSize: 14,
-    color: "#9CA3AF",
-    marginTop: 8,
+  emptyStateText: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    color: "#6B7280",
+    textAlign: "center",
+    marginTop: 6,
+    lineHeight: 18,
   },
 });
