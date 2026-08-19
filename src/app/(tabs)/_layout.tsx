@@ -1,134 +1,212 @@
 import { FontAwesome } from "@expo/vector-icons";
-import { Tabs } from "expo-router";
+import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
+import { BlurView } from "expo-blur";
+import * as Haptics from "expo-haptics";
+import { withLayoutContext } from "expo-router";
 import React, { useEffect, useRef } from "react";
-import { Animated, StyleSheet } from "react-native";
-import { PointProvider } from "../../PointContext";
+import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 
-// Komponen Khusus untuk Tombol Melayang & Beranimasi
-const FloatingTukarButton = ({ children }) => {
-  const scaleValue = useRef(new Animated.Value(1)).current;
+// 1. Memanggil mesin Top Tabs dari React Navigation
+const TopTabs = createMaterialTopTabNavigator().Navigator;
 
+// 2. Mengintegrasikannya ke dalam Expo Router
+const SwipeableTabs = withLayoutContext(TopTabs);
+
+// 3. Membuat Desain Custom Tab Bar (Kapsul Melayang)
+function CustomFloatingTabBar({ state, descriptors, navigation }) {
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  // Animasi denyut untuk tombol tengah
   useEffect(() => {
-    // Membuat animasi denyut (pulse) yang berulang terus-menerus
     Animated.loop(
       Animated.sequence([
-        Animated.timing(scaleValue, {
-          toValue: 1.1, // Membesar 10%
-          duration: 800,
+        Animated.timing(pulseAnim, {
+          toValue: 1.15,
+          duration: 1000,
           useNativeDriver: true,
         }),
-        Animated.timing(scaleValue, {
-          toValue: 1, // Kembali ke ukuran normal
-          duration: 800,
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
           useNativeDriver: true,
         }),
       ]),
     ).start();
-  }, [scaleValue]);
+  }, []);
 
   return (
-    <Animated.View
-      style={[styles.floatingButton, { transform: [{ scale: scaleValue }] }]}
-    >
-      {children}
-    </Animated.View>
-  );
-};
+    <View style={styles.tabBarWrapper} pointerEvents="box-none">
+      {/* Background Kapsul dengan Efek Blur/Kaca */}
+      <View style={styles.pillContainer}>
+        <BlurView intensity={70} tint="light" style={StyleSheet.absoluteFill} />
+        <View style={styles.pillSolidBackground} />
+      </View>
 
-export default function TabLayout() {
-  return (
-    <PointProvider>
-      <Tabs
-        screenOptions={{
-          tabBarActiveTintColor: "#10B981",
-          headerShown: false,
-          tabBarShowLabel: true,
-          tabBarLabelStyle: {
-            fontFamily: "Poppins_600SemiBold", // Disesuaikan dengan font yang di-load
-            fontSize: 10,
-          },
-          tabBarStyle: {
-            height: 65,
-            paddingBottom: 10,
-            borderTopWidth: 1,
-            borderTopColor: "#F3F4F6",
-            backgroundColor: "#FFFFFF",
-            elevation: 10, // Memberikan bayangan pada tab bar
-          },
-        }}
-      >
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: "Beranda",
-            tabBarIcon: ({ color }) => (
-              <FontAwesome name="home" size={24} color={color} />
-            ),
-          }}
-        />
+      {/* Barisan Ikon Tab & Super FAB */}
+      <View style={styles.tabItemsRow} pointerEvents="box-none">
+        {state.routes.map((route, index) => {
+          const { options } = descriptors[route.key];
+          const isFocused = state.index === index;
 
-        <Tabs.Screen
-          name="history"
-          options={{
-            title: "Riwayat",
-            tabBarIcon: ({ color }) => (
-              <FontAwesome name="history" size={24} color={color} />
-            ),
-          }}
-        />
+          const onPress = () => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            const event = navigation.emit({
+              type: "tabPress",
+              target: route.key,
+              canPreventDefault: true,
+            });
 
-        {/* Menu Tukar dengan Tombol Melayang */}
-        <Tabs.Screen
-          name="exchange"
-          options={{
-            title: "", // Sengaja dikosongkan agar teks tidak bertabrakan dengan tombol melayang
-            tabBarIcon: () => (
-              <FloatingTukarButton>
-                <FontAwesome name="recycle" size={32} color="#FFFFFF" />
-              </FloatingTukarButton>
-            ),
-          }}
-        />
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(route.name);
+            }
+          };
 
-        <Tabs.Screen
-          name="reward"
-          options={{
-            title: "Reward",
-            tabBarIcon: ({ color }) => (
-              <FontAwesome name="gift" size={24} color={color} />
-            ),
-          }}
-        />
+          let iconName;
+          if (route.name === "index") iconName = "home";
+          else if (route.name === "history") iconName = "history";
+          else if (route.name === "reward") iconName = "gift";
+          else if (route.name === "profile") iconName = "user";
 
-        <Tabs.Screen
-          name="profile"
-          options={{
-            title: "Profil",
-            tabBarIcon: ({ color }) => (
-              <FontAwesome name="user" size={24} color={color} />
-            ),
-          }}
-        />
-      </Tabs>
-    </PointProvider>
+          // --- TOMBOL TUKAR (SUPER FAB) ---
+          if (route.name === "exchange") {
+            return (
+              <View
+                key={route.key}
+                style={styles.fabContainer}
+                pointerEvents="box-none"
+              >
+                <Animated.View
+                  style={[
+                    styles.pulseRing,
+                    { transform: [{ scale: pulseAnim }] },
+                  ]}
+                />
+                <Pressable
+                  onPress={onPress}
+                  style={styles.fabButton}
+                  android_ripple={{
+                    color: "rgba(255,255,255,0.3)",
+                    borderless: true,
+                  }}
+                >
+                  <FontAwesome name="recycle" size={30} color="#FFFFFF" />
+                </Pressable>
+              </View>
+            );
+          }
+
+          // --- IKON TAB STANDAR ---
+          return (
+            <Pressable key={route.key} onPress={onPress} style={styles.tabItem}>
+              <FontAwesome
+                name={iconName}
+                size={22}
+                color={isFocused ? "#10B981" : "#9CA3AF"}
+                style={{ marginBottom: 4 }}
+              />
+              <Text
+                style={[
+                  styles.tabText,
+                  { color: isFocused ? "#10B981" : "#9CA3AF" },
+                ]}
+              >
+                {options.title || route.name}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
   );
 }
 
-// Gaya (Style) khusus untuk membuat tombolnya melayang
+export default function TabLayout() {
+  return (
+    <SwipeableTabs
+      tabBar={(props) => <CustomFloatingTabBar {...props} />}
+      screenOptions={{
+        swipeEnabled: true, // INI DIA KUNCI SWIPE-NYA! ✨
+        lazy: true,
+      }}
+      tabBarPosition="bottom" // Kita paksa mesin Top Tabs untuk pindah ke Bawah
+    >
+      <SwipeableTabs.Screen name="index" options={{ title: "Beranda" }} />
+      <SwipeableTabs.Screen name="history" options={{ title: "Riwayat" }} />
+      <SwipeableTabs.Screen name="exchange" options={{ title: "Tukar" }} />
+      <SwipeableTabs.Screen name="reward" options={{ title: "Reward" }} />
+      <SwipeableTabs.Screen name="profile" options={{ title: "Profil" }} />
+    </SwipeableTabs>
+  );
+}
+
 const styles = StyleSheet.create({
-  floatingButton: {
-    top: -20, // Menarik tombol ke atas agar keluar dari batas tab bar
-    justifyContent: "center",
+  tabBarWrapper: {
+    position: "absolute",
+    bottom: 25, // Mengambang dari dasar HP
+    left: 20, // Tidak menyentuh tepi kiri
+    right: 20, // Tidak menyentuh tepi kanan
+    height: 70,
+    zIndex: 10,
+  },
+  pillContainer: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 35, // Membuatnya jadi bentuk kapsul lonjong
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 5,
+  },
+  pillSolidBackground: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(255, 255, 255, 0.85)", // Semi transparan biar blurnya elegan
+  },
+  tabItemsRow: {
+    flex: 1,
+    flexDirection: "row",
     alignItems: "center",
-    width: 65,
-    height: 65,
-    borderRadius: 35, // Membuatnya bulat sempurna
+    justifyContent: "space-between",
+    paddingHorizontal: 10,
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    height: "100%",
+  },
+  tabText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 10,
+  },
+  fabContainer: {
+    width: 70,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pulseRing: {
+    position: "absolute",
+    top: -35,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: "rgba(16, 185, 129, 0.3)",
+  },
+  fabButton: {
+    position: "absolute",
+    top: -30, // Melayang tinggi menembus atas kapsul!
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: "#10B981",
-    // Efek bayangan hijau agar terlihat glowing
+    alignItems: "center",
+    justifyContent: "center",
     shadowColor: "#10B981",
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.4,
     shadowRadius: 10,
     elevation: 8,
+    borderWidth: 4,
+    borderColor: "#FFFFFF",
   },
 });

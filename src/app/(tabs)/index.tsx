@@ -3,39 +3,77 @@ import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import {
+  LayoutAnimation,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
+  UIManager,
   View,
 } from "react-native";
 import { usePoints } from "../../PointContext";
 
+// Mengaktifkan fitur animasi layout untuk Android
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 export default function HomeScreen() {
   const { totalPoin, totalBottles, hariKonsisten } = usePoints();
-
-  const targetPoints = 1000;
-  const progressPercentage = Math.min((totalPoin / targetPoints) * 100, 100);
+  const [isExpanded, setIsExpanded] = useState(false); // State untuk mengatur buka/tutup kartu
 
   const getLevelName = () => {
-    if (totalPoin >= 1000) return "Eco-Master 👑";
-    if (totalPoin >= 500) return "Eco-Warrior ⚔️";
-    return "Eco-Starter 🌱";
+    if (totalPoin >= 50000) return "Radiant Recycler ✨";
+    if (totalPoin >= 25000) return "Elderwood Guardian 🛡️";
+    if (totalPoin >= 10000) return "Sylvan Sapling 🌳";
+    if (totalPoin >= 2500) return "Verdant Sprout 🌿";
+    return "Pebble Seed 🌱";
   };
+
+  const getTargetPoints = () => {
+    if (totalPoin >= 50000) return totalPoin;
+    if (totalPoin >= 25000) return 50000;
+    if (totalPoin >= 10000) return 25000;
+    if (totalPoin >= 2500) return 10000;
+    return 2500;
+  };
+
+  const targetPoints = getTargetPoints();
+  const progressPercentage =
+    totalPoin >= 50000 ? 100 : Math.min((totalPoin / targetPoints) * 100, 100);
 
   const handleBellPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push("/notifications");
   };
 
+  // Fungsi saat kartu hijau ditekan
+  const toggleExpand = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); // Animasi smooth
+    setIsExpanded(!isExpanded);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  // Data gamifikasi untuk ditampilkan di dalam kartu yang mengekspansi
+  const GAMIFICATION_TIERS = [
+    { name: "Radiant Recycler ✨", req: "50.000+ pts", benefit: "+20% Poin" },
+    { name: "Elderwood Guardian 🛡️", req: "25.000 pts", benefit: "+15% Poin" },
+    { name: "Sylvan Sapling 🌳", req: "10.000 pts", benefit: "+10% Poin" },
+    { name: "Verdant Sprout 🌿", req: "2.500 pts", benefit: "+5% Poin" },
+    { name: "Pebble Seed 🌱", req: "0 pts", benefit: "Normal (1x)" },
+  ];
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Halo, Nayaka! 👋</Text>
-          <Text style={styles.subtitle}>Mari selamatkan bumi hari ini.</Text>
         </View>
         <TouchableOpacity
           activeOpacity={0.7}
@@ -48,39 +86,76 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.cardWrapper}>
-        <LinearGradient
-          colors={["#059669", "#10B981", "#34D399"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.pointCard}
-        >
-          <View style={styles.pointHeader}>
-            <BlurView intensity={40} tint="light" style={styles.glassBadge}>
-              <Text style={styles.levelText}>{getLevelName()}</Text>
-            </BlurView>
-            <FontAwesome name="leaf" size={24} color="#D1FAE5" />
-          </View>
+        <TouchableOpacity activeOpacity={0.9} onPress={toggleExpand}>
+          <LinearGradient
+            colors={["#059669", "#10B981", "#34D399"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.pointCard}
+          >
+            <View style={styles.pointHeader}>
+              <BlurView intensity={40} tint="light" style={styles.glassBadge}>
+                <Text style={styles.levelText}>{getLevelName()}</Text>
+              </BlurView>
+              <FontAwesome name="leaf" size={24} color="#D1FAE5" />
+            </View>
 
-          {/* Bagian Poin Dibuat Ke Tengah (Center) agar seimbang */}
-          <View style={styles.pointContent}>
-            <Text style={styles.pointLabel}>Total Poin Saat Ini</Text>
-            <Text style={styles.pointValue}>{totalPoin}</Text>
-          </View>
+            <View style={styles.pointContent}>
+              <Text style={styles.pointLabel}>Total Poin Saat Ini</Text>
+              <Text style={styles.pointValue}>{totalPoin}</Text>
+            </View>
 
-          <View style={styles.progressContainer}>
-            <View style={styles.progressBarBackground}>
-              <View
-                style={[
-                  styles.progressBarFill,
-                  { width: `${progressPercentage}%` },
-                ]}
+            <View style={styles.progressContainer}>
+              <View style={styles.progressBarBackground}>
+                <View
+                  style={[
+                    styles.progressBarFill,
+                    { width: `${progressPercentage}%` },
+                  ]}
+                />
+              </View>
+              <Text style={styles.progressText}>
+                {totalPoin >= 50000
+                  ? "Rank Maksimal Tercapai! Sultan RVM 🎉"
+                  : `${totalPoin} / ${targetPoints} Poin menuju level berikutnya`}
+              </Text>
+            </View>
+
+            {/* Bagian yang akan Terbuka (Expand) */}
+            {isExpanded && (
+              <View style={styles.expandedContent}>
+                <View style={styles.divider} />
+                <Text style={styles.expandedTitle}>Keuntungan Tiap Rank</Text>
+
+                {GAMIFICATION_TIERS.map((tier, index) => (
+                  <View key={index} style={styles.rankRow}>
+                    <View>
+                      <Text style={styles.rankName}>{tier.name}</Text>
+                      <Text style={styles.rankReq}>Butuh {tier.req}</Text>
+                    </View>
+                    <View style={styles.benefitBadge}>
+                      <Text style={styles.benefitText}>{tier.benefit}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Indikator Panah Bawah/Atas */}
+            <View style={styles.expandHintRow}>
+              <Text style={styles.expandHintText}>
+                {isExpanded
+                  ? "Tutup Info Rank"
+                  : "Lihat Info Rank & Keuntungan"}
+              </Text>
+              <FontAwesome
+                name={isExpanded ? "chevron-up" : "chevron-down"}
+                size={10}
+                color="rgba(255, 255, 255, 0.7)"
               />
             </View>
-            <Text style={styles.progressText}>
-              {totalPoin} / {targetPoints} Poin menuju level berikutnya
-            </Text>
-          </View>
-        </LinearGradient>
+          </LinearGradient>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.statsContainer}>
@@ -118,17 +193,11 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 22, // Sedikit dikecilkan agar proporsional
+    fontSize: 22,
     color: "#111827",
   },
-  subtitle: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 14,
-    color: "#6B7280",
-    marginTop: 4,
-  },
   notificationIcon: {
-    padding: 10, // Area sentuh diperbesar
+    padding: 10,
     backgroundColor: "#FFFFFF",
     borderRadius: 50,
     shadowColor: "#000",
@@ -153,7 +222,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     shadowColor: "#10B981",
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3, // Shadow sedikit diperhalus
+    shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 8,
     overflow: "hidden",
@@ -165,7 +234,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10, // Margin disesuaikan
+    marginBottom: 10,
   },
   glassBadge: {
     borderRadius: 20,
@@ -182,7 +251,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   pointContent: {
-    alignItems: "center", // Poin ke tengah
+    alignItems: "center",
     justifyContent: "center",
     marginVertical: 10,
   },
@@ -190,12 +259,12 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     color: "#D1FAE5",
     fontSize: 13,
-    marginBottom: -5, // Merapatkan jarak teks ke angka
+    marginBottom: -5,
   },
   pointValue: {
     fontFamily: "Inter_700Bold",
     color: "#FFFFFF",
-    fontSize: 64, // Angka diperbesar agar lebih heroik
+    fontSize: 64,
     textShadowColor: "rgba(0, 0, 0, 0.1)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
@@ -219,22 +288,80 @@ const styles = StyleSheet.create({
     color: "#E5E7EB",
     fontSize: 11,
     marginTop: 8,
-    textAlign: "center", // Teks progress ke tengah
+    textAlign: "center",
   },
+
+  // STYLING BARU UNTUK KARTU YANG EXPAND
+  expandedContent: {
+    marginTop: 20,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    marginBottom: 15,
+  },
+  expandedTitle: {
+    fontFamily: "Poppins_600SemiBold",
+    color: "#FFFFFF",
+    fontSize: 14,
+    marginBottom: 12,
+  },
+  rankRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  rankName: {
+    fontFamily: "Poppins_600SemiBold",
+    color: "#FFFFFF",
+    fontSize: 13,
+  },
+  rankReq: {
+    fontFamily: "Inter_400Regular",
+    color: "#D1FAE5",
+    fontSize: 11,
+    marginTop: 2,
+  },
+  benefitBadge: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+  },
+  benefitText: {
+    fontFamily: "Inter_700Bold",
+    color: "#FFFFFF",
+    fontSize: 11,
+  },
+  expandHintRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 15,
+  },
+  expandHintText: {
+    fontFamily: "Inter_500Medium",
+    color: "rgba(255, 255, 255, 0.7)",
+    fontSize: 11,
+    marginRight: 6,
+  },
+
   statsContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     paddingHorizontal: 20,
     marginTop: 25,
+    marginBottom: 100, // Tambah jarak bawah ekstra agar aman saat kartu memanjang dan digeser
   },
   statBox: {
     flex: 1,
     backgroundColor: "#FFFFFF",
-    paddingVertical: 24, // Padding atas bawah diperbesar
+    paddingVertical: 24,
     paddingHorizontal: 16,
     borderRadius: 20,
     alignItems: "center",
-    marginHorizontal: 6, // Jarak antar kotak
+    marginHorizontal: 6,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
@@ -245,10 +372,10 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: "#D1FAE5", // Lingkaran latar belakang ikon
+    backgroundColor: "#D1FAE5",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12, // Jarak ikon ke angka
+    marginBottom: 12,
   },
   statNumber: {
     fontFamily: "Inter_700Bold",

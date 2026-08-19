@@ -9,12 +9,15 @@ import {
   View,
 } from "react-native";
 import { db } from "../../firebaseConfig";
+import { usePoints } from "../../PointContext"; // <--- Import PointContext agar poin bisa terbaca
 
 export default function ProfileScreen() {
   const [userData, setUserData] = useState({
     total_plastik: 0,
     total_logam: 0,
   });
+
+  const { totalPoin } = usePoints(); // <--- Tarik data total poin dari mesin
 
   // MATA-MATA FIREBASE: Mendengarkan Brankas Utama
   useEffect(() => {
@@ -33,8 +36,14 @@ export default function ProfileScreen() {
   // Emisi CO2 Terkurangi (kg)
   const co2Saved = (p * 0.08 + l * 0.2).toFixed(2);
 
-  // Energi Dihemat (kWh)
-  const energySaved = (p * 0.02 + l * 0.15).toFixed(2);
+  // Logika Gamifikasi: Cek Rank Saat Ini
+  const getLevelName = () => {
+    if (totalPoin >= 50000) return "Radiant Recycler ✨";
+    if (totalPoin >= 25000) return "Elderwood Guardian 🛡️";
+    if (totalPoin >= 10000) return "Sylvan Sapling 🌳";
+    if (totalPoin >= 2500) return "Verdant Sprout 🌿";
+    return "Pebble Seed 🌱";
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -44,7 +53,7 @@ export default function ProfileScreen() {
           <FontAwesome name="leaf" size={40} color="#10B981" />
         </View>
         <Text style={styles.userName}>Nayaka Alkaesyah S.</Text>
-        <Text style={styles.userSubtitle}>Eco-Warrior Level 2</Text>
+        <Text style={styles.userSubtitle}>{getLevelName()}</Text>
       </View>
 
       {/* JUDUL BAGIAN DAMPAK */}
@@ -71,19 +80,6 @@ export default function ProfileScreen() {
               {co2Saved} <Text style={styles.impactUnit}>kg</Text>
             </Text>
             <Text style={styles.impactLabel}>Emisi Karbon Dicegah</Text>
-          </View>
-        </View>
-
-        {/* Kartu 2: Energi */}
-        <View style={styles.impactCard}>
-          <View style={[styles.iconBox, { backgroundColor: "#FEF3C7" }]}>
-            <FontAwesome name="bolt" size={28} color="#F59E0B" />
-          </View>
-          <View style={styles.impactTextContainer}>
-            <Text style={styles.impactValue}>
-              {energySaved} <Text style={styles.impactUnit}>kWh</Text>
-            </Text>
-            <Text style={styles.impactLabel}>Energi Listrik Dihemat</Text>
           </View>
         </View>
       </View>
@@ -135,7 +131,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F9FAFB",
   },
   headerContainer: {
-    backgroundColor: "#111827", // Warna gelap biar elegan dan kontras
+    backgroundColor: "#111827",
     paddingTop: 70,
     paddingBottom: 40,
     alignItems: "center",
