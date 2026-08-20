@@ -191,7 +191,7 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* --- BAGIAN KONSISTENSI DENGAN TEMA API 🔥 --- */}
+          {/* --- BAGIAN KONSISTENSI DENGAN EMOJI API RAKSASA 🔥 --- */}
           <View style={styles.consistencyCard}>
             <View style={styles.consistencyHeader}>
               <View style={{ flexDirection: "row", alignItems: "flex-end" }}>
@@ -207,20 +207,14 @@ export default function HomeScreen() {
               </View>
 
               <View style={styles.streakBadge}>
-                <FontAwesome
-                  name="fire"
-                  size={14}
-                  color="#EF4444"
-                  style={{ marginRight: 4 }}
-                />
+                <Text style={{ fontSize: 14, marginRight: 4 }}>🔥</Text>
                 <Text style={styles.streakText}>Streak</Text>
               </View>
             </View>
 
-            {/* Wrapper Baru Agar Icon Api Ada di Sebelah Kanan Bar */}
+            {/* Wrapper Dipertinggi Agar Api Raksasa Muat */}
             <View style={styles.progressBarWrapper}>
               <View style={styles.consistencyBarBg}>
-                {/* Menggunakan Linear Gradient untuk Efek Terbakar */}
                 <LinearGradient
                   colors={["#FBBF24", "#F97316", "#EF4444"]}
                   start={{ x: 0, y: 0 }}
@@ -231,13 +225,16 @@ export default function HomeScreen() {
                   ]}
                 />
               </View>
-              {/* Ornamen Api di Ujung Bar */}
-              <FontAwesome
-                name="fire"
-                size={20}
-                color="#EF4444"
-                style={{ marginLeft: 12 }}
-              />
+
+              {/* Posisi Emoji Api Raksasa */}
+              <View
+                style={[
+                  styles.fireIconContainer,
+                  { left: `${Math.min((hariKonsisten / 7) * 100, 92)}%` },
+                ]}
+              >
+                <Text style={styles.giantFire}>🔥</Text>
+              </View>
             </View>
 
             <Text style={styles.consistencyTitle}>
@@ -489,24 +486,38 @@ const styles = StyleSheet.create({
   consistencyUnit: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 14,
-    color: "#F97316", // Berubah jadi oren agar senada
+    color: "#F97316",
     marginBottom: 4,
   },
   progressBarWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
+    position: "relative",
+    justifyContent: "center",
+    height: 50, // Dipertinggi drastis agar api raksasanya muat
+    marginBottom: 5,
   },
   consistencyBarBg: {
-    flex: 1, // Membentang penuhi sisa ruang kiri icon api
+    width: "100%",
     height: 12,
-    backgroundColor: "#FFEDD5", // Background oren sangat pudar
+    backgroundColor: "#FFEDD5",
     borderRadius: 6,
     overflow: "hidden",
   },
   consistencyBarFill: {
     height: "100%",
     borderRadius: 6,
+  },
+  fireIconContainer: {
+    position: "absolute",
+    transform: [
+      { translateX: -22 },
+      { translateY: -8 }, // <-- MINUS (-) untuk menaikkan, PLUS (+) untuk menurunkan
+    ],
+  },
+  giantFire: {
+    fontSize: 34, // Ukuran raksasa!
+    lineHeight: 40,
+    textShadowColor: "rgba(239, 68, 68, 0.4)", // Efek glow tipis
+    textShadowRadius: 10,
   },
   consistencyTitle: {
     fontFamily: "Inter_500Medium",
