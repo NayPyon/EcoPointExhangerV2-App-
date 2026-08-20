@@ -8,65 +8,79 @@ import React, {
 } from "react";
 import { db } from "./firebaseConfig";
 
-// 1. Tambahkan variabel baru ke dalam struktur jembatan
 interface PointContextType {
   totalPoin: number;
-  totalBottles: number;
+  totalPlastik: number;
+  totalLogam: number;
   hariKonsisten: number;
   loading: boolean;
 }
 
 const PointContext = createContext<PointContextType>({
   totalPoin: 0,
-  totalBottles: 0,
+  totalPlastik: 0,
+  totalLogam: 0,
   hariKonsisten: 0,
   loading: true,
 });
 
 export const PointProvider = ({ children }: { children: ReactNode }) => {
   const [totalPoin, setTotalPoin] = useState(0);
-  const [totalBottles, setTotalBottles] = useState(0); // State untuk botol
-  const [hariKonsisten, setHariKonsisten] = useState(0); // State untuk hari
-
+  const [totalPlastik, setTotalPlastik] = useState(0);
+  const [totalLogam, setTotalLogam] = useState(0);
+  const [hariKonsisten, setHariKonsisten] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(collection(db, "Riwayat_Transaksi"));
+    // KITA BACA KOLEKSI "Riwayat" SESUAI FOTO FIREBASE-MU
+    const q = query(collection(db, "Riwayat"));
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
         let hitungPoin = 0;
-        let hitungBotol = 0;
-        const tanggalUnik = new Set(); // Mengumpulkan tanggal yang tidak duplikat
+        let hitungPlastik = 0;
+        let hitungLogam = 0;
+        const tanggalUnik = new Set();
+
+        // LOG PELACAK (Cek terminal VS Code-mu nanti!)
+        console.log(
+          "✅ Terhubung ke Firebase! Jumlah dokumen ditemukan:",
+          snapshot.size,
+        );
 
         snapshot.forEach((doc) => {
           const data = doc.data();
+          console.log("📄 Isi Dokumen Terbaca:", data);
 
-          // Kalkulasi Poin
-          if (data.poin_didapat) hitungPoin += data.poin_didapat;
+          if (data.poin) hitungPoin += data.poin;
+          if (data.plastik) hitungPlastik += data.plastik;
+          if (data.logam) hitungLogam += data.logam;
 
-          // Kalkulasi Botol (Pastikan nama field di Firebase adalah 'total_botol')
-          if (data.total_botol) hitungBotol += data.total_botol;
-
-          // Kalkulasi Hari Konsisten dari Timestamp Firebase
-          if (data.timestamp) {
-            // Mengubah waktu Firebase menjadi format tanggal "YYYY-MM-DD"
-            const dateString = data.timestamp
-              .toDate()
-              .toISOString()
-              .split("T")[0];
-            tanggalUnik.add(dateString);
+          if (data.tanggal) {
+            try {
+              const dateString = data.tanggal
+                .toDate()
+                .toISOString()
+                .split("T")[0];
+              tanggalUnik.add(dateString);
+            } catch (e) {
+              console.log("Format tanggal belum berupa Timestamp Firebase");
+            }
           }
         });
 
         setTotalPoin(hitungPoin);
-        setTotalBottles(hitungBotol); // Update botol
-        setHariKonsisten(tanggalUnik.size); // Update hari konsisten (jumlah tanggal unik)
+        setTotalPlastik(hitungPlastik);
+        setTotalLogam(hitungLogam);
+        setHariKonsisten(tanggalUnik.size);
         setLoading(false);
       },
       (error) => {
-        console.error("Gagal mendengarkan Firebase:", error);
+        console.error(
+          "❌ Gagal mendengarkan Firebase (Cek Internetmu!):",
+          error,
+        );
         setLoading(false);
       },
     );
@@ -74,10 +88,9 @@ export const PointProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribe();
   }, []);
 
-  // 2. Lempar semua datanya ke luar supaya bisa ditangkap oleh layar
   return (
     <PointContext.Provider
-      value={{ totalPoin, totalBottles, hariKonsisten, loading }}
+      value={{ totalPoin, totalPlastik, totalLogam, hariKonsisten, loading }}
     >
       {children}
     </PointContext.Provider>

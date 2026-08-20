@@ -9,12 +9,13 @@ import {
   Poppins_600SemiBold,
   Poppins_700Bold,
 } from "@expo-google-fonts/poppins";
-import { useFonts } from "expo-font"; // Menggunakan useFonts utama dari expo agar bisa menggabungkan banyak font
+import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
+// 1. IMPORT POINT PROVIDER DARI LUAR FOLDER APP
+import { PointProvider } from "../PointContext";
 
-// Mencegah layar putih berkedip (splash screen) hilang sebelum font selesai diunduh
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -34,15 +35,16 @@ export default function RootLayout() {
     }
   }, [loaded, error]);
 
-  // Jangan tampilkan apa-apa sampai font benar-benar siap
   if (!loaded && !error) {
     return null;
   }
 
   return (
-    // Mengarahkan aplikasi untuk langsung membuka folder (tabs)
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" />
-    </Stack>
+    // 2. BUNGKUS STACK DENGAN POINT PROVIDER AGAR SEMUA TAB BISA MENDENGAR FIREBASE
+    <PointProvider>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+      </Stack>
+    </PointProvider>
   );
 }

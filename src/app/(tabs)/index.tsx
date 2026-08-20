@@ -25,8 +25,8 @@ if (
 }
 
 export default function HomeScreen() {
-  const { totalPoin, totalBottles, hariKonsisten } = usePoints();
-  const [isExpanded, setIsExpanded] = useState(false); // State untuk mengatur buka/tutup kartu
+  const { totalPoin, totalPlastik, totalLogam, hariKonsisten } = usePoints();
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const getLevelName = () => {
     if (totalPoin >= 50000) return "Radiant Recycler ✨";
@@ -53,14 +53,12 @@ export default function HomeScreen() {
     router.push("/notifications");
   };
 
-  // Fungsi saat kartu hijau ditekan
   const toggleExpand = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); // Animasi smooth
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setIsExpanded(!isExpanded);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  // Data gamifikasi untuk ditampilkan di dalam kartu yang mengekspansi
   const GAMIFICATION_TIERS = [
     { name: "Radiant Recycler ✨", req: "50.000+ pts", benefit: "+20% Poin" },
     { name: "Elderwood Guardian 🛡️", req: "25.000 pts", benefit: "+15% Poin" },
@@ -70,127 +68,187 @@ export default function HomeScreen() {
   ];
 
   return (
-    <ScrollView
-      style={styles.container}
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: 120 }}
-    >
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Halo, Nayaka! 👋</Text>
-        </View>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          style={styles.notificationIcon}
-          onPress={handleBellPress}
-        >
-          <FontAwesome name="bell-o" size={22} color="#111827" />
-          <View style={styles.badge} />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.cardWrapper}>
-        <TouchableOpacity activeOpacity={0.9} onPress={toggleExpand}>
-          <LinearGradient
-            colors={["#059669", "#10B981", "#34D399"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.pointCard}
+    <View style={styles.container}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 120 }}
+      >
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.greeting}>Halo, Nayaka! 👋</Text>
+          </View>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            style={styles.notificationIcon}
+            onPress={handleBellPress}
           >
-            {/* INI BAGIAN YANG SUDAH DIPERBAIKI */}
-            <View style={styles.pointHeader}>
-              {Platform.OS === "ios" ? (
-                <BlurView intensity={40} tint="light" style={styles.glassBadge}>
-                  <Text style={styles.levelText}>{getLevelName()}</Text>
-                </BlurView>
-              ) : (
-                <View
-                  style={[
-                    styles.glassBadge,
-                    { backgroundColor: "rgba(255, 255, 255, 0.25)" },
-                  ]}
-                >
-                  <Text style={styles.levelText}>{getLevelName()}</Text>
+            <FontAwesome name="bell-o" size={22} color="#111827" />
+            <View style={styles.badge} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.cardWrapper}>
+          <TouchableOpacity activeOpacity={0.9} onPress={toggleExpand}>
+            <LinearGradient
+              colors={["#059669", "#10B981", "#34D399"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.pointCard}
+            >
+              <View style={styles.pointHeader}>
+                {Platform.OS === "ios" ? (
+                  <BlurView
+                    intensity={40}
+                    tint="light"
+                    style={styles.glassBadge}
+                  >
+                    <Text style={styles.levelText}>{getLevelName()}</Text>
+                  </BlurView>
+                ) : (
+                  <View
+                    style={[
+                      styles.glassBadge,
+                      { backgroundColor: "rgba(255, 255, 255, 0.25)" },
+                    ]}
+                  >
+                    <Text style={styles.levelText}>{getLevelName()}</Text>
+                  </View>
+                )}
+                <FontAwesome name="leaf" size={24} color="#D1FAE5" />
+              </View>
+
+              <View style={styles.pointContent}>
+                <Text style={styles.pointLabel}>Total Poin Saat Ini</Text>
+                <Text style={styles.pointValue}>{totalPoin}</Text>
+              </View>
+
+              <View style={styles.progressContainer}>
+                <View style={styles.progressBarBackground}>
+                  <View
+                    style={[
+                      styles.progressBarFill,
+                      { width: `${progressPercentage}%` },
+                    ]}
+                  />
+                </View>
+                <Text style={styles.progressText}>
+                  {totalPoin >= 50000
+                    ? "Rank Maksimal Tercapai! Sultan RVM 🎉"
+                    : `${totalPoin} / ${targetPoints} Poin menuju level berikutnya`}
+                </Text>
+              </View>
+
+              {isExpanded && (
+                <View style={styles.expandedContent}>
+                  <View style={styles.divider} />
+                  <Text style={styles.expandedTitle}>Keuntungan Tiap Rank</Text>
+                  {GAMIFICATION_TIERS.map((tier, index) => (
+                    <View key={index} style={styles.rankRow}>
+                      <View>
+                        <Text style={styles.rankName}>{tier.name}</Text>
+                        <Text style={styles.rankReq}>Butuh {tier.req}</Text>
+                      </View>
+                      <View style={styles.benefitBadge}>
+                        <Text style={styles.benefitText}>{tier.benefit}</Text>
+                      </View>
+                    </View>
+                  ))}
                 </View>
               )}
-              <FontAwesome name="leaf" size={24} color="#D1FAE5" />
+
+              <View style={styles.expandHintRow}>
+                <Text style={styles.expandHintText}>
+                  {isExpanded
+                    ? "Tutup Info Rank"
+                    : "Lihat Info Rank & Keuntungan"}
+                </Text>
+                <FontAwesome
+                  name={isExpanded ? "chevron-up" : "chevron-down"}
+                  size={10}
+                  color="rgba(255, 255, 255, 0.7)"
+                />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.statsWrapper}>
+          <View style={styles.statsRow}>
+            <View style={styles.statBoxSmall}>
+              <View style={[styles.iconCircle, { backgroundColor: "#DBEAFE" }]}>
+                <FontAwesome name="tint" size={20} color="#3B82F6" />
+              </View>
+              <Text style={styles.statNumber}>{totalPlastik}</Text>
+              <Text style={styles.statLabel}>Plastik Disetor</Text>
             </View>
 
-            <View style={styles.pointContent}>
-              <Text style={styles.pointLabel}>Total Poin Saat Ini</Text>
-              <Text style={styles.pointValue}>{totalPoin}</Text>
+            <View style={styles.statBoxSmall}>
+              <View style={[styles.iconCircle, { backgroundColor: "#E0E7FF" }]}>
+                <FontAwesome name="cube" size={20} color="#6366F1" />
+              </View>
+              <Text style={styles.statNumber}>{totalLogam}</Text>
+              <Text style={styles.statLabel}>Logam Disetor</Text>
+            </View>
+          </View>
+
+          {/* --- BAGIAN KONSISTENSI DENGAN TEMA API 🔥 --- */}
+          <View style={styles.consistencyCard}>
+            <View style={styles.consistencyHeader}>
+              <View style={{ flexDirection: "row", alignItems: "flex-end" }}>
+                <Text style={styles.consistencyValue}>
+                  {hariKonsisten}
+                  {hariKonsisten <= 7 && (
+                    <Text style={styles.consistencyMax}>/7</Text>
+                  )}
+                </Text>
+                <Text style={[styles.consistencyUnit, { marginLeft: 6 }]}>
+                  Hari
+                </Text>
+              </View>
+
+              <View style={styles.streakBadge}>
+                <FontAwesome
+                  name="fire"
+                  size={14}
+                  color="#EF4444"
+                  style={{ marginRight: 4 }}
+                />
+                <Text style={styles.streakText}>Streak</Text>
+              </View>
             </View>
 
-            <View style={styles.progressContainer}>
-              <View style={styles.progressBarBackground}>
-                <View
+            {/* Wrapper Baru Agar Icon Api Ada di Sebelah Kanan Bar */}
+            <View style={styles.progressBarWrapper}>
+              <View style={styles.consistencyBarBg}>
+                {/* Menggunakan Linear Gradient untuk Efek Terbakar */}
+                <LinearGradient
+                  colors={["#FBBF24", "#F97316", "#EF4444"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
                   style={[
-                    styles.progressBarFill,
-                    { width: `${progressPercentage}%` },
+                    styles.consistencyBarFill,
+                    { width: `${Math.min((hariKonsisten / 7) * 100, 100)}%` },
                   ]}
                 />
               </View>
-              <Text style={styles.progressText}>
-                {totalPoin >= 50000
-                  ? "Rank Maksimal Tercapai! Sultan RVM 🎉"
-                  : `${totalPoin} / ${targetPoints} Poin menuju level berikutnya`}
-              </Text>
-            </View>
-
-            {/* Bagian yang akan Terbuka (Expand) */}
-            {isExpanded && (
-              <View style={styles.expandedContent}>
-                <View style={styles.divider} />
-                <Text style={styles.expandedTitle}>Keuntungan Tiap Rank</Text>
-
-                {GAMIFICATION_TIERS.map((tier, index) => (
-                  <View key={index} style={styles.rankRow}>
-                    <View>
-                      <Text style={styles.rankName}>{tier.name}</Text>
-                      <Text style={styles.rankReq}>Butuh {tier.req}</Text>
-                    </View>
-                    <View style={styles.benefitBadge}>
-                      <Text style={styles.benefitText}>{tier.benefit}</Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {/* Indikator Panah Bawah/Atas */}
-            <View style={styles.expandHintRow}>
-              <Text style={styles.expandHintText}>
-                {isExpanded
-                  ? "Tutup Info Rank"
-                  : "Lihat Info Rank & Keuntungan"}
-              </Text>
+              {/* Ornamen Api di Ujung Bar */}
               <FontAwesome
-                name={isExpanded ? "chevron-up" : "chevron-down"}
-                size={10}
-                color="rgba(255, 255, 255, 0.7)"
+                name="fire"
+                size={20}
+                color="#EF4444"
+                style={{ marginLeft: 12 }}
               />
             </View>
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
 
-      <View style={styles.statsContainer}>
-        <View style={styles.statBox}>
-          <View style={styles.iconCircle}>
-            <FontAwesome name="recycle" size={26} color="#10B981" />
+            <Text style={styles.consistencyTitle}>
+              {hariKonsisten > 7
+                ? "Pencapaian Luar Biasa! Terus Pertahankan 🔥"
+                : "Target Konsistensi 7 Hari"}
+            </Text>
           </View>
-          <Text style={styles.statNumber}>{totalBottles}</Text>
-          <Text style={styles.statLabel}>Botol Didaur</Text>
         </View>
-        <View style={styles.statBox}>
-          <View style={[styles.iconCircle, { backgroundColor: "#FEF3C7" }]}>
-            <FontAwesome name="fire" size={26} color="#F59E0B" />
-          </View>
-          <Text style={styles.statNumber}>{hariKonsisten} Hari</Text>
-          <Text style={styles.statLabel}>Konsisten</Text>
-        </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -306,8 +364,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: "center",
   },
-
-  // STYLING BARU UNTUK KARTU YANG EXPAND
   expandedContent: {
     marginTop: 20,
   },
@@ -362,36 +418,36 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginRight: 6,
   },
-
-  statsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  statsWrapper: {
     paddingHorizontal: 20,
     marginTop: 25,
-    marginBottom: 100, // Tambah jarak bawah ekstra agar aman saat kartu memanjang dan digeser
   },
-  statBox: {
+  statsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 15,
+  },
+  statBoxSmall: {
     flex: 1,
     backgroundColor: "#FFFFFF",
-    paddingVertical: 24,
-    paddingHorizontal: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
     borderRadius: 20,
     alignItems: "center",
-    marginHorizontal: 6,
+    marginHorizontal: 4,
+    elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
     shadowRadius: 10,
-    elevation: 2,
   },
   iconCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "#D1FAE5",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   statNumber: {
     fontFamily: "Inter_700Bold",
@@ -400,8 +456,76 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontFamily: "Inter_400Regular",
-    fontSize: 13,
+    fontSize: 12,
     color: "#6B7280",
     marginTop: 2,
+  },
+  consistencyCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 20,
+    marginHorizontal: 4,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+  },
+  consistencyHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    marginBottom: 12,
+  },
+  consistencyValue: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 28,
+    color: "#111827",
+  },
+  consistencyMax: {
+    fontSize: 16,
+    color: "#9CA3AF",
+  },
+  consistencyUnit: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 14,
+    color: "#F97316", // Berubah jadi oren agar senada
+    marginBottom: 4,
+  },
+  progressBarWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  consistencyBarBg: {
+    flex: 1, // Membentang penuhi sisa ruang kiri icon api
+    height: 12,
+    backgroundColor: "#FFEDD5", // Background oren sangat pudar
+    borderRadius: 6,
+    overflow: "hidden",
+  },
+  consistencyBarFill: {
+    height: "100%",
+    borderRadius: 6,
+  },
+  consistencyTitle: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 12,
+    color: "#6B7280",
+    textAlign: "center",
+  },
+  streakBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FEF2F2",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 6,
+  },
+  streakText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 12,
+    color: "#EF4444",
   },
 });

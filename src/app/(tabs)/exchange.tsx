@@ -4,6 +4,7 @@ import { doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Modal,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -11,6 +12,11 @@ import {
 } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { db } from "../../firebaseConfig";
+
+// TAMBAHAN IMPORT UNTUK ANIMASI DAN NAVIGASI
+import * as Haptics from "expo-haptics";
+import { router } from "expo-router";
+import LottieView from "lottie-react-native";
 
 export default function ExchangeScreen() {
   const isFocused = useIsFocused();
@@ -23,6 +29,9 @@ export default function ExchangeScreen() {
   const [jumlahPlastik, setJumlahPlastik] = useState(0);
   const [jumlahLogam, setJumlahLogam] = useState(0);
   const [jumlahReject, setJumlahReject] = useState(0);
+
+  // STATE UNTUK MENGONTROL MUNCULNYA ANIMASI APRESIASI
+  const [showCelebration, setShowCelebration] = useState(false);
 
   // 1. MATA-MATA FIREBASE
   useEffect(() => {
@@ -47,7 +56,6 @@ export default function ExchangeScreen() {
     return randomCode;
   };
 
-  // TOMBOL REFRESH MANUAl DITEKAN
   const handleManualRefresh = async () => {
     const newToken = generateNewToken();
     try {
@@ -61,7 +69,6 @@ export default function ExchangeScreen() {
     }
   };
 
-  // FUNGSI MEMULAI SESI (TOMBOL AYO MULAI DITEKAN)
   const mulaiSesi = async () => {
     const newToken = generateNewToken();
     setShowQR(true);
@@ -83,7 +90,6 @@ export default function ExchangeScreen() {
     }
   };
 
-  // FUNGSI MEMBATALKAN SESI (KEMBALI KE AWAL)
   const batalkanSesi = async () => {
     setShowQR(false);
     await setDoc(
@@ -93,17 +99,27 @@ export default function ExchangeScreen() {
     );
   };
 
-  // FUNGSI MENGAKHIRI SESI SETELAH SELESAI BUANG SAMPAH
+  // --- LOGIKA BARU UNTUK TOMBOL SELESAI ---
   const akhiriSesi = async () => {
-    setShowQR(false);
+    // 1. Getar & Munculkan Animasi Fullscreen
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setShowCelebration(true);
+
+    // 2. Ubah status Firebase ke "selesai" (Mesin akan baca ini dan menutup pintu)
     await setDoc(
       doc(db, "Sesi_Aktif", "Nayaka"),
       { status: "selesai" },
       { merge: true },
     );
+
+    // 3. Tunggu 3.5 detik biar user bisa lihat animasi koin
+    setTimeout(() => {
+      setShowCelebration(false);
+      setShowQR(false); // Reset layar QR
+      router.push("/"); // Lempar otomatis ke halaman Beranda!
+    }, 3500);
   };
 
-  // 2. AUTO-TIMER UNTUK QR CODE
   useEffect(() => {
     if (!showQR || statusSesi !== "menunggu_mesin" || !isFocused) return;
 
@@ -127,14 +143,12 @@ export default function ExchangeScreen() {
     return () => clearInterval(timer);
   }, [showQR, statusSesi, isFocused]);
 
-  // RESET SAAT PINDAH TAB
   useEffect(() => {
     if (!isFocused && showQR && statusSesi === "menunggu_mesin") {
       batalkanSesi();
     }
   }, [isFocused]);
 
-  // --- KALKULASI OTOMATIS ---
   const poinPlastik = jumlahPlastik * 100;
   const poinLogam = jumlahLogam * 300;
   const totalSemuaPoin = poinPlastik + poinLogam;
@@ -142,12 +156,31 @@ export default function ExchangeScreen() {
 
   return (
     <View style={styles.container}>
+      {/* --- MODAL ANIMASI APRESIASI SAAT SELESAI TRANSAKSI --- */}
+      <Modal visible={showCelebration} transparent={true} animationType="fade">
+        <View style={styles.modalCelebrationBg}>
+          <View style={styles.celebrationCard}>
+            <LottieView
+              autoPlay
+              loop={false}
+              style={{ width: 150, height: 150 }}
+              source={{
+                uri: "https://lottie.host/809f8d95-8869-42b3-a15f-53748cd3c5c9/K0L266dO0g.json",
+              }}
+            />
+            <Text style={styles.celebrationTitle}>Sesi Selesai! 🎉</Text>
+            <Text style={styles.celebrationSub}>
+              Pintu ditutup. Terima kasih telah mendaur ulang hari ini!
+            </Text>
+          </View>
+        </View>
+      </Modal>
+
       <Text style={styles.headerTitle}>Tukar Sampah</Text>
 
       {/* TAHAP 1: LAYAR AWAL (IDLE) */}
       {!showQR && statusSesi !== "pintu_terbuka" && (
         <View style={{ width: "100%", alignItems: "center", marginTop: 20 }}>
-          {/* Status RVM */}
           <View style={styles.statusRvmCard}>
             <View style={styles.statusHeaderRow}>
               <Text style={styles.statusTitle}>Status RVM Saat Ini</Text>
@@ -158,7 +191,6 @@ export default function ExchangeScreen() {
             <Text style={styles.statusSub}>Mesin siap digunakan</Text>
           </View>
 
-          {/* Tombol Ayo Mulai */}
           <TouchableOpacity style={styles.promoBanner} onPress={mulaiSesi}>
             <View style={styles.bannerTextContainer}>
               <Text style={styles.bannerTitle}>Ayo Mulai Menukar!</Text>
@@ -208,8 +240,6 @@ export default function ExchangeScreen() {
                 Akan diperbarui dalam {timeLeft} detik
               </Text>
             </View>
-
-            {/* DUA TOMBOL: REFRESH & BATAL */}
             <View style={{ width: "100%", gap: 10 }}>
               <TouchableOpacity
                 style={styles.buttonRefresh}
@@ -223,7 +253,6 @@ export default function ExchangeScreen() {
                 />
                 <Text style={styles.buttonRefreshText}>Perbarui Sekarang</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={styles.buttonOutline}
                 onPress={batalkanSesi}
@@ -259,19 +288,16 @@ export default function ExchangeScreen() {
 
             <View style={styles.detailsContainer}>
               <Text style={styles.detailsHeader}>Rincian Sampah Masuk</Text>
-
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>🍾 Plastik (100 pts)</Text>
                 <Text style={styles.detailCount}>{jumlahPlastik}x</Text>
                 <Text style={styles.detailSubtotal}>+{poinPlastik}</Text>
               </View>
-
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>🥫 Logam (300 pts)</Text>
                 <Text style={styles.detailCount}>{jumlahLogam}x</Text>
                 <Text style={styles.detailSubtotal}>+{poinLogam}</Text>
               </View>
-
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>❌ Ditolak (0 pts)</Text>
                 <Text style={[styles.detailCount, { color: "#EF4444" }]}>
@@ -281,9 +307,7 @@ export default function ExchangeScreen() {
                   0
                 </Text>
               </View>
-
               <View style={styles.dividerThick} />
-
               <View style={styles.totalRow}>
                 <View>
                   <Text style={styles.totalLabel}>Total Item</Text>
@@ -342,8 +366,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingHorizontal: 10,
   },
-
-  // PERBAIKAN STYLING RVM CARD
   statusRvmCard: {
     backgroundColor: "#FFFFFF",
     width: "100%",
@@ -380,7 +402,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#6B7280",
   },
-
   promoBanner: {
     backgroundColor: "#E6F4EA",
     width: "100%",
@@ -434,10 +455,10 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   tokenText: {
-    fontFamily: "Poppins_700Bold", // Kita pakai Poppins biar angkanya lebih bulat dan tegas
-    fontSize: 24, // Perbesar ukurannya dari 18 ke 24
+    fontFamily: "Poppins_700Bold",
+    fontSize: 24,
     color: "#10B981",
-    letterSpacing: 2, // Tambah jarak antar huruf/angka sedikit biar lebih lega dibaca
+    letterSpacing: 2,
     marginBottom: 15,
   },
   timerRow: {
@@ -560,5 +581,40 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
     fontSize: 24,
     color: "#111827",
+  },
+
+  // STYLING BARU UNTUK MODAL APRESIASI DI SINI
+  modalCelebrationBg: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.7)", // Gelapnya pas untuk nutupin layar
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  celebrationCard: {
+    backgroundColor: "#FFFFFF",
+    width: "80%",
+    padding: 30,
+    borderRadius: 30,
+    alignItems: "center",
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  celebrationTitle: {
+    fontFamily: "Poppins_700Bold",
+    fontSize: 22,
+    color: "#111827",
+    marginTop: -10,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  celebrationSub: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 14,
+    color: "#6B7280",
+    textAlign: "center",
+    lineHeight: 20,
   },
 });
