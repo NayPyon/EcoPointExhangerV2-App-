@@ -70,7 +70,11 @@ export default function HomeScreen() {
   ];
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: 120 }}
+    >
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Halo, Nayaka! 👋</Text>

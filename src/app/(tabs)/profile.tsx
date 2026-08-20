@@ -46,7 +46,11 @@ export default function ProfileScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: 120 }} // <--- TAMBAHKAN INI JUGA
+    >
       {/* HEADER PROFIL */}
       <View style={styles.headerContainer}>
         <View style={styles.avatarWrapper}>
