@@ -93,10 +93,22 @@ export default function HomeScreen() {
             end={{ x: 1, y: 1 }}
             style={styles.pointCard}
           >
+            {/* INI BAGIAN YANG SUDAH DIPERBAIKI */}
             <View style={styles.pointHeader}>
-              <BlurView intensity={40} tint="light" style={styles.glassBadge}>
-                <Text style={styles.levelText}>{getLevelName()}</Text>
-              </BlurView>
+              {Platform.OS === "ios" ? (
+                <BlurView intensity={40} tint="light" style={styles.glassBadge}>
+                  <Text style={styles.levelText}>{getLevelName()}</Text>
+                </BlurView>
+              ) : (
+                <View
+                  style={[
+                    styles.glassBadge,
+                    { backgroundColor: "rgba(255, 255, 255, 0.25)" },
+                  ]}
+                >
+                  <Text style={styles.levelText}>{getLevelName()}</Text>
+                </View>
+              )}
               <FontAwesome name="leaf" size={24} color="#D1FAE5" />
             </View>
 

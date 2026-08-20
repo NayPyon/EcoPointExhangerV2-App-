@@ -4,7 +4,14 @@ import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { withLayoutContext } from "expo-router";
 import React, { useEffect, useRef } from "react";
-import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Animated,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 // 1. Memanggil mesin Top Tabs dari React Navigation
 const TopTabs = createMaterialTopTabNavigator().Navigator;
@@ -38,7 +45,14 @@ function CustomFloatingTabBar({ state, descriptors, navigation }) {
     <View style={styles.tabBarWrapper} pointerEvents="box-none">
       {/* Background Kapsul dengan Efek Blur/Kaca */}
       <View style={styles.pillContainer}>
-        <BlurView intensity={70} tint="light" style={StyleSheet.absoluteFill} />
+        {/* INI BAGIAN YANG DIPERBAIKI (ANTI LAYAR MERAH ANDROID) */}
+        {Platform.OS === "ios" && (
+          <BlurView
+            intensity={70}
+            tint="light"
+            style={StyleSheet.absoluteFill}
+          />
+        )}
         <View style={styles.pillSolidBackground} />
       </View>
 
@@ -160,7 +174,7 @@ const styles = StyleSheet.create({
   },
   pillSolidBackground: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255, 255, 255, 0.85)", // Semi transparan biar blurnya elegan
+    backgroundColor: "rgba(255, 255, 255, 0.90)", // Dibuat sedikit lebih solid agar tetap cantik tanpa blur di Android
   },
   tabItemsRow: {
     flex: 1,
