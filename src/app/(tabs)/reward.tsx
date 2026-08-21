@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import {
-  Alert,
   Image,
+  Modal,
   SectionList,
   StyleSheet,
   Text,
@@ -13,7 +13,14 @@ import { usePoints } from "../../PointContext";
 export default function RewardScreen() {
   const { totalPoin } = usePoints();
 
-  // Katalog Hadiah dengan Layout Gambar Banner
+  // STATE UNTUK MENGONTROL CUSTOM MODAL
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalType, setModalType] = useState<"konfirmasi" | "sukses" | "gagal">(
+    "konfirmasi",
+  );
+  const [selectedReward, setSelectedReward] = useState<any>(null);
+
+  // Katalog Hadiah
   const REWARD_CATEGORIES = [
     {
       title: "Makanan & Minuman",
@@ -68,26 +75,17 @@ export default function RewardScreen() {
   ];
 
   const handleRedeem = (item: any) => {
+    setSelectedReward(item);
     if (totalPoin >= item.points) {
-      Alert.alert(
-        "Konfirmasi Penukaran",
-        `Tukar ${item.points} poin dengan ${item.title}?`,
-        [
-          { text: "Batal", style: "cancel" },
-          {
-            text: "Tukar",
-            onPress: () =>
-              Alert.alert("Berhasil! 🎉", "Hadiahmu sedang diproses."),
-          },
-        ],
-      );
+      setModalType("konfirmasi");
     } else {
-      const kurang = item.points - totalPoin;
-      Alert.alert(
-        "Poin Belum Cukup 😅",
-        `Kamu butuh ${kurang} poin lagi untuk menukarkan ${item.title}.`,
-      );
+      setModalType("gagal");
     }
+    setModalVisible(true);
+  };
+
+  const prosesTukar = () => {
+    setModalType("sukses");
   };
 
   const renderRewardItem = ({ item }: { item: any }) => {
@@ -99,10 +97,8 @@ export default function RewardScreen() {
         style={styles.card}
         onPress={() => handleRedeem(item)}
       >
-        {/* Banner Gambar */}
         <Image source={{ uri: item.image }} style={styles.cardImage} />
 
-        {/* Konten Teks Bawah */}
         <View style={styles.cardContent}>
           <Text style={styles.title} numberOfLines={2}>
             {item.title}
@@ -114,10 +110,7 @@ export default function RewardScreen() {
                 <Text style={styles.coinText}>P</Text>
               </View>
               <Text
-                style={[
-                  styles.pointText,
-                  !isPoinCukup && { color: "#9CA3AF" }, // Warna abu-abu jika poin kurang
-                ]}
+                style={[styles.pointText, !isPoinCukup && { color: "#9CA3AF" }]}
               >
                 {item.points.toLocaleString("id-ID")} Poin
               </Text>
@@ -138,6 +131,94 @@ export default function RewardScreen() {
 
   return (
     <View style={styles.container}>
+      {/* --- CUSTOM MODAL KUSTOM TEMA EMERALD --- */}
+      <Modal visible={modalVisible} transparent={true} animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            {/* KONTEN MODAL BERDASARKAN TIPE */}
+            {modalType === "konfirmasi" && (
+              <>
+                <Text style={styles.modalEmoji}>🎁</Text>
+                <Text style={styles.modalTitle}>Konfirmasi Penukaran</Text>
+                <Text style={styles.modalMessage}>
+                  Tukar{" "}
+                  <Text
+                    style={{ fontFamily: "Poppins_700Bold", color: "#10B981" }}
+                  >
+                    {selectedReward?.points.toLocaleString("id-ID")} Poin
+                  </Text>{" "}
+                  dengan {selectedReward?.title}?
+                </Text>
+                <View style={styles.modalButtonRow}>
+                  <TouchableOpacity
+                    style={styles.buttonOutline}
+                    onPress={() => setModalVisible(false)}
+                  >
+                    <Text style={styles.buttonOutlineText}>Batal</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.buttonPrimary}
+                    onPress={prosesTukar}
+                  >
+                    <Text style={styles.buttonPrimaryText}>Tukar</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+
+            {modalType === "sukses" && (
+              <>
+                <Text style={styles.modalEmoji}>🎉</Text>
+                <Text style={styles.modalTitle}>Berhasil!</Text>
+                <Text style={styles.modalMessage}>
+                  Hadiahmu sedang diproses. Cek riwayat atau emailmu secara
+                  berkala ya!
+                </Text>
+                <TouchableOpacity
+                  style={[styles.buttonPrimary, { width: "100%" }]}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text style={styles.buttonPrimaryText}>OK, Mengerti</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {modalType === "gagal" && (
+              <>
+                <Text style={styles.modalEmoji}>😅</Text>
+                <Text style={styles.modalTitle}>Poin Belum Cukup</Text>
+                <Text style={styles.modalMessage}>
+                  Kamu butuh{" "}
+                  <Text
+                    style={{ fontFamily: "Poppins_700Bold", color: "#EF4444" }}
+                  >
+                    {selectedReward
+                      ? (selectedReward.points - totalPoin).toLocaleString(
+                          "id-ID",
+                        )
+                      : 0}{" "}
+                    poin lagi
+                  </Text>{" "}
+                  untuk menukarkan {selectedReward?.title}.
+                </Text>
+                <TouchableOpacity
+                  style={[
+                    styles.buttonPrimary,
+                    { width: "100%", backgroundColor: "#111827" },
+                  ]}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text style={styles.buttonPrimaryText}>
+                    Siap, Semangat Nabung Sampah!
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* HEADER */}
       <View style={styles.headerContainer}>
         <View style={styles.headerLeft}>
           <Text style={styles.headerLabel}>Total Poinmu</Text>
@@ -152,6 +233,7 @@ export default function RewardScreen() {
         </View>
       </View>
 
+      {/* LIST REWARD */}
       <SectionList
         sections={REWARD_CATEGORIES}
         keyExtractor={(item) => item.id}
@@ -220,11 +302,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 4,
-    overflow: "hidden", // Agar gambar di atas ikut melengkung sesuai border radius
+    overflow: "hidden",
   },
   cardImage: {
     width: "100%",
-    height: 140, // Tinggi banner
+    height: 140,
     backgroundColor: "#E5E7EB",
   },
   cardContent: {
@@ -262,7 +344,7 @@ const styles = StyleSheet.create({
   pointText: {
     fontFamily: "Inter_700Bold",
     fontSize: 16,
-    color: "#10B981", // <--- Sudah diubah jadi Hijau Tema Aplikasi (Emerald)
+    color: "#10B981",
     marginLeft: 6,
   },
   stockBadge: {
@@ -275,5 +357,77 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     fontSize: 11,
     color: "#6B7280",
+  },
+
+  // STYLING CUSTOM MODAL
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalCard: {
+    backgroundColor: "#FFFFFF",
+    width: "100%",
+    maxWidth: 340,
+    borderRadius: 24,
+    padding: 24,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 10,
+  },
+  modalEmoji: {
+    fontSize: 40,
+    marginBottom: 12,
+  },
+  modalTitle: {
+    fontFamily: "Poppins_700Bold",
+    fontSize: 20,
+    color: "#111827",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  modalMessage: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 14,
+    color: "#6B7280",
+    textAlign: "center",
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  modalButtonRow: {
+    flexDirection: "row",
+    gap: 10,
+    width: "100%",
+  },
+  buttonPrimary: {
+    flex: 1,
+    backgroundColor: "#10B981",
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buttonPrimaryText: {
+    fontFamily: "Poppins_600SemiBold",
+    color: "#FFFFFF",
+    fontSize: 14,
+  },
+  buttonOutline: {
+    flex: 1,
+    backgroundColor: "#F3F4F6",
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buttonOutlineText: {
+    fontFamily: "Poppins_600SemiBold",
+    color: "#4B5563",
+    fontSize: 14,
   },
 });
