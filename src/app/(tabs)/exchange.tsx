@@ -33,7 +33,23 @@ export default function ExchangeScreen() {
   // STATE UNTUK MENGONTROL MUNCULNYA ANIMASI APRESIASI
   const [showCelebration, setShowCelebration] = useState(false);
 
-  // 1. MATA-MATA FIREBASE
+  // STATE BARU: MENGONTROL STATUS AKTIF/TIDAKNYA MESIN (DEFAULT AKTIF)
+  const [isMesinAktif, setIsMesinAktif] = useState(true);
+
+  // 1. MATA-MATA FIREBASE UNTUK STATUS MESIN (RVM) SECARA REAL-TIME
+  useEffect(() => {
+    // Kita buat listener ke koleksi "RVM" dokumen "status_mesin"
+    const unsubMesin = onSnapshot(doc(db, "RVM", "status_mesin"), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        // Cek apakah field 'status' bernilai 'aktif'
+        setIsMesinAktif(data.status === "aktif");
+      }
+    });
+    return () => unsubMesin();
+  }, []);
+
+  // 2. MATA-MATA FIREBASE UNTUK SESI PENGGUNA
   useEffect(() => {
     const unsub = onSnapshot(doc(db, "Sesi_Aktif", "Nayaka"), (docSnap) => {
       if (docSnap.exists()) {
@@ -181,27 +197,69 @@ export default function ExchangeScreen() {
       {/* TAHAP 1: LAYAR AWAL (IDLE) */}
       {!showQR && statusSesi !== "pintu_terbuka" && (
         <View style={{ width: "100%", alignItems: "center", marginTop: 20 }}>
+          {/* KARTU STATUS RVM DINAMIS */}
           <View style={styles.statusRvmCard}>
             <View style={styles.statusHeaderRow}>
               <Text style={styles.statusTitle}>Status RVM Saat Ini</Text>
-              <View style={styles.badgeOnline}>
-                <Text style={styles.badgeText}>• AKTIF</Text>
+
+              {/* Badge berubah abu-abu jika offline */}
+              <View
+                style={[
+                  styles.badgeOnline,
+                  !isMesinAktif && styles.badgeOffline,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.badgeText,
+                    !isMesinAktif && styles.badgeTextOffline,
+                  ]}
+                >
+                  • {isMesinAktif ? "AKTIF" : "NONAKTIF"}
+                </Text>
               </View>
             </View>
-            <Text style={styles.statusSub}>Mesin siap digunakan</Text>
+            <Text style={styles.statusSub}>
+              {isMesinAktif
+                ? "Mesin siap digunakan"
+                : "Mesin sedang offline / tidak terhubung"}
+            </Text>
           </View>
 
-          <TouchableOpacity style={styles.promoBanner} onPress={mulaiSesi}>
+          {/* TOMBOL QR DINAMIS (MATI BILA OFFLINE) */}
+          <TouchableOpacity
+            style={[
+              styles.promoBanner,
+              !isMesinAktif && styles.promoBannerOffline,
+            ]}
+            onPress={mulaiSesi}
+            disabled={!isMesinAktif} // Mengunci tombol saat offline
+            activeOpacity={0.7}
+          >
             <View style={styles.bannerTextContainer}>
-              <Text style={styles.bannerTitle}>Ayo Mulai Menukar!</Text>
-              <Text style={styles.bannerSubtitle}>
-                Tekan di sini untuk memunculkan QR Code dan membuka pintu mesin.
+              <Text
+                style={[
+                  styles.bannerTitle,
+                  !isMesinAktif && styles.bannerTitleOffline,
+                ]}
+              >
+                Ayo Mulai Menukar!
+              </Text>
+              <Text
+                style={[
+                  styles.bannerSubtitle,
+                  !isMesinAktif && styles.bannerSubtitleOffline,
+                ]}
+              >
+                {isMesinAktif
+                  ? "Tekan di sini untuk memunculkan QR Code dan membuka pintu mesin."
+                  : "Harap tunggu hingga mesin kembali online untuk menukar."}
               </Text>
             </View>
             <FontAwesome
               name="qrcode"
               size={60}
-              color="#10B981"
+              color={isMesinAktif ? "#10B981" : "#9CA3AF"} // Ikon jadi abu-abu
               style={styles.bannerIcon}
             />
           </TouchableOpacity>
@@ -397,6 +455,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#10B981",
   },
+
+  // -- TAMBAHAN STYLING SAAT OFFLINE --
+  badgeOffline: {
+    backgroundColor: "#F3F4F6",
+  },
+  badgeTextOffline: {
+    color: "#9CA3AF",
+  },
+  promoBannerOffline: {
+    backgroundColor: "#F3F4F6", // Warna banner jadi abu-abu kusam
+  },
+  bannerTitleOffline: {
+    color: "#4B5563",
+  },
+  bannerSubtitleOffline: {
+    color: "#6B7280",
+  },
+  // ------------------------------------
+
   statusSub: {
     fontFamily: "Inter_400Regular",
     fontSize: 14,
@@ -582,11 +659,9 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: "#111827",
   },
-
-  // STYLING BARU UNTUK MODAL APRESIASI DI SINI
   modalCelebrationBg: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.7)", // Gelapnya pas untuk nutupin layar
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
     justifyContent: "center",
     alignItems: "center",
   },

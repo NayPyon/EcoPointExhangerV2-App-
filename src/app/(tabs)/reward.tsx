@@ -13,14 +13,12 @@ import { usePoints } from "../../PointContext";
 export default function RewardScreen() {
   const { totalPoin } = usePoints();
 
-  // STATE UNTUK MENGONTROL CUSTOM MODAL
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState<"konfirmasi" | "sukses" | "gagal">(
     "konfirmasi",
   );
   const [selectedReward, setSelectedReward] = useState<any>(null);
 
-  // Katalog Hadiah
   const REWARD_CATEGORIES = [
     {
       title: "Makanan & Minuman",
@@ -98,24 +96,23 @@ export default function RewardScreen() {
         onPress={() => handleRedeem(item)}
       >
         <Image source={{ uri: item.image }} style={styles.cardImage} />
-
         <View style={styles.cardContent}>
           <Text style={styles.title} numberOfLines={2}>
             {item.title}
           </Text>
-
           <View style={styles.cardFooter}>
             <View style={styles.pointsRow}>
+              {/* LOGO KOIN DI SINI SUDAH SAMA DENGAN HEADER */}
               <View style={styles.coinIcon}>
                 <Text style={styles.coinText}>P</Text>
               </View>
+
               <Text
                 style={[styles.pointText, !isPoinCukup && { color: "#9CA3AF" }]}
               >
                 {item.points.toLocaleString("id-ID")} Poin
               </Text>
             </View>
-
             <View style={styles.stockBadge}>
               <Text style={styles.stockText}>Sisa Stok &lt; {item.stock}</Text>
             </View>
@@ -131,11 +128,9 @@ export default function RewardScreen() {
 
   return (
     <View style={styles.container}>
-      {/* --- CUSTOM MODAL KUSTOM TEMA EMERALD --- */}
       <Modal visible={modalVisible} transparent={true} animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            {/* KONTEN MODAL BERDASARKAN TIPE */}
             {modalType === "konfirmasi" && (
               <>
                 <Text style={styles.modalEmoji}>🎁</Text>
@@ -151,13 +146,13 @@ export default function RewardScreen() {
                 </Text>
                 <View style={styles.modalButtonRow}>
                   <TouchableOpacity
-                    style={styles.buttonOutline}
+                    style={[styles.buttonOutline, { flex: 1 }]}
                     onPress={() => setModalVisible(false)}
                   >
                     <Text style={styles.buttonOutlineText}>Batal</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={styles.buttonPrimary}
+                    style={[styles.buttonPrimary, { flex: 1 }]}
                     onPress={prosesTukar}
                   >
                     <Text style={styles.buttonPrimaryText}>Tukar</Text>
@@ -175,7 +170,10 @@ export default function RewardScreen() {
                   berkala ya!
                 </Text>
                 <TouchableOpacity
-                  style={[styles.buttonPrimary, { width: "100%" }]}
+                  style={[
+                    styles.buttonPrimary,
+                    { width: "100%", marginTop: 5 },
+                  ]}
                   onPress={() => setModalVisible(false)}
                 >
                   <Text style={styles.buttonPrimaryText}>OK, Mengerti</Text>
@@ -203,14 +201,12 @@ export default function RewardScreen() {
                 </Text>
                 <TouchableOpacity
                   style={[
-                    styles.buttonPrimary,
-                    { width: "100%", backgroundColor: "#111827" },
+                    styles.buttonOutline,
+                    { width: "100%", marginTop: 5 },
                   ]}
                   onPress={() => setModalVisible(false)}
                 >
-                  <Text style={styles.buttonPrimaryText}>
-                    Siap, Semangat Nabung Sampah!
-                  </Text>
+                  <Text style={styles.buttonOutlineText}>Oke, Mengerti</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -218,7 +214,6 @@ export default function RewardScreen() {
         </View>
       </Modal>
 
-      {/* HEADER */}
       <View style={styles.headerContainer}>
         <View style={styles.headerLeft}>
           <Text style={styles.headerLabel}>Total Poinmu</Text>
@@ -233,7 +228,6 @@ export default function RewardScreen() {
         </View>
       </View>
 
-      {/* LIST REWARD */}
       <SectionList
         sections={REWARD_CATEGORIES}
         keyExtractor={(item) => item.id}
@@ -248,10 +242,7 @@ export default function RewardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F3F4F6",
-  },
+  container: { flex: 1, backgroundColor: "#F3F4F6" },
   headerContainer: {
     backgroundColor: "#FFFFFF",
     paddingTop: 60,
@@ -263,19 +254,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  headerLeft: {
-    flex: 1,
-  },
+  headerLeft: { flex: 1 },
   headerLabel: {
     fontFamily: "Inter_400Regular",
     color: "#6B7280",
     fontSize: 13,
     marginBottom: 4,
   },
-  headerPointsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
+  headerPointsRow: { flexDirection: "row", alignItems: "center" },
   headerValue: {
     fontFamily: "Poppins_700Bold",
     color: "#111827",
@@ -290,9 +276,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     paddingHorizontal: 20,
   },
-  listContainer: {
-    paddingBottom: 120,
-  },
+  listContainer: { paddingBottom: 120 },
   card: {
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
@@ -304,14 +288,8 @@ const styles = StyleSheet.create({
     elevation: 4,
     overflow: "hidden",
   },
-  cardImage: {
-    width: "100%",
-    height: 140,
-    backgroundColor: "#E5E7EB",
-  },
-  cardContent: {
-    padding: 16,
-  },
+  cardImage: { width: "100%", height: 140, backgroundColor: "#E5E7EB" },
+  cardContent: { padding: 16 },
   title: {
     fontFamily: "Poppins_600SemiBold",
     fontSize: 15,
@@ -324,23 +302,17 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  pointsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
+  pointsRow: { flexDirection: "row", alignItems: "center" },
+  // WARNA COIN DIUPDATE MENJADI ORANYE SOLID AGAR SAMA PERSIS
   coinIcon: {
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: "#FEF3C7",
+    backgroundColor: "#F59E0B",
     justifyContent: "center",
     alignItems: "center",
   },
-  coinText: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 11,
-    color: "#D97706",
-  },
+  coinText: { fontFamily: "Inter_700Bold", fontSize: 11, color: "#FFFFFF" },
   pointText: {
     fontFamily: "Inter_700Bold",
     fontSize: 16,
@@ -353,13 +325,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 8,
   },
-  stockText: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 11,
-    color: "#6B7280",
-  },
-
-  // STYLING CUSTOM MODAL
+  stockText: { fontFamily: "Inter_400Regular", fontSize: 11, color: "#6B7280" },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.6)",
@@ -380,10 +346,7 @@ const styles = StyleSheet.create({
     shadowRadius: 15,
     elevation: 10,
   },
-  modalEmoji: {
-    fontSize: 40,
-    marginBottom: 12,
-  },
+  modalEmoji: { fontSize: 40, marginBottom: 12 },
   modalTitle: {
     fontFamily: "Poppins_700Bold",
     fontSize: 20,
@@ -399,13 +362,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     lineHeight: 20,
   },
-  modalButtonRow: {
-    flexDirection: "row",
-    gap: 10,
-    width: "100%",
-  },
+  modalButtonRow: { flexDirection: "row", gap: 10, width: "100%" },
   buttonPrimary: {
-    flex: 1,
     backgroundColor: "#10B981",
     paddingVertical: 14,
     borderRadius: 12,
@@ -413,12 +371,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   buttonPrimaryText: {
-    fontFamily: "Poppins_600SemiBold",
+    fontFamily: "Poppins_700Bold",
     color: "#FFFFFF",
     fontSize: 14,
   },
   buttonOutline: {
-    flex: 1,
     backgroundColor: "#F3F4F6",
     paddingVertical: 14,
     borderRadius: 12,
@@ -426,8 +383,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   buttonOutlineText: {
-    fontFamily: "Poppins_600SemiBold",
-    color: "#4B5563",
+    fontFamily: "Poppins_700Bold",
+    color: "#111827",
     fontSize: 14,
   },
 });

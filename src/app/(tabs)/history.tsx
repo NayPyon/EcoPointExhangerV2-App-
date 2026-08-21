@@ -14,7 +14,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { db } from "../../firebaseConfig"; // Sila pastikan laluan (path) ke firebaseConfig ini betul
+import { db } from "../../firebaseConfig";
 
 export default function HistoryScreen() {
   const [riwayatData, setRiwayatData] = useState([]);
@@ -83,6 +83,7 @@ export default function HistoryScreen() {
           </Text>
         </View>
 
+        {/* --- BAGIAN POIN & LOGO YANG BARU --- */}
         <View style={styles.pointsContainer}>
           <Text
             style={[
@@ -93,7 +94,11 @@ export default function HistoryScreen() {
             {isKredit ? "-" : "+"}
             {item.poin}
           </Text>
-          <Text style={styles.ptsLabel}>pts</Text>
+
+          {/* Logo Koin "P" Identik dengan Beranda & Reward */}
+          <View style={styles.coinIcon}>
+            <Text style={styles.coinText}>P</Text>
+          </View>
         </View>
       </View>
     );
@@ -193,15 +198,29 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     marginTop: 4,
   },
-  pointsContainer: { alignItems: "flex-end", justifyContent: "center" },
+  // --- STYLING BARU UNTUK FLEX-ROW LOGO POIN ---
+  pointsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   pointsText: {
     fontFamily: "Inter_700Bold",
     fontSize: 16,
+    marginRight: 4, // Jarak sedikit antara angka dan logo koin
   },
-  ptsLabel: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 11,
-    color: "#9CA3AF",
+  coinIcon: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#F59E0B",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  coinText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 10,
+    color: "#FFFFFF",
   },
   emptyState: {
     flex: 1,

@@ -1,4 +1,4 @@
-import { FontAwesome } from "@expo/vector-icons";
+import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
@@ -118,7 +118,14 @@ export default function HomeScreen() {
               </View>
 
               <View style={styles.pointContent}>
-                <Text style={styles.pointLabel}>Total Poin Saat Ini</Text>
+                {/* --- LOGO POIN KECIL DI SEBELAH TEKS --- */}
+                <View style={styles.pointLabelRow}>
+                  <View style={styles.smallCoinIcon}>
+                    <Text style={styles.smallCoinText}>P</Text>
+                  </View>
+                  <Text style={styles.pointLabel}>Total Poin Saat Ini</Text>
+                </View>
+
                 <Text style={styles.pointValue}>{totalPoin}</Text>
               </View>
 
@@ -174,17 +181,25 @@ export default function HomeScreen() {
 
         <View style={styles.statsWrapper}>
           <View style={styles.statsRow}>
+            {/* IKON UNTUK PLASTIK (Botol Air) */}
             <View style={styles.statBoxSmall}>
               <View style={[styles.iconCircle, { backgroundColor: "#DBEAFE" }]}>
-                <FontAwesome name="tint" size={20} color="#3B82F6" />
+                {/* Menggunakan ikon botol air (water) dari Ionicons */}
+                <MaterialCommunityIcons
+                  name="bottle-soda"
+                  size={24}
+                  color="#3B82F6"
+                />
               </View>
               <Text style={styles.statNumber}>{totalPlastik}</Text>
               <Text style={styles.statLabel}>Plastik Disetor</Text>
             </View>
 
+            {/* IKON UNTUK LOGAM (Tempat Sampah Logam / Objek Padat) */}
             <View style={styles.statBoxSmall}>
               <View style={[styles.iconCircle, { backgroundColor: "#E0E7FF" }]}>
-                <FontAwesome name="cube" size={20} color="#6366F1" />
+                {/* Menggunakan ikon perangkat/hardware yang merepresentasikan logam */}
+                <MaterialCommunityIcons name="keg" size={24} color="#6366F1" />
               </View>
               <Text style={styles.statNumber}>{totalLogam}</Text>
               <Text style={styles.statLabel}>Logam Disetor</Text>
@@ -326,11 +341,30 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginVertical: 10,
   },
+  // STYLING ROW UNTUK LABEL + LOGO POIN
+  pointLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: -5,
+  },
+  smallCoinIcon: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#F59E0B",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 6,
+  },
+  smallCoinText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 9,
+    color: "#FFFFFF",
+  },
   pointLabel: {
     fontFamily: "Inter_400Regular",
     color: "#D1FAE5",
     fontSize: 13,
-    marginBottom: -5,
   },
   pointValue: {
     fontFamily: "Inter_700Bold",
@@ -492,7 +526,7 @@ const styles = StyleSheet.create({
   progressBarWrapper: {
     position: "relative",
     justifyContent: "center",
-    height: 50, // Dipertinggi drastis agar api raksasanya muat
+    height: 50,
     marginBottom: 5,
   },
   consistencyBarBg: {
@@ -508,15 +542,12 @@ const styles = StyleSheet.create({
   },
   fireIconContainer: {
     position: "absolute",
-    transform: [
-      { translateX: -22 },
-      { translateY: -8 }, // <-- MINUS (-) untuk menaikkan, PLUS (+) untuk menurunkan
-    ],
+    transform: [{ translateX: -22 }, { translateY: -8 }],
   },
   giantFire: {
-    fontSize: 34, // Ukuran raksasa!
+    fontSize: 34,
     lineHeight: 40,
-    textShadowColor: "rgba(239, 68, 68, 0.4)", // Efek glow tipis
+    textShadowColor: "rgba(239, 68, 68, 0.4)",
     textShadowRadius: 10,
   },
   consistencyTitle: {
