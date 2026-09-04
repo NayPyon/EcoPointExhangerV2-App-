@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import { Components, Semantic } from "@/constants/theme";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useState } from "react";
 import {
   Image,
   Modal,
@@ -108,7 +110,10 @@ export default function RewardScreen() {
               </View>
 
               <Text
-                style={[styles.pointText, !isPoinCukup && { color: "#9CA3AF" }]}
+                style={[
+                  styles.pointText,
+                  !isPoinCukup && { color: Semantic.text.muted },
+                ]}
               >
                 {item.points.toLocaleString("id-ID")} Poin
               </Text>
@@ -133,12 +138,20 @@ export default function RewardScreen() {
           <View style={styles.modalCard}>
             {modalType === "konfirmasi" && (
               <>
-                <Text style={styles.modalEmoji}>🎁</Text>
+                <MaterialCommunityIcons
+                  name="gift"
+                  size={42}
+                  color={Semantic.success.main}
+                  style={styles.modalIcon}
+                />
                 <Text style={styles.modalTitle}>Konfirmasi Penukaran</Text>
                 <Text style={styles.modalMessage}>
                   Tukar{" "}
                   <Text
-                    style={{ fontFamily: "Poppins_700Bold", color: "#10B981" }}
+                    style={{
+                      fontFamily: "Poppins_700Bold",
+                      color: Semantic.success.main,
+                    }}
                   >
                     {selectedReward?.points.toLocaleString("id-ID")} Poin
                   </Text>{" "}
@@ -163,7 +176,12 @@ export default function RewardScreen() {
 
             {modalType === "sukses" && (
               <>
-                <Text style={styles.modalEmoji}>🎉</Text>
+                <MaterialCommunityIcons
+                  name="party-popper"
+                  size={42}
+                  color={Semantic.success.main}
+                  style={styles.modalIcon}
+                />
                 <Text style={styles.modalTitle}>Berhasil!</Text>
                 <Text style={styles.modalMessage}>
                   Hadiahmu sedang diproses. Cek riwayat atau emailmu secara
@@ -183,12 +201,20 @@ export default function RewardScreen() {
 
             {modalType === "gagal" && (
               <>
-                <Text style={styles.modalEmoji}>😅</Text>
+                <MaterialCommunityIcons
+                  name="alert-circle"
+                  size={42}
+                  color={Semantic.warning.main}
+                  style={styles.modalIcon}
+                />
                 <Text style={styles.modalTitle}>Poin Belum Cukup</Text>
                 <Text style={styles.modalMessage}>
                   Kamu butuh{" "}
                   <Text
-                    style={{ fontFamily: "Poppins_700Bold", color: "#EF4444" }}
+                    style={{
+                      fontFamily: "Poppins_700Bold",
+                      color: Semantic.danger.main,
+                    }}
                   >
                     {selectedReward
                       ? (selectedReward.points - totalPoin).toLocaleString(
@@ -218,8 +244,20 @@ export default function RewardScreen() {
         <View style={styles.headerLeft}>
           <Text style={styles.headerLabel}>Total Poinmu</Text>
           <View style={styles.headerPointsRow}>
-            <View style={[styles.coinIcon, { backgroundColor: "#F59E0B" }]}>
-              <Text style={[styles.coinText, { color: "#FFFFFF" }]}>P</Text>
+            <View
+              style={[
+                styles.coinIcon,
+                { backgroundColor: Semantic.warning.main },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.coinText,
+                  { color: Semantic.background.primary },
+                ]}
+              >
+                P
+              </Text>
             </View>
             <Text style={styles.headerValue}>
               {totalPoin.toLocaleString("id-ID")}
@@ -242,14 +280,14 @@ export default function RewardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F3F4F6" },
+  container: { flex: 1, backgroundColor: Semantic.background.tertiary },
   headerContainer: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Semantic.background.primary,
     paddingTop: 60,
     paddingBottom: 20,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: Components.card.border,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -257,43 +295,47 @@ const styles = StyleSheet.create({
   headerLeft: { flex: 1 },
   headerLabel: {
     fontFamily: "Inter_400Regular",
-    color: "#6B7280",
+    color: Semantic.text.secondary,
     fontSize: 13,
     marginBottom: 4,
   },
   headerPointsRow: { flexDirection: "row", alignItems: "center" },
   headerValue: {
     fontFamily: "Poppins_700Bold",
-    color: "#111827",
+    color: Semantic.text.primary,
     fontSize: 24,
     marginLeft: 8,
   },
   sectionHeader: {
     fontFamily: "Poppins_700Bold",
     fontSize: 18,
-    color: "#111827",
+    color: Semantic.text.primary,
     marginTop: 25,
     marginBottom: 15,
     paddingHorizontal: 20,
   },
   listContainer: { paddingBottom: 120 },
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Semantic.background.primary,
     borderRadius: 20,
     marginHorizontal: 20,
     marginBottom: 20,
-    shadowColor: "#000",
+    shadowColor: Semantic.text.primary,
     shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 4,
     overflow: "hidden",
   },
-  cardImage: { width: "100%", height: 140, backgroundColor: "#E5E7EB" },
+  cardImage: {
+    width: "100%",
+    height: 140,
+    backgroundColor: Components.card.border,
+  },
   cardContent: { padding: 16 },
   title: {
     fontFamily: "Poppins_600SemiBold",
     fontSize: 15,
-    color: "#111827",
+    color: Semantic.text.primary,
     marginBottom: 16,
     lineHeight: 22,
   },
@@ -308,63 +350,71 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: "#F59E0B",
+    backgroundColor: Semantic.warning.main,
     justifyContent: "center",
     alignItems: "center",
   },
-  coinText: { fontFamily: "Inter_700Bold", fontSize: 11, color: "#FFFFFF" },
+  coinText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 11,
+    color: Semantic.background.primary,
+  },
   pointText: {
     fontFamily: "Inter_700Bold",
     fontSize: 16,
-    color: "#10B981",
+    color: Semantic.success.main,
     marginLeft: 6,
   },
   stockBadge: {
-    backgroundColor: "#F3F4F6",
+    backgroundColor: Semantic.background.tertiary,
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 8,
   },
-  stockText: { fontFamily: "Inter_400Regular", fontSize: 11, color: "#6B7280" },
+  stockText: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 11,
+    color: Semantic.text.secondary,
+  },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    backgroundColor: Components.modal.overlay,
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
   },
   modalCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Semantic.background.primary,
     width: "100%",
     maxWidth: 340,
     borderRadius: 24,
     padding: 24,
     alignItems: "center",
-    shadowColor: "#000",
+    shadowColor: Semantic.text.primary,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.2,
     shadowRadius: 15,
     elevation: 10,
   },
-  modalEmoji: { fontSize: 40, marginBottom: 12 },
+  modalIcon: { marginBottom: 12 },
   modalTitle: {
     fontFamily: "Poppins_700Bold",
     fontSize: 20,
-    color: "#111827",
+    color: Semantic.text.primary,
     marginBottom: 8,
     textAlign: "center",
   },
   modalMessage: {
     fontFamily: "Inter_400Regular",
     fontSize: 14,
-    color: "#6B7280",
+    color: Semantic.text.secondary,
     textAlign: "center",
     marginBottom: 20,
     lineHeight: 20,
   },
   modalButtonRow: { flexDirection: "row", gap: 10, width: "100%" },
   buttonPrimary: {
-    backgroundColor: "#10B981",
+    backgroundColor: Semantic.success.main,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",
@@ -372,11 +422,11 @@ const styles = StyleSheet.create({
   },
   buttonPrimaryText: {
     fontFamily: "Poppins_700Bold",
-    color: "#FFFFFF",
+    color: Semantic.background.primary,
     fontSize: 14,
   },
   buttonOutline: {
-    backgroundColor: "#F3F4F6",
+    backgroundColor: Semantic.background.tertiary,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",
@@ -384,7 +434,7 @@ const styles = StyleSheet.create({
   },
   buttonOutlineText: {
     fontFamily: "Poppins_700Bold",
-    color: "#111827",
+    color: Semantic.text.primary,
     fontSize: 14,
   },
 });

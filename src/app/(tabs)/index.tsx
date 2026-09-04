@@ -1,3 +1,4 @@
+import { Colors, Components, Semantic } from "@/constants/theme";
 import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
@@ -82,7 +83,11 @@ export default function HomeScreen() {
             style={styles.notificationIcon}
             onPress={handleBellPress}
           >
-            <FontAwesome name="bell-o" size={22} color="#111827" />
+            <FontAwesome
+              name="bell-o"
+              size={22}
+              color={Semantic.text.primary}
+            />
             <View style={styles.badge} />
           </TouchableOpacity>
         </View>
@@ -90,7 +95,11 @@ export default function HomeScreen() {
         <View style={styles.cardWrapper}>
           <TouchableOpacity activeOpacity={0.9} onPress={toggleExpand}>
             <LinearGradient
-              colors={["#059669", "#10B981", "#34D399"]}
+              colors={[
+                Semantic.primary.dark, // #044B66
+                Semantic.primary.main, // #056B8D
+                Colors.teal[200], // #88C0DE
+              ]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.pointCard}
@@ -114,7 +123,11 @@ export default function HomeScreen() {
                     <Text style={styles.levelText}>{getLevelName()}</Text>
                   </View>
                 )}
-                <FontAwesome name="leaf" size={24} color="#D1FAE5" />
+                <FontAwesome
+                  name="leaf"
+                  size={24}
+                  color={Components.iconWrapper.success.bg}
+                />
               </View>
 
               <View style={styles.pointContent}>
@@ -196,32 +209,46 @@ export default function HomeScreen() {
 
         <View style={styles.statsWrapper}>
           <View style={styles.statsRow}>
-            {/* IKON UNTUK PLASTIK (Botol Air) */}
+            {/* Ikon botol plastik untuk statistik plastik */}
             <View style={styles.statBoxSmall}>
-              <View style={[styles.iconCircle, { backgroundColor: "#DBEAFE" }]}>
-                {/* Menggunakan ikon botol air (water) dari Ionicons */}
+              <View
+                style={[
+                  styles.iconCircle,
+                  { backgroundColor: Components.iconWrapper.info.bg },
+                ]}
+              >
                 <MaterialCommunityIcons
-                  name="bottle-soda"
+                  name="bottle-soda-classic-outline"
                   size={24}
-                  color="#3B82F6"
+                  color={Components.iconWrapper.info.color}
                 />
               </View>
               <Text style={styles.statNumber}>{totalPlastik}</Text>
               <Text style={styles.statLabel}>Plastik Disetor</Text>
             </View>
 
-            {/* IKON UNTUK LOGAM (Tempat Sampah Logam / Objek Padat) */}
+            {/* Ikon kemasan kaleng untuk statistik logam */}
             <View style={styles.statBoxSmall}>
-              <View style={[styles.iconCircle, { backgroundColor: "#E0E7FF" }]}>
-                {/* Menggunakan ikon perangkat/hardware yang merepresentasikan logam */}
-                <MaterialCommunityIcons name="keg" size={24} color="#6366F1" />
+              <View
+                style={[
+                  styles.iconCircle,
+                  {
+                    backgroundColor: Components.iconWrapper.info.bg,
+                  },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name="package-variant-closed"
+                  size={24}
+                  color={Components.iconWrapper.info.color}
+                />
               </View>
               <Text style={styles.statNumber}>{totalLogam}</Text>
               <Text style={styles.statLabel}>Logam Disetor</Text>
             </View>
           </View>
 
-          {/* --- BAGIAN KONSISTENSI DENGAN EMOJI API RAKSASA 🔥 --- */}
+          {/* --- BAGIAN KONSISTENSI DENGAN IKON API --- */}
           <View style={styles.consistencyCard}>
             <View style={styles.consistencyHeader}>
               <View style={{ flexDirection: "row", alignItems: "flex-end" }}>
@@ -237,16 +264,25 @@ export default function HomeScreen() {
               </View>
 
               <View style={styles.streakBadge}>
-                <Text style={{ fontSize: 14, marginRight: 4 }}>🔥</Text>
+                <MaterialCommunityIcons
+                  name="fire"
+                  size={16}
+                  color={Semantic.danger.main}
+                  style={{ marginRight: 4 }}
+                />
                 <Text style={styles.streakText}>Streak</Text>
               </View>
             </View>
 
-            {/* Wrapper Dipertinggi Agar Api Raksasa Muat */}
+            {/* Wrapper ikon api */}
             <View style={styles.progressBarWrapper}>
               <View style={styles.consistencyBarBg}>
                 <LinearGradient
-                  colors={["#FBBF24", "#F97316", "#EF4444"]}
+                  colors={[
+                    Colors.warning[100],
+                    Semantic.warning.main,
+                    Semantic.danger.main,
+                  ]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={[
@@ -256,14 +292,19 @@ export default function HomeScreen() {
                 />
               </View>
 
-              {/* Posisi Emoji Api Raksasa */}
+              {/* Posisi ikon api */}
               <View
                 style={[
                   styles.fireIconContainer,
                   { left: `${Math.min((hariKonsisten / 7) * 100, 92)}%` },
                 ]}
               >
-                <Text style={styles.giantFire}>🔥</Text>
+                <MaterialCommunityIcons
+                  name="fire"
+                  size={34}
+                  color={Semantic.danger.main}
+                  style={styles.giantFire}
+                />
               </View>
             </View>
 
@@ -282,7 +323,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: Semantic.background.secondary,
   },
   header: {
     flexDirection: "row",
@@ -295,13 +336,13 @@ const styles = StyleSheet.create({
   greeting: {
     fontFamily: "Poppins_700Bold",
     fontSize: 22,
-    color: "#111827",
+    color: Semantic.text.primary,
   },
   notificationIcon: {
     padding: 10,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Semantic.background.primary,
     borderRadius: 50,
-    shadowColor: "#000",
+    shadowColor: Semantic.text.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 5,
@@ -313,15 +354,15 @@ const styles = StyleSheet.create({
     right: 8,
     width: 10,
     height: 10,
-    backgroundColor: "#EF4444",
+    backgroundColor: Semantic.danger.main,
     borderRadius: 5,
     borderWidth: 2,
-    borderColor: "#FFFFFF",
+    borderColor: Semantic.background.primary,
   },
   cardWrapper: {
     marginHorizontal: 20,
     borderRadius: 24,
-    shadowColor: "#10B981",
+    shadowColor: Semantic.success.main,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -348,7 +389,7 @@ const styles = StyleSheet.create({
   },
   levelText: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#FFFFFF",
+    color: Semantic.background.primary,
     fontSize: 13,
   },
   pointContent: {
@@ -366,7 +407,7 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: "#F59E0B",
+    backgroundColor: Semantic.warning.main,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 6,
@@ -374,16 +415,16 @@ const styles = StyleSheet.create({
   smallCoinText: {
     fontFamily: "Inter_700Bold",
     fontSize: 9,
-    color: "#FFFFFF",
+    color: Semantic.background.primary,
   },
   pointLabel: {
     fontFamily: "Inter_400Regular",
-    color: "#D1FAE5",
+    color: Components.iconWrapper.success.bg,
     fontSize: 13,
   },
   pointValue: {
     fontFamily: "Inter_700Bold",
-    color: "#FFFFFF",
+    color: Semantic.background.primary,
     fontSize: 64,
     textShadowColor: "rgba(0, 0, 0, 0.1)",
     textShadowOffset: { width: 0, height: 2 },
@@ -400,12 +441,12 @@ const styles = StyleSheet.create({
   },
   progressBarFill: {
     height: "100%",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Semantic.background.primary,
     borderRadius: 4,
   },
   progressText: {
     fontFamily: "Inter_600SemiBold",
-    color: "#E5E7EB",
+    color: Components.card.border,
     fontSize: 11,
     marginTop: 8,
     textAlign: "center",
@@ -420,7 +461,7 @@ const styles = StyleSheet.create({
   },
   expandedTitle: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#FFFFFF",
+    color: Semantic.background.primary,
     fontSize: 14,
     marginBottom: 12,
   },
@@ -432,12 +473,12 @@ const styles = StyleSheet.create({
   },
   rankName: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#FFFFFF",
+    color: Semantic.background.primary,
     fontSize: 13,
   },
   rankReq: {
     fontFamily: "Inter_400Regular",
-    color: "#D1FAE5",
+    color: Components.iconWrapper.success.bg,
     fontSize: 11,
     marginTop: 2,
   },
@@ -449,7 +490,7 @@ const styles = StyleSheet.create({
   },
   benefitText: {
     fontFamily: "Inter_700Bold",
-    color: "#FFFFFF",
+    color: Semantic.background.primary,
     fontSize: 11,
   },
   expandHintRow: {
@@ -475,14 +516,14 @@ const styles = StyleSheet.create({
   },
   statBoxSmall: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Semantic.background.primary,
     paddingVertical: 16,
     paddingHorizontal: 12,
     borderRadius: 20,
     alignItems: "center",
     marginHorizontal: 4,
     elevation: 2,
-    shadowColor: "#000",
+    shadowColor: Semantic.text.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
     shadowRadius: 10,
@@ -498,21 +539,21 @@ const styles = StyleSheet.create({
   statNumber: {
     fontFamily: "Inter_700Bold",
     fontSize: 20,
-    color: "#111827",
+    color: Semantic.text.primary,
   },
   statLabel: {
     fontFamily: "Inter_400Regular",
     fontSize: 12,
-    color: "#6B7280",
+    color: Semantic.text.secondary,
     marginTop: 2,
   },
   consistencyCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Semantic.background.primary,
     borderRadius: 20,
     padding: 20,
     marginHorizontal: 4,
     elevation: 2,
-    shadowColor: "#000",
+    shadowColor: Semantic.text.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
     shadowRadius: 10,
@@ -526,16 +567,16 @@ const styles = StyleSheet.create({
   consistencyValue: {
     fontFamily: "Inter_700Bold",
     fontSize: 28,
-    color: "#111827",
+    color: Semantic.text.primary,
   },
   consistencyMax: {
     fontSize: 16,
-    color: "#9CA3AF",
+    color: Semantic.text.muted,
   },
   consistencyUnit: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 14,
-    color: "#F97316",
+    color: Semantic.warning.main,
     marginBottom: 4,
   },
   progressBarWrapper: {
@@ -547,7 +588,7 @@ const styles = StyleSheet.create({
   consistencyBarBg: {
     width: "100%",
     height: 12,
-    backgroundColor: "#FFEDD5",
+    backgroundColor: Colors.warning[100],
     borderRadius: 6,
     overflow: "hidden",
   },
@@ -560,21 +601,19 @@ const styles = StyleSheet.create({
     transform: [{ translateX: -22 }, { translateY: -8 }],
   },
   giantFire: {
-    fontSize: 34,
-    lineHeight: 40,
     textShadowColor: "rgba(239, 68, 68, 0.4)",
     textShadowRadius: 10,
   },
   consistencyTitle: {
     fontFamily: "Inter_500Medium",
     fontSize: 12,
-    color: "#6B7280",
+    color: Semantic.text.secondary,
     textAlign: "center",
   },
   streakBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FEF2F2",
+    backgroundColor: Colors.red[50],
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -583,6 +622,6 @@ const styles = StyleSheet.create({
   streakText: {
     fontFamily: "Inter_700Bold",
     fontSize: 12,
-    color: "#EF4444",
+    color: Semantic.danger.main,
   },
 });

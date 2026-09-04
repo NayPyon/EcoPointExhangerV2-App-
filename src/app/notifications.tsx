@@ -1,3 +1,4 @@
+import { Semantic } from "@/constants/theme";
 import { FontAwesome } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
@@ -17,7 +18,7 @@ export default function NotificationsScreen() {
       desc: "Terima kasih sudah bergabung. Mari selamatkan bumi bersama-sama.",
       time: "Baru saja",
       icon: "leaf",
-      color: "#10B981",
+      color: Semantic.primary.main,
     },
     {
       id: "2",
@@ -25,7 +26,7 @@ export default function NotificationsScreen() {
       desc: "Kumpulkan 1000 poin pertamamu untuk naik dari level Eco-Starter.",
       time: "2 jam yang lalu",
       icon: "star",
-      color: "#F59E0B",
+      color: Semantic.warning.main,
     },
   ];
 
@@ -51,7 +52,11 @@ export default function NotificationsScreen() {
           onPress={() => router.back()}
           style={styles.backButton}
         >
-          <FontAwesome name="arrow-left" size={20} color="#111827" />
+          <FontAwesome
+            name="arrow-left"
+            size={20}
+            color={Semantic.text.primary}
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifikasi</Text>
         <View style={{ width: 40 }} />
@@ -71,7 +76,7 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: Semantic.background.tertiary,
   },
   header: {
     flexDirection: "row",
@@ -80,9 +85,9 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Semantic.background.primary,
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: Semantic.border.light,
   },
   backButton: {
     width: 40,
@@ -90,23 +95,23 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#F3F4F6",
+    backgroundColor: Semantic.background.tertiary,
   },
   headerTitle: {
     fontFamily: "Poppins_700Bold",
     fontSize: 18,
-    color: "#111827",
+    color: Semantic.text.primary,
   },
   listContainer: {
     padding: 20,
   },
   card: {
     flexDirection: "row",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Semantic.background.primary,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    shadowColor: "#000",
+    shadowColor: Semantic.text.primary,
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
@@ -125,19 +130,19 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: "Poppins_600SemiBold",
     fontSize: 15,
-    color: "#111827",
+    color: Semantic.text.primary,
     marginBottom: 4,
   },
   desc: {
     fontFamily: "Inter_400Regular",
     fontSize: 13,
-    color: "#6B7280",
+    color: Semantic.text.secondary,
     marginBottom: 8,
     lineHeight: 18,
   },
   time: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 11,
-    color: "#9CA3AF",
+    color: Semantic.text.muted,
   },
 });

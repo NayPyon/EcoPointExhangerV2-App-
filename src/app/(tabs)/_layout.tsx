@@ -1,9 +1,11 @@
+import {
+  Semantic
+} from "@/constants/theme";
 import { FontAwesome } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
-import { withLayoutContext } from "expo-router";
-import { createMaterialTopTabNavigator } from "expo-router/js-top-tabs";
-import { useEffect, useRef } from "react";
+import { Tabs } from "expo-router";
+import { useEffect, useState, type ComponentProps } from "react";
 import {
   Animated,
   Platform,
@@ -12,20 +14,19 @@ import {
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-// 1. Memanggil mesin Top Tabs dari React Navigation
-const TopTabs = createMaterialTopTabNavigator().Navigator;
+type IconName = ComponentProps<typeof FontAwesome>["name"];
+type TabBarProps = Parameters<
+  NonNullable<ComponentProps<typeof Tabs>["tabBar"]>
+>[0];
 
-// 2. Mengintegrasikannya ke dalam Expo Router
-const SwipeableTabs = withLayoutContext(TopTabs);
+function CustomFloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
+  const [pulseAnim] = useState(() => new Animated.Value(1));
+  const insets = useSafeAreaInsets();
 
-// 3. Membuat Desain Custom Tab Bar (Kapsul Melayang)
-function CustomFloatingTabBar({ state, descriptors, navigation }) {
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-
-  // Animasi denyut untuk tombol tengah
   useEffect(() => {
-    Animated.loop(
+    const pulse = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
           toValue: 1.15,
@@ -38,14 +39,18 @@ function CustomFloatingTabBar({ state, descriptors, navigation }) {
           useNativeDriver: true,
         }),
       ]),
-    ).start();
-  }, []);
+    );
+
+    pulse.start();
+    return () => pulse.stop();
+  }, [pulseAnim]);
 
   return (
-    <View style={styles.tabBarWrapper} pointerEvents="box-none">
-      {/* Background Kapsul dengan Efek Blur/Kaca */}
+    <View
+      style={[styles.tabBarWrapper, { bottom: Math.max(insets.bottom, 12) + 12 }]}
+      pointerEvents="box-none"
+    >
       <View style={styles.pillContainer}>
-        {/* INI BAGIAN YANG DIPERBAIKI (ANTI LAYAR MERAH ANDROID) */}
         {Platform.OS === "ios" && (
           <BlurView
             intensity={70}
@@ -53,10 +58,15 @@ function CustomFloatingTabBar({ state, descriptors, navigation }) {
             style={StyleSheet.absoluteFill}
           />
         )}
-        <View style={styles.pillSolidBackground} />
+        <View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            styles.pillSolidBackground,
+          ]}
+        />
       </View>
 
-      {/* Barisan Ikon Tab & Super FAB */}
       <View style={styles.tabItemsRow} pointerEvents="box-none">
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
@@ -75,13 +85,12 @@ function CustomFloatingTabBar({ state, descriptors, navigation }) {
             }
           };
 
-          let iconName;
+          let iconName: IconName = "home";
           if (route.name === "index") iconName = "home";
           else if (route.name === "history") iconName = "history";
           else if (route.name === "reward") iconName = "gift";
           else if (route.name === "profile") iconName = "user";
 
-          // --- TOMBOL TUKAR (SUPER FAB) ---
           if (route.name === "exchange") {
             return (
               <View
@@ -103,25 +112,32 @@ function CustomFloatingTabBar({ state, descriptors, navigation }) {
                     borderless: true,
                   }}
                 >
-                  <FontAwesome name="recycle" size={30} color="#FFFFFF" />
+                  <FontAwesome
+                    name="recycle"
+                    size={30}
+                    color={Semantic.background.primary}
+                  />
                 </Pressable>
               </View>
             );
           }
 
-          // --- IKON TAB STANDAR ---
           return (
             <Pressable key={route.key} onPress={onPress} style={styles.tabItem}>
               <FontAwesome
                 name={iconName}
                 size={22}
-                color={isFocused ? "#10B981" : "#9CA3AF"}
+                color={isFocused ? Semantic.success.main : Semantic.text.muted}
                 style={{ marginBottom: 4 }}
               />
               <Text
                 style={[
                   styles.tabText,
-                  { color: isFocused ? "#10B981" : "#9CA3AF" },
+                  {
+                    color: isFocused
+                      ? Semantic.success.main
+                      : Semantic.text.muted,
+                  },
                 ]}
               >
                 {options.title || route.name}
@@ -136,45 +152,44 @@ function CustomFloatingTabBar({ state, descriptors, navigation }) {
 
 export default function TabLayout() {
   return (
-    <SwipeableTabs
+    <Tabs
       tabBar={(props) => <CustomFloatingTabBar {...props} />}
       screenOptions={{
-        swipeEnabled: true, // INI DIA KUNCI SWIPE-NYA! ✨
-        lazy: true,
+        headerShown: false,
       }}
-      tabBarPosition="bottom" // Kita paksa mesin Top Tabs untuk pindah ke Bawah
     >
-      <SwipeableTabs.Screen name="index" options={{ title: "Beranda" }} />
-      <SwipeableTabs.Screen name="history" options={{ title: "Riwayat" }} />
-      <SwipeableTabs.Screen name="exchange" options={{ title: "Tukar" }} />
-      <SwipeableTabs.Screen name="reward" options={{ title: "Reward" }} />
-      <SwipeableTabs.Screen name="profile" options={{ title: "Profil" }} />
-    </SwipeableTabs>
+      <Tabs.Screen name="index" options={{ title: "Beranda" }} />
+      <Tabs.Screen name="history" options={{ title: "Riwayat" }} />
+      <Tabs.Screen name="exchange" options={{ title: "Tukar" }} />
+      <Tabs.Screen name="reward" options={{ title: "Reward" }} />
+      <Tabs.Screen name="profile" options={{ title: "Profil" }} />
+    </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
   tabBarWrapper: {
     position: "absolute",
-    bottom: 25, // Mengambang dari dasar HP
-    left: 20, // Tidak menyentuh tepi kiri
-    right: 20, // Tidak menyentuh tepi kanan
+    left: 16,
+    right: 16,
     height: 70,
     zIndex: 10,
   },
   pillContainer: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 35, // Membuatnya jadi bentuk kapsul lonjong
+    ...StyleSheet.absoluteFill,
+    borderRadius: 35,
     overflow: "hidden",
-    shadowColor: "#000",
+    backgroundColor: "rgba(255, 255, 255, 0.96)",
+    borderWidth: 1,
+    borderColor: "rgba(5, 107, 141, 0.12)",
+    shadowColor: Semantic.text.primary,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
     elevation: 5,
   },
   pillSolidBackground: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255, 255, 255, 0.90)", // Dibuat sedikit lebih solid agar tetap cantik tanpa blur di Android
+    backgroundColor: "rgba(255, 255, 255, 0.82)",
   },
   tabItemsRow: {
     flex: 1,
@@ -204,23 +219,23 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 35,
-    backgroundColor: "rgba(16, 185, 129, 0.3)",
+    backgroundColor: Semantic.primary.light,
   },
   fabButton: {
     position: "absolute",
-    top: -30, // Melayang tinggi menembus atas kapsul!
+    top: -30,
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: "#10B981",
+    backgroundColor: Semantic.success.main,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#10B981",
+    shadowColor: Semantic.success.main,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
     shadowRadius: 10,
     elevation: 8,
     borderWidth: 4,
-    borderColor: "#FFFFFF",
+    borderColor: Semantic.background.primary,
   },
 });

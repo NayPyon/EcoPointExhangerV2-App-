@@ -1,3 +1,8 @@
+import {
+  Colors,
+  Components,
+  Semantic
+} from "@/constants/theme";
 import { Feather, FontAwesome } from "@expo/vector-icons";
 import {
   collection,
@@ -6,7 +11,7 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -60,13 +65,17 @@ export default function HistoryScreen() {
         <View
           style={[
             styles.iconContainer,
-            { backgroundColor: isKredit ? "#FEE2E2" : "#D1FAE5" },
+            {
+              backgroundColor: isKredit
+                ? Colors.red[100]
+                : Components.iconWrapper.success.bg,
+            },
           ]}
         >
           <Feather
             name={isKredit ? "arrow-up-right" : "arrow-down-left"}
             size={20}
-            color={isKredit ? "#EF4444" : "#10B981"}
+            color={isKredit ? Semantic.danger.main : Semantic.success.main}
           />
         </View>
 
@@ -88,7 +97,9 @@ export default function HistoryScreen() {
           <Text
             style={[
               styles.pointsText,
-              { color: isKredit ? "#EF4444" : "#10B981" },
+              {
+                color: isKredit ? Semantic.danger.main : Semantic.success.main,
+              },
             ]}
           >
             {isKredit ? "-" : "+"}
@@ -116,12 +127,16 @@ export default function HistoryScreen() {
       {loading ? (
         <ActivityIndicator
           size="large"
-          color="#10B981"
+          color={Semantic.success.main}
           style={{ marginTop: 50 }}
         />
       ) : riwayatData.length === 0 ? (
         <View style={styles.emptyState}>
-          <FontAwesome name="list-alt" size={50} color="#D1D5DB" />
+          <FontAwesome
+            name="list-alt"
+            size={50}
+            color={Components.card.border}
+          />
           <Text style={styles.emptyStateTitle}>Belum Ada Aktivitas</Text>
           <Text style={styles.emptyStateText}>
             Semua riwayat transaksi masuk dan keluar poinmu akan muncul di sini.
@@ -141,36 +156,36 @@ export default function HistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB" },
+  container: { flex: 1, backgroundColor: Semantic.background.secondary },
   header: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Semantic.background.primary,
     paddingTop: 60,
     paddingBottom: 20,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: Components.card.border,
   },
   headerTitle: {
     fontFamily: "Poppins_700Bold",
     fontSize: 22,
-    color: "#111827",
+    color: Semantic.text.primary,
   },
   headerSubtitle: {
     fontFamily: "Inter_400Regular",
     fontSize: 14,
-    color: "#6B7280",
+    color: Semantic.text.secondary,
     marginTop: 4,
   },
   listContainer: { padding: 20 },
   historyCard: {
     flexDirection: "row",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Semantic.background.primary,
     padding: 16,
     borderRadius: 16,
     marginBottom: 12,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#F3F4F6",
+    borderColor: Components.card.border,
   },
   iconContainer: {
     width: 40,
@@ -184,18 +199,18 @@ const styles = StyleSheet.create({
   titleText: {
     fontFamily: "Poppins_600SemiBold",
     fontSize: 15,
-    color: "#111827",
+    color: Semantic.text.primary,
   },
   dateText: {
     fontFamily: "Inter_400Regular",
     fontSize: 11,
-    color: "#9CA3AF",
+    color: Semantic.text.muted,
     marginTop: 1,
   },
   subText: {
     fontFamily: "Inter_400Regular",
     fontSize: 12,
-    color: "#6B7280",
+    color: Semantic.text.secondary,
     marginTop: 4,
   },
   // --- STYLING BARU UNTUK FLEX-ROW LOGO POIN ---
@@ -213,14 +228,14 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: "#F59E0B",
+    backgroundColor: Semantic.warning.main,
     justifyContent: "center",
     alignItems: "center",
   },
   coinText: {
     fontFamily: "Inter_700Bold",
     fontSize: 10,
-    color: "#FFFFFF",
+    color: Semantic.background.primary,
   },
   emptyState: {
     flex: 1,
@@ -232,13 +247,13 @@ const styles = StyleSheet.create({
   emptyStateTitle: {
     fontFamily: "Poppins_600SemiBold",
     fontSize: 16,
-    color: "#374151",
+    color: Semantic.text.primary,
     marginTop: 16,
   },
   emptyStateText: {
     fontFamily: "Inter_400Regular",
     fontSize: 13,
-    color: "#6B7280",
+    color: Semantic.text.secondary,
     textAlign: "center",
     marginTop: 6,
     lineHeight: 18,

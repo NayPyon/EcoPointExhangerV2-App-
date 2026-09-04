@@ -1,6 +1,7 @@
+import { BorderRadius, Components, Semantic, Spacing } from "@/constants/theme";
 import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
 import { doc, onSnapshot } from "firebase/firestore";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -54,7 +55,7 @@ export default function ProfileScreen() {
       {/* HEADER PROFIL */}
       <View style={styles.headerContainer}>
         <View style={styles.avatarWrapper}>
-          <FontAwesome name="leaf" size={40} color="#10B981" />
+          <FontAwesome name="leaf" size={40} color={Semantic.success.main} />
         </View>
         <Text style={styles.userName}>Nayaka Alkaesyah S.</Text>
         <Text style={styles.userSubtitle}>{getLevelName()}</Text>
@@ -72,11 +73,16 @@ export default function ProfileScreen() {
       <View style={styles.impactContainer}>
         {/* Kartu 1: Karbon */}
         <View style={styles.impactCard}>
-          <View style={[styles.iconBox, { backgroundColor: "#D1FAE5" }]}>
+          <View
+            style={[
+              styles.iconBox,
+              { backgroundColor: Components.iconWrapper.success.bg },
+            ]}
+          >
             <MaterialCommunityIcons
               name="molecule-co2"
               size={28}
-              color="#10B981"
+              color={Semantic.success.main}
             />
           </View>
           <View style={styles.impactTextContainer}>
@@ -94,33 +100,45 @@ export default function ProfileScreen() {
           <FontAwesome
             name="user-circle-o"
             size={20}
-            color="#6B7280"
+            color={Semantic.text.secondary}
             style={styles.menuIcon}
           />
           <Text style={styles.menuText}>Edit Profil</Text>
-          <FontAwesome name="chevron-right" size={14} color="#D1D5DB" />
+          <FontAwesome
+            name="chevron-right"
+            size={14}
+            color={Components.card.border}
+          />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.menuItem}>
           <FontAwesome
             name="history"
             size={20}
-            color="#6B7280"
+            color={Semantic.text.secondary}
             style={styles.menuIcon}
           />
           <Text style={styles.menuText}>Riwayat Penukaran</Text>
-          <FontAwesome name="chevron-right" size={14} color="#D1D5DB" />
+          <FontAwesome
+            name="chevron-right"
+            size={14}
+            color={Components.card.border}
+          />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.menuItem}>
           <FontAwesome
             name="question-circle-o"
             size={20}
-            color="#6B7280"
+            color={Semantic.text.secondary}
             style={styles.menuIcon}
           />
           <Text style={styles.menuText}>Pusat Bantuan</Text>
-          <FontAwesome name="chevron-right" size={14} color="#D1D5DB" />
+          <FontAwesome
+            name="chevron-right"
+            size={14}
+            color={Components.card.border}
+          />
         </TouchableOpacity>
       </View>
 
@@ -132,37 +150,38 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: Semantic.background.secondary,
   },
   headerContainer: {
-    backgroundColor: "#111827",
-    paddingTop: 70,
-    paddingBottom: 40,
+    backgroundColor: Components.header.bg, // Putih
+    borderBottomWidth: 1,
+    borderBottomColor: Components.header.border, // Border tipis
+    paddingTop: 60,
+    paddingBottom: 24,
+    paddingHorizontal: Spacing.lg,
     alignItems: "center",
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
   },
   avatarWrapper: {
     width: 90,
     height: 90,
-    backgroundColor: "#D1FAE5",
-    borderRadius: 45,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Components.iconWrapper.primary.bg,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 15,
-    borderWidth: 3,
-    borderColor: "#10B981",
+    marginBottom: Spacing.lg,
+    borderWidth: 2,
+    borderColor: Components.iconWrapper.primary.color,
   },
   userName: {
     fontFamily: "Poppins_700Bold",
     fontSize: 22,
-    color: "#FFFFFF",
+    color: Semantic.text.primary,
     marginBottom: 4,
   },
   userSubtitle: {
     fontFamily: "Poppins_600SemiBold",
     fontSize: 14,
-    color: "#10B981",
+    color: Semantic.success.main,
   },
   impactHeader: {
     marginTop: 25,
@@ -172,12 +191,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: "Poppins_700Bold",
     fontSize: 20,
-    color: "#111827",
+    color: Semantic.text.primary,
   },
   sectionSubtitle: {
     fontFamily: "Inter_400Regular",
     fontSize: 14,
-    color: "#6B7280",
+    color: Semantic.text.secondary,
     marginTop: 2,
   },
   impactContainer: {
@@ -185,22 +204,22 @@ const styles = StyleSheet.create({
   },
   impactCard: {
     flexDirection: "row",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
+    backgroundColor: Semantic.background.primary,
+    borderRadius: BorderRadius.lg,
     padding: 20,
     alignItems: "center",
     marginBottom: 15,
-    shadowColor: "#000",
+    shadowColor: Semantic.text.primary,
     shadowOpacity: 0.05,
     shadowRadius: 5,
     elevation: 2,
     borderWidth: 1,
-    borderColor: "#F3F4F6",
+    borderColor: Components.card.border,
   },
   iconBox: {
     width: 55,
     height: 55,
-    borderRadius: 15,
+    borderRadius: BorderRadius.md,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 15,
@@ -211,25 +230,25 @@ const styles = StyleSheet.create({
   impactValue: {
     fontFamily: "Inter_700Bold",
     fontSize: 24,
-    color: "#111827",
+    color: Semantic.text.primary,
   },
   impactUnit: {
     fontFamily: "Inter_400Regular",
     fontSize: 16,
-    color: "#6B7280",
+    color: Semantic.text.secondary,
   },
   impactLabel: {
     fontFamily: "Inter_400Regular",
     fontSize: 13,
-    color: "#6B7280",
+    color: Semantic.text.secondary,
     marginTop: 2,
   },
   menuContainer: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Semantic.background.primary,
     marginTop: 20,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: Components.card.border,
   },
   menuItem: {
     flexDirection: "row",
@@ -237,7 +256,7 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderColor: "#F9FAFB",
+    borderColor: Semantic.background.secondary,
   },
   menuIcon: {
     width: 30,
@@ -246,12 +265,12 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     flex: 1,
     fontSize: 16,
-    color: "#374151",
+    color: Semantic.text.primary,
   },
   versionText: {
     fontFamily: "Inter_400Regular",
     textAlign: "center",
-    color: "#9CA3AF",
+    color: Semantic.text.muted,
     fontSize: 12,
     marginTop: 30,
     marginBottom: 40,

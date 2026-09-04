@@ -1,4 +1,9 @@
-import { FontAwesome } from "@expo/vector-icons";
+import {
+  Colors,
+  Components,
+  Semantic
+} from "@/constants/theme";
+import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
 import { doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -194,7 +199,7 @@ export default function ExchangeScreen() {
                 uri: "https://lottie.host/809f8d95-8869-42b3-a15f-53748cd3c5c9/K0L266dO0g.json",
               }}
             />
-            <Text style={styles.celebrationTitle}>Sesi Selesai! 🎉</Text>
+            <Text style={styles.celebrationTitle}>Sesi Selesai!</Text>
             <Text style={styles.celebrationSub}>
               Pintu ditutup. Terima kasih telah mendaur ulang hari ini!
             </Text>
@@ -269,7 +274,7 @@ export default function ExchangeScreen() {
             <FontAwesome
               name="qrcode"
               size={60}
-              color={isMesinAktif ? "#10B981" : "#9CA3AF"} // Ikon jadi abu-abu
+              color={isMesinAktif ? Semantic.success.main : Semantic.text.muted} // Ikon jadi abu-abu
               style={styles.bannerIcon}
             />
           </TouchableOpacity>
@@ -287,8 +292,8 @@ export default function ExchangeScreen() {
               <QRCode
                 value={qrToken}
                 size={220}
-                color="#111827"
-                backgroundColor="#FFFFFF"
+                color={Semantic.text.primary}
+                backgroundColor={Semantic.background.primary}
               />
             </View>
             <Text style={styles.tokenLabel}>Kode Sesi Sementara:</Text>
@@ -297,12 +302,14 @@ export default function ExchangeScreen() {
               <FontAwesome
                 name="clock-o"
                 size={16}
-                color={timeLeft <= 5 ? "#EF4444" : "#F59E0B"}
+                color={
+                  timeLeft <= 5 ? Semantic.danger.main : Semantic.warning.main
+                }
               />
               <Text
                 style={[
                   styles.timerText,
-                  timeLeft <= 5 && { color: "#EF4444" },
+                  timeLeft <= 5 && { color: Semantic.danger.main },
                 ]}
               >
                 Akan diperbarui dalam {timeLeft} detik
@@ -316,7 +323,7 @@ export default function ExchangeScreen() {
                 <FontAwesome
                   name="refresh"
                   size={16}
-                  color="#FFFFFF"
+                  color={Semantic.background.primary}
                   style={{ marginRight: 8 }}
                 />
                 <Text style={styles.buttonRefreshText}>Perbarui Sekarang</Text>
@@ -342,7 +349,7 @@ export default function ExchangeScreen() {
             <FontAwesome
               name="unlock-alt"
               size={40}
-              color="#10B981"
+              color={Semantic.success.main}
               style={{ marginBottom: 5 }}
             />
             <Text style={[styles.tokenText, { fontSize: 20, marginBottom: 5 }]}>
@@ -350,28 +357,56 @@ export default function ExchangeScreen() {
             </Text>
             <ActivityIndicator
               size="small"
-              color="#10B981"
+              color={Semantic.success.main}
               style={{ marginBottom: 15 }}
             />
 
             <View style={styles.detailsContainer}>
               <Text style={styles.detailsHeader}>Rincian Sampah Masuk</Text>
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>🍾 Plastik (100 pts)</Text>
+                <View style={styles.detailLabelRow}>
+                  <MaterialCommunityIcons
+                    name="bottle-soda"
+                    size={18}
+                    color={Semantic.primary.main}
+                  />
+                  <Text style={styles.detailLabel}>Plastik (100 pts)</Text>
+                </View>
                 <Text style={styles.detailCount}>{jumlahPlastik}x</Text>
                 <Text style={styles.detailSubtotal}>+{poinPlastik}</Text>
               </View>
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>🥫 Logam (300 pts)</Text>
+                <View style={styles.detailLabelRow}>
+                  <MaterialCommunityIcons
+                    name="package-variant"
+                    size={18}
+                    color={Semantic.primary.main}
+                  />
+                  <Text style={styles.detailLabel}>Logam (300 pts)</Text>
+                </View>
                 <Text style={styles.detailCount}>{jumlahLogam}x</Text>
                 <Text style={styles.detailSubtotal}>+{poinLogam}</Text>
               </View>
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>❌ Ditolak (0 pts)</Text>
-                <Text style={[styles.detailCount, { color: "#EF4444" }]}>
+                <View style={styles.detailLabelRow}>
+                  <MaterialCommunityIcons
+                    name="close-circle"
+                    size={18}
+                    color={Semantic.danger.main}
+                  />
+                  <Text style={styles.detailLabel}>Ditolak (0 pts)</Text>
+                </View>
+                <Text
+                  style={[styles.detailCount, { color: Semantic.danger.main }]}
+                >
                   {jumlahReject}x
                 </Text>
-                <Text style={[styles.detailSubtotal, { color: "#EF4444" }]}>
+                <Text
+                  style={[
+                    styles.detailSubtotal,
+                    { color: Semantic.danger.main },
+                  ]}
+                >
                   0
                 </Text>
               </View>
@@ -383,7 +418,12 @@ export default function ExchangeScreen() {
                 </View>
                 <View style={{ alignItems: "flex-end" }}>
                   <Text style={styles.totalLabel}>Grand Total Poin</Text>
-                  <Text style={[styles.totalValue, { color: "#F59E0B" }]}>
+                  <Text
+                    style={[
+                      styles.totalValue,
+                      { color: Semantic.warning.main },
+                    ]}
+                  >
                     {totalSemuaPoin}
                   </Text>
                 </View>
@@ -393,14 +433,14 @@ export default function ExchangeScreen() {
             <TouchableOpacity
               style={[
                 styles.button,
-                { backgroundColor: "#EF4444", marginTop: 10 },
+                { backgroundColor: Semantic.danger.main, marginTop: 10 },
               ]}
               onPress={akhiriSesi}
             >
               <FontAwesome
                 name="check-circle"
                 size={18}
-                color="#FFFFFF"
+                color={Semantic.background.primary}
                 style={{ marginRight: 8 }}
               />
               <Text style={styles.buttonText}>Akhiri Sesi & Tutup Pintu</Text>
@@ -415,7 +455,7 @@ export default function ExchangeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: Semantic.background.tertiary,
     alignItems: "center",
     justifyContent: "center",
     padding: 20,
@@ -423,25 +463,25 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontFamily: "Poppins_700Bold",
     fontSize: 24,
-    color: "#111827",
+    color: Semantic.text.primary,
     marginBottom: 5,
   },
   subtitle: {
     fontFamily: "Inter_400Regular",
     fontSize: 14,
-    color: "#6B7280",
+    color: Semantic.text.secondary,
     textAlign: "center",
     marginBottom: 20,
     paddingHorizontal: 10,
   },
   statusRvmCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Semantic.background.primary,
     width: "100%",
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: Components.card.border,
   },
   statusHeaderRow: {
     flexDirection: "row",
@@ -452,10 +492,10 @@ const styles = StyleSheet.create({
   statusTitle: {
     fontFamily: "Poppins_600SemiBold",
     fontSize: 16,
-    color: "#111827",
+    color: Semantic.text.primary,
   },
   badgeOnline: {
-    backgroundColor: "#D1FAE5",
+    backgroundColor: Components.iconWrapper.success.bg,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -463,41 +503,41 @@ const styles = StyleSheet.create({
   badgeText: {
     fontFamily: "Inter_700Bold",
     fontSize: 12,
-    color: "#10B981",
+    color: Semantic.success.main,
   },
 
   // -- TAMBAHAN STYLING SAAT OFFLINE --
   badgeOffline: {
-    backgroundColor: "#F3F4F6",
+    backgroundColor: Semantic.background.tertiary,
   },
   badgeTextOffline: {
-    color: "#9CA3AF",
+    color: Semantic.text.muted,
   },
   promoBannerOffline: {
-    backgroundColor: "#F3F4F6", // Warna banner jadi abu-abu kusam
+    backgroundColor: Semantic.background.tertiary, // Warna banner jadi abu-abu kusam
   },
   bannerTitleOffline: {
-    color: "#4B5563",
+    color: Semantic.text.secondary,
   },
   bannerSubtitleOffline: {
-    color: "#6B7280",
+    color: Semantic.text.secondary,
   },
   // ------------------------------------
 
   statusSub: {
     fontFamily: "Inter_400Regular",
     fontSize: 14,
-    color: "#6B7280",
+    color: Semantic.text.secondary,
   },
   promoBanner: {
-    backgroundColor: "#E6F4EA",
+    backgroundColor: Components.iconWrapper.success.bg,
     width: "100%",
     borderRadius: 16,
     padding: 24,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    shadowColor: "#000",
+    shadowColor: Semantic.text.primary,
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 3,
@@ -506,52 +546,52 @@ const styles = StyleSheet.create({
   bannerTitle: {
     fontFamily: "Poppins_700Bold",
     fontSize: 18,
-    color: "#137333",
+    color: Semantic.success.dark,
     marginBottom: 6,
   },
   bannerSubtitle: {
     fontFamily: "Inter_400Regular",
     fontSize: 13,
-    color: "#137333",
+    color: Semantic.success.dark,
     lineHeight: 18,
   },
   bannerIcon: { opacity: 0.9 },
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Semantic.background.primary,
     width: "100%",
     borderRadius: 20,
     padding: 24,
     alignItems: "center",
-    shadowColor: "#000",
+    shadowColor: Semantic.text.primary,
     shadowOpacity: 0.1,
     shadowRadius: 10,
     elevation: 5,
   },
   qrWrapper: {
     padding: 15,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Semantic.background.primary,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: Components.card.border,
     marginBottom: 20,
   },
   tokenLabel: {
     fontFamily: "Inter_400Regular",
     fontSize: 12,
-    color: "#9CA3AF",
+    color: Semantic.text.muted,
     marginBottom: 4,
   },
   tokenText: {
     fontFamily: "Poppins_700Bold",
     fontSize: 24,
-    color: "#10B981",
+    color: Semantic.success.main,
     letterSpacing: 2,
     marginBottom: 15,
   },
   timerRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FEF3C7",
+    backgroundColor: Semantic.warning.light,
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,
@@ -560,12 +600,12 @@ const styles = StyleSheet.create({
   timerText: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 13,
-    color: "#F59E0B",
+    color: Semantic.warning.main,
     marginLeft: 6,
   },
   buttonRefresh: {
     flexDirection: "row",
-    backgroundColor: "#10B981",
+    backgroundColor: Semantic.success.main,
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 12,
@@ -575,12 +615,12 @@ const styles = StyleSheet.create({
   },
   buttonRefreshText: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#FFFFFF",
+    color: Semantic.background.primary,
     fontSize: 15,
   },
   button: {
     flexDirection: "row",
-    backgroundColor: "#10B981",
+    backgroundColor: Semantic.success.main,
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 12,
@@ -590,7 +630,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#FFFFFF",
+    color: Semantic.background.primary,
     fontSize: 15,
   },
   buttonOutline: {
@@ -601,28 +641,28 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: "100%",
     borderWidth: 2,
-    borderColor: "#EF4444",
-    backgroundColor: "#FEF2F2",
+    borderColor: Semantic.danger.main,
+    backgroundColor: Colors.red[50],
     marginTop: 10,
   },
   buttonOutlineText: {
     fontFamily: "Poppins_600SemiBold",
-    color: "#EF4444",
+    color: Semantic.danger.main,
     fontSize: 15,
   },
   detailsContainer: {
     width: "100%",
-    backgroundColor: "#F9FAFB",
+    backgroundColor: Semantic.background.secondary,
     borderRadius: 15,
     padding: 15,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: Components.card.border,
   },
   detailsHeader: {
     fontFamily: "Poppins_600SemiBold",
     fontSize: 14,
-    color: "#374151",
+    color: Semantic.text.primary,
     marginBottom: 12,
     textAlign: "center",
   },
@@ -636,23 +676,33 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     flex: 2,
     fontSize: 13,
-    color: "#4B5563",
+    color: Semantic.text.secondary,
+  },
+  detailLabelRow: {
+    flex: 2,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   detailCount: {
     fontFamily: "Inter_700Bold",
     flex: 1,
     fontSize: 14,
-    color: "#111827",
+    color: Semantic.text.primary,
     textAlign: "center",
   },
   detailSubtotal: {
     fontFamily: "Inter_700Bold",
     flex: 1,
     fontSize: 14,
-    color: "#10B981",
+    color: Semantic.success.main,
     textAlign: "right",
   },
-  dividerThick: { height: 2, backgroundColor: "#E5E7EB", marginVertical: 12 },
+  dividerThick: {
+    height: 2,
+    backgroundColor: Components.card.border,
+    marginVertical: 12,
+  },
   totalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -661,27 +711,27 @@ const styles = StyleSheet.create({
   totalLabel: {
     fontFamily: "Inter_400Regular",
     fontSize: 12,
-    color: "#6B7280",
+    color: Semantic.text.secondary,
     marginBottom: 2,
   },
   totalValue: {
     fontFamily: "Inter_700Bold",
     fontSize: 24,
-    color: "#111827",
+    color: Semantic.text.primary,
   },
   modalCelebrationBg: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    backgroundColor: Components.modal.overlay,
     justifyContent: "center",
     alignItems: "center",
   },
   celebrationCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Semantic.background.primary,
     width: "80%",
     padding: 30,
     borderRadius: 30,
     alignItems: "center",
-    shadowColor: "#10B981",
+    shadowColor: Semantic.success.main,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
@@ -690,7 +740,7 @@ const styles = StyleSheet.create({
   celebrationTitle: {
     fontFamily: "Poppins_700Bold",
     fontSize: 22,
-    color: "#111827",
+    color: Semantic.text.primary,
     marginTop: -10,
     marginBottom: 8,
     textAlign: "center",
@@ -698,7 +748,7 @@ const styles = StyleSheet.create({
   celebrationSub: {
     fontFamily: "Inter_400Regular",
     fontSize: 14,
-    color: "#6B7280",
+    color: Semantic.text.secondary,
     textAlign: "center",
     lineHeight: 20,
   },
