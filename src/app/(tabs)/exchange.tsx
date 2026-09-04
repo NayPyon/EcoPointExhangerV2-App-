@@ -1,7 +1,6 @@
 import { FontAwesome } from "@expo/vector-icons";
-import { useIsFocused } from "@react-navigation/native";
 import { doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
-import React, { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -15,11 +14,11 @@ import { db } from "../../firebaseConfig";
 
 // TAMBAHAN IMPORT UNTUK ANIMASI DAN NAVIGASI
 import * as Haptics from "expo-haptics";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import LottieView from "lottie-react-native";
 
 export default function ExchangeScreen() {
-  const isFocused = useIsFocused();
+  const isFocusedRef = useRef(true);
   const [qrToken, setQrToken] = useState("ECO-SESSION-INITIAL");
   const [timeLeft, setTimeLeft] = useState(60);
 
@@ -35,6 +34,16 @@ export default function ExchangeScreen() {
 
   // STATE BARU: MENGONTROL STATUS AKTIF/TIDAKNYA MESIN (DEFAULT AKTIF)
   const [isMesinAktif, setIsMesinAktif] = useState(true);
+
+  // TRACK KETIKA TAB FOCUSED/UNFOCUSED (SDK 56+ COMPATIBILITY)
+  useFocusEffect(
+    useRef(() => {
+      isFocusedRef.current = true;
+      return () => {
+        isFocusedRef.current = false;
+      };
+    }).current,
+  );
 
   // 1. MATA-MATA FIREBASE UNTUK STATUS MESIN (RVM) SECARA REAL-TIME
   useEffect(() => {
@@ -137,7 +146,8 @@ export default function ExchangeScreen() {
   };
 
   useEffect(() => {
-    if (!showQR || statusSesi !== "menunggu_mesin" || !isFocused) return;
+    if (!showQR || statusSesi !== "menunggu_mesin" || !isFocusedRef.current)
+      return;
 
     const timer = setInterval(() => {
       setTimeLeft((prevTime) => {
@@ -157,13 +167,13 @@ export default function ExchangeScreen() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [showQR, statusSesi, isFocused]);
+  }, [showQR, statusSesi]);
 
   useEffect(() => {
-    if (!isFocused && showQR && statusSesi === "menunggu_mesin") {
+    if (!isFocusedRef.current && showQR && statusSesi === "menunggu_mesin") {
       batalkanSesi();
     }
-  }, [isFocused]);
+  }, [showQR, statusSesi]);
 
   const poinPlastik = jumlahPlastik * 100;
   const poinLogam = jumlahLogam * 300;

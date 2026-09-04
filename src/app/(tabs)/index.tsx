@@ -3,30 +3,22 @@ import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import { useRef, useState } from "react";
 import {
-  LayoutAnimation,
+  Animated,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  UIManager,
   View,
 } from "react-native";
 import { usePoints } from "../../PointContext";
 
-// Mengaktifkan fitur animasi layout untuk Android
-if (
-  Platform.OS === "android" &&
-  UIManager.setLayoutAnimationEnabledExperimental
-) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
-
 export default function HomeScreen() {
   const { totalPoin, totalPlastik, totalLogam, hariKonsisten } = usePoints();
   const [isExpanded, setIsExpanded] = useState(false);
+  const expandedHeightAnim = useRef(new Animated.Value(0)).current;
 
   const getLevelName = () => {
     if (totalPoin >= 50000) return "Radiant Recycler ✨";
@@ -54,8 +46,16 @@ export default function HomeScreen() {
   };
 
   const toggleExpand = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setIsExpanded(!isExpanded);
+    const newExpandedState = !isExpanded;
+    setIsExpanded(newExpandedState);
+
+    // Animate dari 0 ke 1 (untuk opacity/scale) saat expand
+    Animated.timing(expandedHeightAnim, {
+      toValue: newExpandedState ? 1 : 0,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
@@ -146,7 +146,22 @@ export default function HomeScreen() {
               </View>
 
               {isExpanded && (
-                <View style={styles.expandedContent}>
+                <Animated.View
+                  style={[
+                    styles.expandedContent,
+                    {
+                      opacity: expandedHeightAnim,
+                      transform: [
+                        {
+                          translateY: expandedHeightAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [-10, 0],
+                          }),
+                        },
+                      ],
+                    },
+                  ]}
+                >
                   <View style={styles.divider} />
                   <Text style={styles.expandedTitle}>Keuntungan Tiap Rank</Text>
                   {GAMIFICATION_TIERS.map((tier, index) => (
@@ -160,7 +175,7 @@ export default function HomeScreen() {
                       </View>
                     </View>
                   ))}
-                </View>
+                </Animated.View>
               )}
 
               <View style={styles.expandHintRow}>

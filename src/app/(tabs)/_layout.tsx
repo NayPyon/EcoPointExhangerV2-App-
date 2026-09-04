@@ -1,9 +1,9 @@
 import { FontAwesome } from "@expo/vector-icons";
-import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { withLayoutContext } from "expo-router";
-import React, { useEffect, useRef } from "react";
+import { createMaterialTopTabNavigator } from "expo-router/js-top-tabs";
+import { useEffect, useRef } from "react";
 import {
   Animated,
   Platform,
