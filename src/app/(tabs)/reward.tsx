@@ -1,25 +1,60 @@
-import { Components, Semantic } from "@/constants/theme";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useState } from "react";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
+import * as Haptics from "expo-haptics";
+import { MaterialCommunityIcons, FontAwesome5 } from "@expo/vector-icons";
+import React, { useEffect, useState } from "react";
 import {
   Image,
   Modal,
   SectionList,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
+import Animated, {
+  FadeInUp,
+  FadeInDown,
+  withSpring,
+  useAnimatedStyle,
+  useSharedValue,
+} from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import {
+  AnimConfig,
+  BorderRadius,
+  Colors,
+  Components,
+  Gradients,
+  Semantic,
+  Shadows,
+  Spacing,
+  Typography,
+} from "@/constants/theme";
+import { AnimatedPress } from "@/components/ui/animated-press";
+import { GlassCard } from "@/components/ui/glass-card";
+import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { usePoints } from "../../PointContext";
 
+export interface RewardItem {
+  id: string;
+  title: string;
+  points: number;
+  stock: number;
+  image: string;
+}
+
 export default function RewardScreen() {
+  const insets = useSafeAreaInsets();
   const { totalPoin } = usePoints();
 
   const [modalVisible, setModalVisible] = useState(false);
-  const [modalType, setModalType] = useState<"konfirmasi" | "sukses" | "gagal">(
-    "konfirmasi",
-  );
-  const [selectedReward, setSelectedReward] = useState<any>(null);
+  const [modalType, setModalType] = useState<"konfirmasi" | "sukses" | "gagal">("konfirmasi");
+  const [selectedReward, setSelectedReward] = useState<RewardItem | null>(null);
+
+  // Modal Animation Values
+  const modalY = useSharedValue(300);
+  const checkScale = useSharedValue(0.5);
 
   const REWARD_CATEGORIES = [
     {
@@ -30,24 +65,21 @@ export default function RewardScreen() {
           title: "Diskon Rp 20.000 Momoyo Ice Cream",
           points: 15000,
           stock: 45,
-          image:
-            "https://images.unsplash.com/photo-1563805042-7684c8a9e9cb?w=600&q=80",
+          image: "https://images.unsplash.com/photo-1563805042-7684c8a9e9cb?w=600&q=80",
         },
         {
           id: "2",
           title: "Voucher Burger King Rp 50.000",
           points: 35000,
           stock: 12,
-          image:
-            "https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=600&q=80",
+          image: "https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=600&q=80",
         },
         {
           id: "3",
           title: "Potongan Rp 30.000 Wingstop",
           points: 25000,
           stock: 8,
-          image:
-            "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=600&q=80",
+          image: "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=600&q=80",
         },
       ],
     },
@@ -59,22 +91,20 @@ export default function RewardScreen() {
           title: "Saldo GoPay Rp 25.000",
           points: 25000,
           stock: 100,
-          image:
-            "https://images.unsplash.com/photo-1614680376573-df3480f0c6ff?w=600&q=80",
+          image: "https://images.unsplash.com/photo-1614680376573-df3480f0c6ff?w=600&q=80",
         },
         {
           id: "5",
           title: "Valorant Points (VP) 1125",
           points: 55000,
           stock: 3,
-          image:
-            "https://images.unsplash.com/photo-1662514101150-f865f128c946?w=600&q=80",
+          image: "https://images.unsplash.com/photo-1662514101150-f865f128c946?w=600&q=80",
         },
       ],
     },
   ];
 
-  const handleRedeem = (item: any) => {
+  const handleRedeem = (item: RewardItem) => {
     setSelectedReward(item);
     if (totalPoin >= item.points) {
       setModalType("konfirmasi");
@@ -82,188 +112,203 @@ export default function RewardScreen() {
       setModalType("gagal");
     }
     setModalVisible(true);
+    modalY.value = withSpring(0, AnimConfig.spring.snappy);
+    if (totalPoin >= item.points) {
+      checkScale.value = withSpring(1, AnimConfig.spring.bouncy);
+    }
   };
 
   const prosesTukar = () => {
     setModalType("sukses");
+    checkScale.value = 0.5;
+    setTimeout(() => {
+      checkScale.value = withSpring(1, AnimConfig.spring.bouncy);
+    }, 100);
   };
 
-  const renderRewardItem = ({ item }: { item: any }) => {
+  const closeModal = () => {
+    modalY.value = withSpring(300, AnimConfig.spring.snappy);
+    setTimeout(() => {
+      setModalVisible(false);
+    }, 300);
+  };
+
+  const modalAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: modalY.value }],
+  }));
+
+  const checkAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: checkScale.value }],
+  }));
+
+  const renderRewardItem = ({ item, index }: { item: RewardItem; index: number }) => {
     const isPoinCukup = totalPoin >= item.points;
 
     return (
-      <TouchableOpacity
-        activeOpacity={0.9}
-        style={styles.card}
-        onPress={() => handleRedeem(item)}
-      >
-        <Image source={{ uri: item.image }} style={styles.cardImage} />
-        <View style={styles.cardContent}>
-          <Text style={styles.title} numberOfLines={2}>
-            {item.title}
-          </Text>
-          <View style={styles.cardFooter}>
-            <View style={styles.pointsRow}>
-              {/* LOGO KOIN DI SINI SUDAH SAMA DENGAN HEADER */}
-              <View style={styles.coinIcon}>
-                <Text style={styles.coinText}>P</Text>
-              </View>
-
-              <Text
-                style={[
-                  styles.pointText,
-                  !isPoinCukup && { color: Semantic.text.muted },
-                ]}
-              >
-                {item.points.toLocaleString("id-ID")} Poin
-              </Text>
-            </View>
-            <View style={styles.stockBadge}>
-              <Text style={styles.stockText}>Sisa Stok &lt; {item.stock}</Text>
+      <Animated.View entering={FadeInUp.delay(index * 100).springify()}>
+        <AnimatedPress
+          style={[styles.card, Shadows.md]}
+          onPress={() => handleRedeem(item)}
+        >
+          <View style={styles.imageContainer}>
+            <Image source={{ uri: item.image }} style={styles.cardImage} />
+            <View style={styles.floatingStock}>
+              <GlassCard intensity={80} borderRadius={12} style={styles.stockBadgeContainer}>
+                <Text style={styles.floatingStockText}>Sisa {item.stock}</Text>
+              </GlassCard>
             </View>
           </View>
-        </View>
-      </TouchableOpacity>
+          <View style={styles.cardContent}>
+            <Text style={styles.title} numberOfLines={2}>
+              {item.title}
+            </Text>
+            <View style={styles.cardFooter}>
+              <View style={styles.pointsRow}>
+                <LinearGradient
+                  colors={[Semantic.warning.light, Semantic.warning.main]}
+                  style={styles.coinIconLarge}
+                >
+                  <Text style={styles.coinTextLarge}>P</Text>
+                </LinearGradient>
+                <Text
+                  style={[
+                    styles.pointText,
+                    !isPoinCukup && { color: Semantic.text.muted },
+                  ]}
+                >
+                  {item.points.toLocaleString("id-ID")}
+                </Text>
+              </View>
+              {isPoinCukup ? (
+                <View style={[styles.statusBadge, { backgroundColor: Semantic.success.light }]}>
+                  <Text style={[styles.statusBadgeText, { color: Semantic.success.dark }]}>
+                    Tukar
+                  </Text>
+                </View>
+              ) : (
+                <View style={[styles.statusBadge, { backgroundColor: Semantic.background.tertiary }]}>
+                  <Text style={[styles.statusBadgeText, { color: Semantic.text.muted }]}>
+                    Poin Kurang
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </AnimatedPress>
+      </Animated.View>
     );
   };
 
-  const renderSectionHeader = ({ section: { title } }: any) => (
-    <Text style={styles.sectionHeader}>{title}</Text>
+  const renderSectionHeader = ({ section: { title } }: { section: { title: string } }) => (
+    <Animated.View entering={FadeInDown.springify()} style={styles.sectionHeaderContainer}>
+      <Text style={styles.sectionHeader}>{title}</Text>
+      <View style={styles.sectionLine} />
+    </Animated.View>
   );
 
   return (
     <View style={styles.container}>
       <Modal visible={modalVisible} transparent={true} animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
+        <BlurView intensity={30} tint="dark" style={styles.modalOverlay}>
+          <Animated.View style={[styles.modalCard, modalAnimatedStyle]}>
             {modalType === "konfirmasi" && (
               <>
-                <MaterialCommunityIcons
-                  name="gift"
-                  size={42}
-                  color={Semantic.success.main}
-                  style={styles.modalIcon}
-                />
+                <View style={styles.modalIconWrapperInfo}>
+                  <MaterialCommunityIcons name="gift" size={36} color={Semantic.secondary.main} />
+                </View>
                 <Text style={styles.modalTitle}>Konfirmasi Penukaran</Text>
                 <Text style={styles.modalMessage}>
                   Tukar{" "}
-                  <Text
-                    style={{
-                      fontFamily: "Poppins_700Bold",
-                      color: Semantic.success.main,
-                    }}
-                  >
+                  <Text style={styles.modalHighlightInfo}>
                     {selectedReward?.points.toLocaleString("id-ID")} Poin
                   </Text>{" "}
                   dengan {selectedReward?.title}?
                 </Text>
                 <View style={styles.modalButtonRow}>
-                  <TouchableOpacity
+                  <AnimatedPress
                     style={[styles.buttonOutline, { flex: 1 }]}
-                    onPress={() => setModalVisible(false)}
+                    onPress={closeModal}
                   >
                     <Text style={styles.buttonOutlineText}>Batal</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
+                  </AnimatedPress>
+                  <AnimatedPress
                     style={[styles.buttonPrimary, { flex: 1 }]}
                     onPress={prosesTukar}
                   >
                     <Text style={styles.buttonPrimaryText}>Tukar</Text>
-                  </TouchableOpacity>
+                  </AnimatedPress>
                 </View>
               </>
             )}
 
             {modalType === "sukses" && (
               <>
-                <MaterialCommunityIcons
-                  name="party-popper"
-                  size={42}
-                  color={Semantic.success.main}
-                  style={styles.modalIcon}
-                />
+                <Animated.View style={[styles.modalIconWrapperSuccess, checkAnimatedStyle]}>
+                  <MaterialCommunityIcons name="check-decagram" size={48} color={Semantic.success.main} />
+                </Animated.View>
                 <Text style={styles.modalTitle}>Berhasil!</Text>
                 <Text style={styles.modalMessage}>
-                  Hadiahmu sedang diproses. Cek riwayat atau emailmu secara
-                  berkala ya!
+                  Hadiahmu sedang diproses. Cek riwayat atau emailmu secara berkala ya!
                 </Text>
-                <TouchableOpacity
-                  style={[
-                    styles.buttonPrimary,
-                    { width: "100%", marginTop: 5 },
-                  ]}
-                  onPress={() => setModalVisible(false)}
+                <AnimatedPress
+                  style={[styles.buttonPrimary, { width: "100%", marginTop: 10 }]}
+                  onPress={closeModal}
                 >
                   <Text style={styles.buttonPrimaryText}>OK, Mengerti</Text>
-                </TouchableOpacity>
+                </AnimatedPress>
               </>
             )}
 
             {modalType === "gagal" && (
               <>
-                <MaterialCommunityIcons
-                  name="alert-circle"
-                  size={42}
-                  color={Semantic.warning.main}
-                  style={styles.modalIcon}
-                />
+                <View style={styles.modalIconWrapperDanger}>
+                  <MaterialCommunityIcons name="alert-circle" size={42} color={Semantic.danger.main} />
+                </View>
                 <Text style={styles.modalTitle}>Poin Belum Cukup</Text>
                 <Text style={styles.modalMessage}>
                   Kamu butuh{" "}
-                  <Text
-                    style={{
-                      fontFamily: "Poppins_700Bold",
-                      color: Semantic.danger.main,
-                    }}
-                  >
+                  <Text style={styles.modalHighlightDanger}>
                     {selectedReward
-                      ? (selectedReward.points - totalPoin).toLocaleString(
-                          "id-ID",
-                        )
+                      ? (selectedReward.points - totalPoin).toLocaleString("id-ID")
                       : 0}{" "}
                     poin lagi
                   </Text>{" "}
                   untuk menukarkan {selectedReward?.title}.
                 </Text>
-                <TouchableOpacity
-                  style={[
-                    styles.buttonOutline,
-                    { width: "100%", marginTop: 5 },
-                  ]}
-                  onPress={() => setModalVisible(false)}
+                <AnimatedPress
+                  style={[styles.buttonOutline, { width: "100%", marginTop: 10 }]}
+                  onPress={closeModal}
                 >
                   <Text style={styles.buttonOutlineText}>Oke, Mengerti</Text>
-                </TouchableOpacity>
+                </AnimatedPress>
               </>
             )}
-          </View>
-        </View>
+          </Animated.View>
+        </BlurView>
       </Modal>
 
-      <View style={styles.headerContainer}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.headerLabel}>Total Poinmu</Text>
-          <View style={styles.headerPointsRow}>
-            <View
-              style={[
-                styles.coinIcon,
-                { backgroundColor: Semantic.warning.main },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.coinText,
-                  { color: Semantic.background.primary },
-                ]}
-              >
-                P
-              </Text>
+      <View style={[styles.headerContainer, { paddingTop: insets.top + Spacing.four }]}>
+        <LinearGradient
+          colors={Gradients.primary}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.headerGradientCard, Shadows.lg]}
+        >
+          <View style={styles.headerLeft}>
+            <Text style={styles.headerLabel}>Total Poinmu</Text>
+            <View style={styles.headerPointsRow}>
+              <View style={styles.coinIcon}>
+                <Text style={styles.coinText}>P</Text>
+              </View>
+              <AnimatedCounter
+                value={totalPoin}
+                style={styles.headerValue}
+                locale="id-ID"
+              />
             </View>
-            <Text style={styles.headerValue}>
-              {totalPoin.toLocaleString("id-ID")}
-            </Text>
           </View>
-        </View>
+          <MaterialCommunityIcons name="star-four-points" size={42} color="rgba(255,255,255,0.2)" style={styles.headerDecoIcon} />
+        </LinearGradient>
       </View>
 
       <SectionList
@@ -280,63 +325,130 @@ export default function RewardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Semantic.background.tertiary },
+  container: {
+    flex: 1,
+    backgroundColor: Semantic.background.secondary,
+  },
   headerContainer: {
     backgroundColor: Semantic.background.primary,
-    paddingTop: 60,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
+    paddingHorizontal: Spacing.five,
+    paddingBottom: Spacing.five,
     borderBottomWidth: 1,
-    borderColor: Components.card.border,
+    borderColor: Semantic.border.light,
+    borderBottomLeftRadius: BorderRadius.xl,
+    borderBottomRightRadius: BorderRadius.xl,
+    ...Shadows.sm,
+    zIndex: 10,
+  },
+  headerGradientCard: {
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.five,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    overflow: "hidden",
   },
-  headerLeft: { flex: 1 },
+  headerLeft: {
+    flex: 1,
+    zIndex: 2,
+  },
   headerLabel: {
-    fontFamily: "Inter_400Regular",
-    color: Semantic.text.secondary,
-    fontSize: 13,
-    marginBottom: 4,
+    fontFamily: Typography.fontFamily.inter,
+    color: "rgba(255, 255, 255, 0.8)",
+    fontSize: Typography.size.sm,
+    marginBottom: Spacing.xs,
   },
-  headerPointsRow: { flexDirection: "row", alignItems: "center" },
+  headerPointsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  coinIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Semantic.warning.main,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: Spacing.sm,
+  },
+  coinText: {
+    fontFamily: Typography.fontFamily.interBold,
+    fontSize: 12,
+    color: Semantic.background.primary,
+  },
   headerValue: {
-    fontFamily: "Poppins_700Bold",
-    color: Semantic.text.primary,
-    fontSize: 24,
-    marginLeft: 8,
+    fontFamily: Typography.fontFamily.primary,
+    color: Semantic.text.light,
+    fontSize: Typography.size.xxl,
+  },
+  headerDecoIcon: {
+    position: "absolute",
+    right: -10,
+    bottom: -10,
+    zIndex: 1,
+  },
+  sectionHeaderContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: Spacing.xl,
+    marginBottom: Spacing.md,
+    paddingHorizontal: Spacing.five,
   },
   sectionHeader: {
-    fontFamily: "Poppins_700Bold",
-    fontSize: 18,
+    fontFamily: Typography.fontFamily.primary,
+    fontSize: Typography.size.lg,
     color: Semantic.text.primary,
-    marginTop: 25,
-    marginBottom: 15,
-    paddingHorizontal: 20,
+    marginRight: Spacing.md,
   },
-  listContainer: { paddingBottom: 120 },
+  sectionLine: {
+    flex: 1,
+    height: 2,
+    backgroundColor: Semantic.border.light,
+    borderRadius: BorderRadius.full,
+  },
+  listContainer: {
+    paddingBottom: 120,
+    paddingTop: Spacing.md,
+  },
   card: {
     backgroundColor: Semantic.background.primary,
-    borderRadius: 20,
-    marginHorizontal: 20,
-    marginBottom: 20,
-    shadowColor: Semantic.text.primary,
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 4,
+    borderRadius: BorderRadius.xl,
+    marginHorizontal: Spacing.five,
+    marginBottom: Spacing.lg,
     overflow: "hidden",
+  },
+  imageContainer: {
+    width: "100%",
+    height: 160,
+    backgroundColor: Semantic.border.light,
   },
   cardImage: {
     width: "100%",
-    height: 140,
-    backgroundColor: Components.card.border,
+    height: "100%",
+    resizeMode: "cover",
   },
-  cardContent: { padding: 16 },
+  floatingStock: {
+    position: "absolute",
+    top: Spacing.md,
+    right: Spacing.md,
+  },
+  stockBadgeContainer: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+  },
+  floatingStockText: {
+    fontFamily: Typography.fontFamily.interMedium,
+    fontSize: Typography.size.xs,
+    color: Semantic.text.light,
+  },
+  cardContent: {
+    padding: Spacing.four,
+  },
   title: {
-    fontFamily: "Poppins_600SemiBold",
-    fontSize: 15,
+    fontFamily: Typography.fontFamily.secondary,
+    fontSize: Typography.size.md,
     color: Semantic.text.primary,
-    marginBottom: 16,
+    marginBottom: Spacing.md,
     lineHeight: 22,
   },
   cardFooter: {
@@ -344,97 +456,130 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  pointsRow: { flexDirection: "row", alignItems: "center" },
-  // WARNA COIN DIUPDATE MENJADI ORANYE SOLID AGAR SAMA PERSIS
-  coinIcon: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: Semantic.warning.main,
+  pointsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  coinIconLarge: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     justifyContent: "center",
     alignItems: "center",
   },
-  coinText: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 11,
+  coinTextLarge: {
+    fontFamily: Typography.fontFamily.interBold,
+    fontSize: 12,
     color: Semantic.background.primary,
   },
   pointText: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 16,
+    fontFamily: Typography.fontFamily.interBold,
+    fontSize: Typography.size.md,
     color: Semantic.success.main,
-    marginLeft: 6,
+    marginLeft: Spacing.sm,
   },
-  stockBadge: {
-    backgroundColor: Semantic.background.tertiary,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 8,
+  statusBadge: {
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
   },
-  stockText: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 11,
-    color: Semantic.text.secondary,
+  statusBadgeText: {
+    fontFamily: Typography.fontFamily.interMedium,
+    fontSize: Typography.size.xs,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: Components.modal.overlay,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: Spacing.five,
+    backgroundColor: "rgba(0,0,0,0.4)",
   },
   modalCard: {
     backgroundColor: Semantic.background.primary,
     width: "100%",
     maxWidth: 340,
-    borderRadius: 24,
-    padding: 24,
+    borderRadius: BorderRadius.xxl,
+    padding: Spacing.xl,
     alignItems: "center",
-    shadowColor: Semantic.text.primary,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 15,
-    elevation: 10,
+    ...Shadows.lg,
   },
-  modalIcon: { marginBottom: 12 },
+  modalIconWrapperInfo: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: Semantic.secondary.light,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: Spacing.lg,
+  },
+  modalIconWrapperSuccess: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: Semantic.success.light,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: Spacing.lg,
+  },
+  modalIconWrapperDanger: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: Semantic.danger.light,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: Spacing.lg,
+  },
   modalTitle: {
-    fontFamily: "Poppins_700Bold",
-    fontSize: 20,
+    fontFamily: Typography.fontFamily.primary,
+    fontSize: Typography.size.xl,
     color: Semantic.text.primary,
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
     textAlign: "center",
   },
   modalMessage: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 14,
+    fontFamily: Typography.fontFamily.inter,
+    fontSize: Typography.size.base,
     color: Semantic.text.secondary,
     textAlign: "center",
-    marginBottom: 20,
-    lineHeight: 20,
+    marginBottom: Spacing.xl,
+    lineHeight: 22,
   },
-  modalButtonRow: { flexDirection: "row", gap: 10, width: "100%" },
+  modalHighlightInfo: {
+    fontFamily: Typography.fontFamily.primary,
+    color: Semantic.secondary.main,
+  },
+  modalHighlightDanger: {
+    fontFamily: Typography.fontFamily.primary,
+    color: Semantic.danger.main,
+  },
+  modalButtonRow: {
+    flexDirection: "row",
+    gap: Spacing.md,
+    width: "100%",
+  },
   buttonPrimary: {
     backgroundColor: Semantic.success.main,
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: Spacing.four,
+    borderRadius: BorderRadius.md,
     alignItems: "center",
     justifyContent: "center",
   },
   buttonPrimaryText: {
-    fontFamily: "Poppins_700Bold",
-    color: Semantic.background.primary,
-    fontSize: 14,
+    fontFamily: Typography.fontFamily.primary,
+    color: Semantic.text.light,
+    fontSize: Typography.size.base,
   },
   buttonOutline: {
     backgroundColor: Semantic.background.tertiary,
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: Spacing.four,
+    borderRadius: BorderRadius.md,
     alignItems: "center",
     justifyContent: "center",
   },
   buttonOutlineText: {
-    fontFamily: "Poppins_700Bold",
+    fontFamily: Typography.fontFamily.primary,
     color: Semantic.text.primary,
-    fontSize: 14,
+    fontSize: Typography.size.base,
   },
 });

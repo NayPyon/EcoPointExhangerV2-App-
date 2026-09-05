@@ -1,13 +1,12 @@
 /**
- * Sky Blue Freshness Design System
- * Comprehensive color tokens untuk seluruh app
+ * EcoPoint V2 — Premium Design System
+ * "Deep Teal Freshness" — Modern, Glassmorphism-inspired
  */
 
 // ============================================
-// RAW COLOR PALETTE (5-stop ramps)
+// RAW COLOR PALETTE
 // ============================================
 export const Colors = {
-  // Primary: Dark Teal (056B8D)
   teal: {
     50: "#E8F4F8",
     100: "#B8DAEB",
@@ -19,7 +18,6 @@ export const Colors = {
     900: "#022E40",
   },
 
-  // Secondary: Medium Blue (427AA1)
   blue: {
     50: "#F0F6FB",
     100: "#D1E3F0",
@@ -31,7 +29,6 @@ export const Colors = {
     900: "#1C3149",
   },
 
-  // Light: Sky (EBF2FA)
   sky: {
     50: "#F8FAFB",
     100: "#F0F4F8",
@@ -43,19 +40,18 @@ export const Colors = {
     900: "#1F2838",
   },
 
-  // Success: Olive Green (679436)
   green: {
-    50: "#F5F8F0",
-    100: "#E1E9D4",
-    200: "#CDDAB8",
-    400: "#89A86F",
-    600: "#6D8D47",
-    700: "#679436",
-    800: "#4F7029",
-    900: "#374A1B",
+    50: "#ECFDF5",
+    100: "#D1FAE5",
+    200: "#A7F3D0",
+    400: "#34D399",
+    500: "#10B981",
+    600: "#059669",
+    700: "#047857",
+    800: "#065F46",
+    900: "#064E3B",
   },
 
-  // Accent: Lime Yellow (A5BE00)
   lime: {
     50: "#FAFBF0",
     100: "#F3F6DB",
@@ -67,7 +63,6 @@ export const Colors = {
     900: "#556000",
   },
 
-  // Neutral: Gray
   neutral: {
     0: "#FFFFFF",
     50: "#F9FAFB",
@@ -82,19 +77,17 @@ export const Colors = {
     900: "#111827",
   },
 
-  // Warning
   warning: {
-    50: "#FFFBF0",
-    100: "#FFE5CC",
-    200: "#FFD9B3",
-    400: "#FFA94D",
-    600: "#FF8C00",
+    50: "#FFFBEB",
+    100: "#FEF3C7",
+    200: "#FDE68A",
+    400: "#FBBF24",
+    600: "#D97706",
     700: "#F59E0B",
-    800: "#D97706",
+    800: "#B45309",
     900: "#92400E",
   },
 
-  // Red
   red: {
     50: "#FEF2F2",
     100: "#FEE2E2",
@@ -106,7 +99,7 @@ export const Colors = {
     900: "#7F1D1D",
   },
 
-  // Compatibility aliases for the starter components and native tabs.
+  // Compatibility aliases for starter components
   light: {
     text: "#111827",
     textSecondary: "#4B5563",
@@ -137,7 +130,7 @@ export const Colors = {
 export const Semantic = {
   primary: {
     light: Colors.teal[50],
-    main: Colors.teal[700], // #056B8D - BIRU PRIMARY
+    main: Colors.teal[700],
     dark: Colors.teal[900],
   },
 
@@ -149,7 +142,7 @@ export const Semantic = {
 
   success: {
     light: Colors.green[100],
-    main: Colors.green[700], // #679436 - HIJAU
+    main: Colors.green[500],
     dark: Colors.green[900],
   },
 
@@ -218,6 +211,7 @@ export const Components = {
     bg: Semantic.background.primary,
     bgLight: Semantic.background.secondary,
     border: Semantic.border.light,
+    shadow: "rgba(0, 0, 0, 0.08)",
   },
 
   header: {
@@ -228,7 +222,7 @@ export const Components = {
 
   modal: {
     bg: Colors.neutral[0],
-    overlay: "rgba(0, 0, 0, 0.45)",
+    overlay: "rgba(0, 0, 0, 0.5)",
   },
 
   badge: {
@@ -262,10 +256,17 @@ export const Components = {
       color: Semantic.secondary.main,
     },
   },
+
+  glass: {
+    bg: "rgba(255, 255, 255, 0.15)",
+    bgStrong: "rgba(255, 255, 255, 0.25)",
+    border: "rgba(255, 255, 255, 0.3)",
+    bgDark: "rgba(0, 0, 0, 0.06)",
+  },
 };
 
 // ============================================
-// SPACING & UTILITIES
+// SPACING
 // ============================================
 export const Spacing = {
   half: 2,
@@ -280,8 +281,121 @@ export const Spacing = {
   lg: 16,
   xl: 24,
   xxl: 32,
+  xxxl: 48,
 };
 
+// ============================================
+// TYPOGRAPHY (NEW)
+// ============================================
+export const Typography = {
+  fontFamily: {
+    primary: "Poppins_700Bold",
+    secondary: "Poppins_600SemiBold",
+    medium: "Poppins_500Medium",
+    body: "Poppins_400Regular",
+    inter: "Inter_400Regular",
+    interMedium: "Inter_600SemiBold",
+    interBold: "Inter_700Bold",
+  },
+  size: {
+    xs: 10,
+    sm: 12,
+    base: 14,
+    md: 16,
+    lg: 18,
+    xl: 20,
+    xxl: 24,
+    display: 32,
+    hero: 48,
+  },
+  lineHeight: {
+    tight: 1.1,
+    normal: 1.4,
+    relaxed: 1.6,
+  },
+};
+
+// ============================================
+// BORDER RADIUS
+// ============================================
+export const BorderRadius = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  xxl: 28,
+  full: 9999,
+};
+
+// ============================================
+// SHADOWS (NEW)
+// ============================================
+export const Shadows = {
+  sm: {
+    shadowColor: Colors.neutral[900],
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  md: {
+    shadowColor: Colors.neutral[900],
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  lg: {
+    shadowColor: Colors.neutral[900],
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  glow: (color: string) => ({
+    shadowColor: color,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 10,
+  }),
+};
+
+// ============================================
+// ANIMATION CONFIG (NEW)
+// ============================================
+export const AnimConfig = {
+  duration: {
+    fast: 150,
+    normal: 300,
+    slow: 500,
+  },
+  spring: {
+    gentle: { damping: 20, stiffness: 150 },
+    bouncy: { damping: 12, stiffness: 200 },
+    snappy: { damping: 15, stiffness: 400 },
+  },
+  stagger: {
+    fast: 50,
+    normal: 80,
+    slow: 120,
+  },
+};
+
+// ============================================
+// GRADIENT PRESETS (NEW)
+// ============================================
+export const Gradients = {
+  primary: [Colors.teal[900], Colors.teal[700], Colors.teal[400]] as const,
+  success: [Colors.green[800], Colors.green[500], Colors.green[400]] as const,
+  warmFire: [Colors.warning[100], Colors.warning[700], Colors.red[700]] as const,
+  card: [Colors.teal[800], Colors.teal[700], Colors.blue[400]] as const,
+};
+
+// ============================================
+// COMPATIBILITY
+// ============================================
 export const Fonts = {
   mono: "SpaceMono",
 };
@@ -295,19 +409,14 @@ export type ThemeColor =
 
 export const MaxContentWidth = 960;
 
-export const BorderRadius = {
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  full: 9999,
-};
-
 export default {
   Colors,
   Semantic,
   Components,
   Spacing,
+  Typography,
   BorderRadius,
+  Shadows,
+  AnimConfig,
+  Gradients,
 };

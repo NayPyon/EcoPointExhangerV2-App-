@@ -1,29 +1,53 @@
 import {
+  AnimConfig,
+  BorderRadius,
   Colors,
   Components,
-  Semantic
+  Gradients,
+  Semantic,
+  Shadows,
+  Spacing,
+  Typography,
 } from "@/constants/theme";
+import { CURRENT_USER } from "@/constants/user-config";
+import { AnimatedPress } from "@/components/ui/animated-press";
+import { GlassCard } from "@/components/ui/glass-card";
+import { AnimatedCounter } from "@/components/ui/animated-counter";
+
 import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
 import { doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Modal,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { db } from "../../firebaseConfig";
 
-// TAMBAHAN IMPORT UNTUK ANIMASI DAN NAVIGASI
 import * as Haptics from "expo-haptics";
 import { router, useFocusEffect } from "expo-router";
-import LottieView from "lottie-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
+import Animated, {
+  FadeInDown,
+  FadeInUp,
+  FadeIn,
+  withRepeat,
+  withSpring,
+  withTiming,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withDelay,
+  Easing,
+} from "react-native-reanimated";
 
 export default function ExchangeScreen() {
+  const insets = useSafeAreaInsets();
   const isFocusedRef = useRef(true);
+  
   const [qrToken, setQrToken] = useState("ECO-SESSION-INITIAL");
   const [timeLeft, setTimeLeft] = useState(60);
 
@@ -34,13 +58,44 @@ export default function ExchangeScreen() {
   const [jumlahLogam, setJumlahLogam] = useState(0);
   const [jumlahReject, setJumlahReject] = useState(0);
 
-  // STATE UNTUK MENGONTROL MUNCULNYA ANIMASI APRESIASI
   const [showCelebration, setShowCelebration] = useState(false);
-
-  // STATE BARU: MENGONTROL STATUS AKTIF/TIDAKNYA MESIN (DEFAULT AKTIF)
   const [isMesinAktif, setIsMesinAktif] = useState(true);
 
-  // TRACK KETIKA TAB FOCUSED/UNFOCUSED (SDK 56+ COMPATIBILITY)
+  // Animation Values
+  const pulseOpacity = useSharedValue(0.5);
+  const pulseScale = useSharedValue(1);
+  const checkScale = useSharedValue(0);
+
+  useEffect(() => {
+    pulseOpacity.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 1000 }),
+        withTiming(0.5, { duration: 1000 })
+      ),
+      -1,
+      true
+    );
+    pulseScale.value = withRepeat(
+      withSequence(
+        withTiming(1.1, { duration: 1500 }),
+        withTiming(1, { duration: 1500 })
+      ),
+      -1,
+      true
+    );
+  }, []);
+
+  const pulseStyle = useAnimatedStyle(() => ({
+    opacity: pulseOpacity.value,
+  }));
+  const pulseIconStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulseScale.value }],
+  }));
+  
+  const checkStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: checkScale.value }],
+  }));
+
   useFocusEffect(
     useRef(() => {
       isFocusedRef.current = true;
@@ -50,30 +105,24 @@ export default function ExchangeScreen() {
     }).current,
   );
 
-  // 1. MATA-MATA FIREBASE UNTUK STATUS MESIN (RVM) SECARA REAL-TIME
   useEffect(() => {
-    // Kita buat listener ke koleksi "RVM" dokumen "status_mesin"
     const unsubMesin = onSnapshot(doc(db, "RVM", "status_mesin"), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        // Cek apakah field 'status' bernilai 'aktif'
         setIsMesinAktif(data.status === "aktif");
       }
     });
     return () => unsubMesin();
   }, []);
 
-  // 2. MATA-MATA FIREBASE UNTUK SESI PENGGUNA
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, "Sesi_Aktif", "Nayaka"), (docSnap) => {
+    const unsub = onSnapshot(doc(db, "Sesi_Aktif", CURRENT_USER.id), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         if (data.status) setStatusSesi(data.status);
-        if (data.botol_plastik !== undefined)
-          setJumlahPlastik(data.botol_plastik);
+        if (data.botol_plastik !== undefined) setJumlahPlastik(data.botol_plastik);
         if (data.botol_logam !== undefined) setJumlahLogam(data.botol_logam);
-        if (data.sampah_reject !== undefined)
-          setJumlahReject(data.sampah_reject);
+        if (data.sampah_reject !== undefined) setJumlahReject(data.sampah_reject);
       }
     });
     return () => unsub();
@@ -90,7 +139,7 @@ export default function ExchangeScreen() {
     const newToken = generateNewToken();
     try {
       await setDoc(
-        doc(db, "Sesi_Aktif", "Nayaka"),
+        doc(db, "Sesi_Aktif", CURRENT_USER.id),
         { kode_sesi: newToken },
         { merge: true },
       );
@@ -100,11 +149,12 @@ export default function ExchangeScreen() {
   };
 
   const mulaiSesi = async () => {
+    if (!isMesinAktif) return;
     const newToken = generateNewToken();
     setShowQR(true);
     try {
       await setDoc(
-        doc(db, "Sesi_Aktif", "Nayaka"),
+        doc(db, "Sesi_Aktif", CURRENT_USER.id),
         {
           kode_sesi: newToken,
           waktu_dibuat: serverTimestamp(),
@@ -123,30 +173,28 @@ export default function ExchangeScreen() {
   const batalkanSesi = async () => {
     setShowQR(false);
     await setDoc(
-      doc(db, "Sesi_Aktif", "Nayaka"),
+      doc(db, "Sesi_Aktif", CURRENT_USER.id),
       { status: "idle" },
       { merge: true },
     );
   };
 
-  // --- LOGIKA BARU UNTUK TOMBOL SELESAI ---
   const akhiriSesi = async () => {
-    // 1. Getar & Munculkan Animasi Fullscreen
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setShowCelebration(true);
+    checkScale.value = 0;
+    checkScale.value = withSpring(1, AnimConfig.spring.bouncy);
 
-    // 2. Ubah status Firebase ke "selesai" (Mesin akan baca ini dan menutup pintu)
     await setDoc(
-      doc(db, "Sesi_Aktif", "Nayaka"),
+      doc(db, "Sesi_Aktif", CURRENT_USER.id),
       { status: "selesai" },
       { merge: true },
     );
 
-    // 3. Tunggu 3.5 detik biar user bisa lihat animasi koin
     setTimeout(() => {
       setShowCelebration(false);
-      setShowQR(false); // Reset layar QR
-      router.push("/"); // Lempar otomatis ke halaman Beranda!
+      setShowQR(false);
+      router.push("/");
     }, 3500);
   };
 
@@ -157,11 +205,10 @@ export default function ExchangeScreen() {
     const timer = setInterval(() => {
       setTimeLeft((prevTime) => {
         if (prevTime <= 1) {
-          const randomCode =
-            "ECO-" + Math.floor(10000000 + Math.random() * 90000000);
+          const randomCode = "ECO-" + Math.floor(10000000 + Math.random() * 90000000);
           setQrToken(randomCode);
           setDoc(
-            doc(db, "Sesi_Aktif", "Nayaka"),
+            doc(db, "Sesi_Aktif", CURRENT_USER.id),
             { kode_sesi: randomCode },
             { merge: true },
           );
@@ -186,51 +233,38 @@ export default function ExchangeScreen() {
   const totalSemuaSampah = jumlahPlastik + jumlahLogam + jumlahReject;
 
   return (
-    <View style={styles.container}>
-      {/* --- MODAL ANIMASI APRESIASI SAAT SELESAI TRANSAKSI --- */}
+    <View style={[styles.container, { paddingTop: insets.top + Spacing.xl }]}>
       <Modal visible={showCelebration} transparent={true} animationType="fade">
         <View style={styles.modalCelebrationBg}>
-          <View style={styles.celebrationCard}>
-            <LottieView
-              autoPlay
-              loop={false}
-              style={{ width: 150, height: 150 }}
-              source={{
-                uri: "https://lottie.host/809f8d95-8869-42b3-a15f-53748cd3c5c9/K0L266dO0g.json",
-              }}
-            />
+          <Animated.View entering={FadeInUp} style={styles.celebrationCard}>
+            <Animated.View style={checkStyle}>
+              <View style={styles.checkIconWrapper}>
+                <FontAwesome name="check" size={60} color={Semantic.background.primary} />
+              </View>
+            </Animated.View>
             <Text style={styles.celebrationTitle}>Sesi Selesai!</Text>
             <Text style={styles.celebrationSub}>
               Pintu ditutup. Terima kasih telah mendaur ulang hari ini!
             </Text>
-          </View>
+          </Animated.View>
         </View>
       </Modal>
 
       <Text style={styles.headerTitle}>Tukar Sampah</Text>
 
-      {/* TAHAP 1: LAYAR AWAL (IDLE) */}
+      {/* STAGE IDLE */}
       {!showQR && statusSesi !== "pintu_terbuka" && (
-        <View style={{ width: "100%", alignItems: "center", marginTop: 20 }}>
-          {/* KARTU STATUS RVM DINAMIS */}
+        <Animated.View entering={FadeInDown.duration(400)} style={styles.contentWrapper}>
           <View style={styles.statusRvmCard}>
             <View style={styles.statusHeaderRow}>
               <Text style={styles.statusTitle}>Status RVM Saat Ini</Text>
-
-              {/* Badge berubah abu-abu jika offline */}
-              <View
-                style={[
-                  styles.badgeOnline,
-                  !isMesinAktif && styles.badgeOffline,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.badgeText,
-                    !isMesinAktif && styles.badgeTextOffline,
-                  ]}
-                >
-                  • {isMesinAktif ? "AKTIF" : "NONAKTIF"}
+              <View style={[styles.badgeBase, isMesinAktif ? styles.badgeOnline : styles.badgeOffline]}>
+                {isMesinAktif && (
+                  <Animated.View style={[styles.dotIndicator, pulseStyle]} />
+                )}
+                {!isMesinAktif && <View style={[styles.dotIndicator, { backgroundColor: Semantic.text.muted }]} />}
+                <Text style={[styles.badgeText, !isMesinAktif && styles.badgeTextOffline]}>
+                  {isMesinAktif ? " AKTIF" : " NONAKTIF"}
                 </Text>
               </View>
             </View>
@@ -241,212 +275,151 @@ export default function ExchangeScreen() {
             </Text>
           </View>
 
-          {/* TOMBOL QR DINAMIS (MATI BILA OFFLINE) */}
-          <TouchableOpacity
-            style={[
-              styles.promoBanner,
-              !isMesinAktif && styles.promoBannerOffline,
-            ]}
+          <AnimatedPress
+            style={[styles.ctaWrapper, !isMesinAktif ? { opacity: 0.7 } : {}]}
             onPress={mulaiSesi}
-            disabled={!isMesinAktif} // Mengunci tombol saat offline
-            activeOpacity={0.7}
+            disabled={!isMesinAktif}
           >
-            <View style={styles.bannerTextContainer}>
-              <Text
-                style={[
-                  styles.bannerTitle,
-                  !isMesinAktif && styles.bannerTitleOffline,
-                ]}
-              >
-                Ayo Mulai Menukar!
-              </Text>
-              <Text
-                style={[
-                  styles.bannerSubtitle,
-                  !isMesinAktif && styles.bannerSubtitleOffline,
-                ]}
-              >
-                {isMesinAktif
-                  ? "Tekan di sini untuk memunculkan QR Code dan membuka pintu mesin."
-                  : "Harap tunggu hingga mesin kembali online untuk menukar."}
-              </Text>
-            </View>
-            <FontAwesome
-              name="qrcode"
-              size={60}
-              color={isMesinAktif ? Semantic.success.main : Semantic.text.muted} // Ikon jadi abu-abu
-              style={styles.bannerIcon}
-            />
-          </TouchableOpacity>
-        </View>
+            <LinearGradient
+              colors={isMesinAktif ? Gradients.success : [Semantic.background.secondary, Semantic.background.secondary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.promoBanner}
+            >
+              <View style={styles.bannerTextContainer}>
+                <Text style={[styles.bannerTitle, !isMesinAktif && { color: Semantic.text.primary }]}>
+                  Ayo Mulai Menukar!
+                </Text>
+                <Text style={[styles.bannerSubtitle, !isMesinAktif && { color: Semantic.text.secondary }]}>
+                  {isMesinAktif
+                    ? "Tekan di sini untuk memunculkan QR Code dan membuka pintu mesin."
+                    : "Harap tunggu hingga mesin kembali online untuk menukar."}
+                </Text>
+              </View>
+              <Animated.View style={isMesinAktif ? pulseIconStyle : undefined}>
+                <FontAwesome
+                  name="qrcode"
+                  size={60}
+                  color={isMesinAktif ? Semantic.background.primary : Semantic.text.muted}
+                  style={styles.bannerIcon}
+                />
+              </Animated.View>
+            </LinearGradient>
+          </AnimatedPress>
+        </Animated.View>
       )}
 
-      {/* TAHAP 2: MENUNGGU MESIN (QR TAMPIL) */}
+      {/* STAGE QR (menunggu_mesin) */}
       {showQR && statusSesi === "menunggu_mesin" && (
-        <>
+        <Animated.View entering={FadeInDown.duration(400)} style={styles.contentWrapper}>
           <Text style={styles.subtitle}>
             Arahkan layar HP Anda ke pemindai di mesin RVM.
           </Text>
-          <View style={styles.card}>
-            <View style={styles.qrWrapper}>
+          <GlassCard style={styles.qrCard} intensity={80}>
+            <View style={styles.qrInner}>
               <QRCode
                 value={qrToken}
-                size={220}
+                size={240}
                 color={Semantic.text.primary}
-                backgroundColor={Semantic.background.primary}
+                backgroundColor="transparent"
               />
             </View>
             <Text style={styles.tokenLabel}>Kode Sesi Sementara:</Text>
             <Text style={styles.tokenText}>{qrToken}</Text>
-            <View style={styles.timerRow}>
+            
+            <View style={[styles.timerPill, timeLeft <= 10 && styles.timerPillDanger]}>
               <FontAwesome
                 name="clock-o"
                 size={16}
-                color={
-                  timeLeft <= 5 ? Semantic.danger.main : Semantic.warning.main
-                }
+                color={timeLeft <= 10 ? Semantic.background.primary : Semantic.warning.main}
               />
-              <Text
-                style={[
-                  styles.timerText,
-                  timeLeft <= 5 && { color: Semantic.danger.main },
-                ]}
-              >
-                Akan diperbarui dalam {timeLeft} detik
+              <Text style={[styles.timerText, timeLeft <= 10 && { color: Semantic.background.primary }]}>
+                Perbarui dalam {timeLeft}s
               </Text>
             </View>
-            <View style={{ width: "100%", gap: 10 }}>
-              <TouchableOpacity
-                style={styles.buttonRefresh}
-                onPress={handleManualRefresh}
-              >
-                <FontAwesome
-                  name="refresh"
-                  size={16}
-                  color={Semantic.background.primary}
-                  style={{ marginRight: 8 }}
-                />
-                <Text style={styles.buttonRefreshText}>Perbarui Sekarang</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.buttonOutline}
-                onPress={batalkanSesi}
-              >
-                <Text style={styles.buttonOutlineText}>Batalkan Sesi</Text>
-              </TouchableOpacity>
+
+            <View style={styles.actionRow}>
+              <AnimatedPress style={styles.btnPrimary} onPress={handleManualRefresh}>
+                <FontAwesome name="refresh" size={16} color={Semantic.background.primary} style={{ marginRight: 8 }} />
+                <Text style={styles.btnPrimaryText}>Perbarui</Text>
+              </AnimatedPress>
+              <AnimatedPress style={styles.btnOutline} onPress={batalkanSesi}>
+                <Text style={styles.btnOutlineText}>Batal</Text>
+              </AnimatedPress>
             </View>
-          </View>
-        </>
+          </GlassCard>
+        </Animated.View>
       )}
 
-      {/* TAHAP 3: PINTU TERBUKA (DASBOR SAMPAH) */}
+      {/* STAGE PINTU TERBUKA */}
       {statusSesi === "pintu_terbuka" && (
-        <>
+        <Animated.View entering={FadeInUp.duration(500)} style={styles.contentWrapper}>
           <Text style={styles.subtitle}>
-            Mesin telah mengenali Anda. Silakan masukkan sampah satu per satu.
+            Mesin mengenali Anda. Masukkan sampah satu per satu.
           </Text>
-          <View style={styles.card}>
-            <FontAwesome
-              name="unlock-alt"
-              size={40}
-              color={Semantic.success.main}
-              style={{ marginBottom: 5 }}
-            />
-            <Text style={[styles.tokenText, { fontSize: 20, marginBottom: 5 }]}>
-              Pintu Terbuka
-            </Text>
-            <ActivityIndicator
-              size="small"
-              color={Semantic.success.main}
-              style={{ marginBottom: 15 }}
-            />
+          <View style={styles.dashCard}>
+            <Animated.View style={pulseIconStyle}>
+              <FontAwesome name="unlock-alt" size={48} color={Semantic.success.main} style={{ marginBottom: 10 }} />
+            </Animated.View>
+            <Text style={styles.doorOpenText}>Pintu Terbuka</Text>
 
             <View style={styles.detailsContainer}>
-              <Text style={styles.detailsHeader}>Rincian Sampah Masuk</Text>
               <View style={styles.detailRow}>
                 <View style={styles.detailLabelRow}>
-                  <MaterialCommunityIcons
-                    name="bottle-soda"
-                    size={18}
-                    color={Semantic.primary.main}
-                  />
-                  <Text style={styles.detailLabel}>Plastik (100 pts)</Text>
+                  <View style={[styles.iconBg, { backgroundColor: Colors.teal[100] }]}>
+                    <MaterialCommunityIcons name="bottle-soda" size={20} color={Semantic.primary.main} />
+                  </View>
+                  <Text style={styles.detailLabel}>Plastik</Text>
                 </View>
-                <Text style={styles.detailCount}>{jumlahPlastik}x</Text>
-                <Text style={styles.detailSubtotal}>+{poinPlastik}</Text>
+                <AnimatedCounter value={jumlahPlastik} suffix="x" style={styles.detailCount} />
+                <AnimatedCounter value={poinPlastik} prefix="+" style={styles.detailSubtotal} />
               </View>
+
               <View style={styles.detailRow}>
                 <View style={styles.detailLabelRow}>
-                  <MaterialCommunityIcons
-                    name="package-variant"
-                    size={18}
-                    color={Semantic.primary.main}
-                  />
-                  <Text style={styles.detailLabel}>Logam (300 pts)</Text>
+                  <View style={[styles.iconBg, { backgroundColor: Colors.teal[100] }]}>
+                    <MaterialCommunityIcons name="package-variant" size={20} color={Semantic.primary.main} />
+                  </View>
+                  <Text style={styles.detailLabel}>Logam</Text>
                 </View>
-                <Text style={styles.detailCount}>{jumlahLogam}x</Text>
-                <Text style={styles.detailSubtotal}>+{poinLogam}</Text>
+                <AnimatedCounter value={jumlahLogam} suffix="x" style={styles.detailCount} />
+                <AnimatedCounter value={poinLogam} prefix="+" style={styles.detailSubtotal} />
               </View>
+
               <View style={styles.detailRow}>
                 <View style={styles.detailLabelRow}>
-                  <MaterialCommunityIcons
-                    name="close-circle"
-                    size={18}
-                    color={Semantic.danger.main}
-                  />
-                  <Text style={styles.detailLabel}>Ditolak (0 pts)</Text>
+                  <View style={[styles.iconBg, { backgroundColor: Colors.red[100] }]}>
+                    <MaterialCommunityIcons name="close-circle" size={20} color={Semantic.danger.main} />
+                  </View>
+                  <Text style={styles.detailLabel}>Ditolak</Text>
                 </View>
-                <Text
-                  style={[styles.detailCount, { color: Semantic.danger.main }]}
-                >
-                  {jumlahReject}x
-                </Text>
-                <Text
-                  style={[
-                    styles.detailSubtotal,
-                    { color: Semantic.danger.main },
-                  ]}
-                >
-                  0
-                </Text>
-              </View>
-              <View style={styles.dividerThick} />
-              <View style={styles.totalRow}>
-                <View>
-                  <Text style={styles.totalLabel}>Total Item</Text>
-                  <Text style={styles.totalValue}>{totalSemuaSampah}</Text>
-                </View>
-                <View style={{ alignItems: "flex-end" }}>
-                  <Text style={styles.totalLabel}>Grand Total Poin</Text>
-                  <Text
-                    style={[
-                      styles.totalValue,
-                      { color: Semantic.warning.main },
-                    ]}
-                  >
-                    {totalSemuaPoin}
-                  </Text>
-                </View>
+                <AnimatedCounter value={jumlahReject} suffix="x" style={{...styles.detailCount, color: Semantic.danger.main}} />
+                <Text style={[styles.detailSubtotal, { color: Semantic.danger.main }]}>0</Text>
               </View>
             </View>
 
-            <TouchableOpacity
-              style={[
-                styles.button,
-                { backgroundColor: Semantic.danger.main, marginTop: 10 },
-              ]}
-              onPress={akhiriSesi}
+            <LinearGradient
+              colors={Gradients.card}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.totalCard}
             >
-              <FontAwesome
-                name="check-circle"
-                size={18}
-                color={Semantic.background.primary}
-                style={{ marginRight: 8 }}
-              />
-              <Text style={styles.buttonText}>Akhiri Sesi & Tutup Pintu</Text>
-            </TouchableOpacity>
+              <View>
+                <Text style={styles.totalLabelWhite}>Total Item</Text>
+                <AnimatedCounter value={totalSemuaSampah} style={styles.totalValueWhite} />
+              </View>
+              <View style={{ alignItems: "flex-end" }}>
+                <Text style={styles.totalLabelWhite}>Grand Total Poin</Text>
+                <AnimatedCounter value={totalSemuaPoin} style={styles.totalValueYellow} />
+              </View>
+            </LinearGradient>
+
+            <AnimatedPress style={styles.btnDanger} onPress={akhiriSesi}>
+              <FontAwesome name="check-circle" size={18} color={Semantic.background.primary} style={{ marginRight: 8 }} />
+              <Text style={styles.btnPrimaryText}>Akhiri Sesi & Tutup Pintu</Text>
+            </AnimatedPress>
           </View>
-        </>
+        </Animated.View>
       )}
     </View>
   );
@@ -457,267 +430,277 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Semantic.background.tertiary,
     alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
+    paddingHorizontal: Spacing.xl,
+  },
+  contentWrapper: {
+    width: "100%",
+    alignItems: "center",
   },
   headerTitle: {
-    fontFamily: "Poppins_700Bold",
-    fontSize: 24,
+    fontFamily: Typography.fontFamily.primary,
+    fontSize: Typography.size.xxl,
     color: Semantic.text.primary,
-    marginBottom: 5,
+    marginBottom: Spacing.sm,
   },
   subtitle: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 14,
+    fontFamily: Typography.fontFamily.inter,
+    fontSize: Typography.size.base,
     color: Semantic.text.secondary,
     textAlign: "center",
-    marginBottom: 20,
-    paddingHorizontal: 10,
+    marginBottom: Spacing.xl,
+    paddingHorizontal: Spacing.md,
   },
   statusRvmCard: {
     backgroundColor: Semantic.background.primary,
     width: "100%",
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    marginBottom: Spacing.xl,
     borderWidth: 1,
     borderColor: Components.card.border,
+    ...Shadows.sm,
   },
   statusHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
   },
   statusTitle: {
-    fontFamily: "Poppins_600SemiBold",
-    fontSize: 16,
+    fontFamily: Typography.fontFamily.secondary,
+    fontSize: Typography.size.md,
     color: Semantic.text.primary,
+  },
+  badgeBase: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
   },
   badgeOnline: {
     backgroundColor: Components.iconWrapper.success.bg,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
   },
-  badgeText: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 12,
-    color: Semantic.success.main,
-  },
-
-  // -- TAMBAHAN STYLING SAAT OFFLINE --
   badgeOffline: {
     backgroundColor: Semantic.background.tertiary,
+  },
+  dotIndicator: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Semantic.success.main,
+    marginRight: 4,
+  },
+  badgeText: {
+    fontFamily: Typography.fontFamily.interBold,
+    fontSize: Typography.size.xs,
+    color: Semantic.success.main,
   },
   badgeTextOffline: {
     color: Semantic.text.muted,
   },
-  promoBannerOffline: {
-    backgroundColor: Semantic.background.tertiary, // Warna banner jadi abu-abu kusam
-  },
-  bannerTitleOffline: {
-    color: Semantic.text.secondary,
-  },
-  bannerSubtitleOffline: {
-    color: Semantic.text.secondary,
-  },
-  // ------------------------------------
-
   statusSub: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 14,
+    fontFamily: Typography.fontFamily.inter,
+    fontSize: Typography.size.sm,
     color: Semantic.text.secondary,
+  },
+  ctaWrapper: {
+    width: "100%",
+    borderRadius: BorderRadius.xl,
+    overflow: "hidden",
+    ...Shadows.md,
   },
   promoBanner: {
-    backgroundColor: Components.iconWrapper.success.bg,
     width: "100%",
-    borderRadius: 16,
-    padding: 24,
+    padding: Spacing.xl,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    shadowColor: Semantic.text.primary,
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3,
   },
-  bannerTextContainer: { flex: 1, paddingRight: 15 },
+  bannerTextContainer: { flex: 1, paddingRight: Spacing.lg },
   bannerTitle: {
-    fontFamily: "Poppins_700Bold",
-    fontSize: 18,
-    color: Semantic.success.dark,
-    marginBottom: 6,
+    fontFamily: Typography.fontFamily.primary,
+    fontSize: Typography.size.lg,
+    color: Semantic.background.primary,
+    marginBottom: Spacing.xs,
   },
   bannerSubtitle: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 13,
-    color: Semantic.success.dark,
+    fontFamily: Typography.fontFamily.inter,
+    fontSize: Typography.size.sm,
+    color: "rgba(255,255,255,0.9)",
     lineHeight: 18,
   },
   bannerIcon: { opacity: 0.9 },
-  card: {
-    backgroundColor: Semantic.background.primary,
+  qrCard: {
     width: "100%",
-    borderRadius: 20,
-    padding: 24,
+    padding: Spacing.xl,
     alignItems: "center",
-    shadowColor: Semantic.text.primary,
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
   },
-  qrWrapper: {
-    padding: 15,
+  qrInner: {
+    padding: Spacing.lg,
     backgroundColor: Semantic.background.primary,
-    borderRadius: 12,
+    borderRadius: BorderRadius.md,
     borderWidth: 1,
     borderColor: Components.card.border,
-    marginBottom: 20,
+    marginBottom: Spacing.xl,
+    ...Shadows.sm,
   },
   tokenLabel: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 12,
+    fontFamily: Typography.fontFamily.inter,
+    fontSize: Typography.size.sm,
     color: Semantic.text.muted,
     marginBottom: 4,
   },
   tokenText: {
-    fontFamily: "Poppins_700Bold",
-    fontSize: 24,
+    fontFamily: Typography.fontFamily.primary,
+    fontSize: Typography.size.xxl,
     color: Semantic.success.main,
     letterSpacing: 2,
-    marginBottom: 15,
+    marginBottom: Spacing.lg,
   },
-  timerRow: {
+  timerPill: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: Semantic.warning.light,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    marginBottom: 20,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.full,
+    marginBottom: Spacing.xl,
+  },
+  timerPillDanger: {
+    backgroundColor: Semantic.danger.main,
   },
   timerText: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 13,
+    fontFamily: Typography.fontFamily.interMedium,
+    fontSize: Typography.size.sm,
     color: Semantic.warning.main,
-    marginLeft: 6,
+    marginLeft: Spacing.xs,
   },
-  buttonRefresh: {
+  actionRow: {
+    flexDirection: "row",
+    gap: Spacing.md,
+    width: "100%",
+  },
+  btnPrimary: {
+    flex: 1,
     flexDirection: "row",
     backgroundColor: Semantic.success.main,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
     alignItems: "center",
     justifyContent: "center",
-    width: "100%",
   },
-  buttonRefreshText: {
-    fontFamily: "Poppins_600SemiBold",
+  btnPrimaryText: {
+    fontFamily: Typography.fontFamily.secondary,
     color: Semantic.background.primary,
-    fontSize: 15,
+    fontSize: Typography.size.base,
   },
-  button: {
-    flexDirection: "row",
-    backgroundColor: Semantic.success.main,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
+  btnOutline: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
     alignItems: "center",
     justifyContent: "center",
-    width: "100%",
-  },
-  buttonText: {
-    fontFamily: "Poppins_600SemiBold",
-    color: Semantic.background.primary,
-    fontSize: 15,
-  },
-  buttonOutline: {
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    width: "100%",
     borderWidth: 2,
     borderColor: Semantic.danger.main,
     backgroundColor: Colors.red[50],
-    marginTop: 10,
   },
-  buttonOutlineText: {
-    fontFamily: "Poppins_600SemiBold",
+  btnOutlineText: {
+    fontFamily: Typography.fontFamily.secondary,
     color: Semantic.danger.main,
-    fontSize: 15,
+    fontSize: Typography.size.base,
+  },
+  dashCard: {
+    backgroundColor: Semantic.background.primary,
+    width: "100%",
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
+    alignItems: "center",
+    ...Shadows.md,
+  },
+  doorOpenText: {
+    fontFamily: Typography.fontFamily.primary,
+    fontSize: Typography.size.xl,
+    color: Semantic.text.primary,
+    marginBottom: Spacing.xl,
   },
   detailsContainer: {
     width: "100%",
-    backgroundColor: Semantic.background.secondary,
-    borderRadius: 15,
-    padding: 15,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: Components.card.border,
-  },
-  detailsHeader: {
-    fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
-    color: Semantic.text.primary,
-    marginBottom: 12,
-    textAlign: "center",
+    marginBottom: Spacing.lg,
   },
   detailRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
-  },
-  detailLabel: {
-    fontFamily: "Inter_400Regular",
-    flex: 2,
-    fontSize: 13,
-    color: Semantic.text.secondary,
+    marginBottom: Spacing.md,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Components.card.border,
   },
   detailLabelRow: {
     flex: 2,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: Spacing.sm,
+  },
+  iconBg: {
+    padding: Spacing.xs,
+    borderRadius: BorderRadius.sm,
+  },
+  detailLabel: {
+    fontFamily: Typography.fontFamily.interMedium,
+    fontSize: Typography.size.sm,
+    color: Semantic.text.primary,
   },
   detailCount: {
-    fontFamily: "Inter_700Bold",
+    fontFamily: Typography.fontFamily.interBold,
     flex: 1,
-    fontSize: 14,
+    fontSize: Typography.size.base,
     color: Semantic.text.primary,
     textAlign: "center",
   },
   detailSubtotal: {
-    fontFamily: "Inter_700Bold",
+    fontFamily: Typography.fontFamily.interBold,
     flex: 1,
-    fontSize: 14,
+    fontSize: Typography.size.base,
     color: Semantic.success.main,
     textAlign: "right",
   },
-  dividerThick: {
-    height: 2,
-    backgroundColor: Components.card.border,
-    marginVertical: 12,
-  },
-  totalRow: {
+  totalCard: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    width: "100%",
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.xl,
   },
-  totalLabel: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 12,
-    color: Semantic.text.secondary,
+  totalLabelWhite: {
+    fontFamily: Typography.fontFamily.inter,
+    fontSize: Typography.size.xs,
+    color: "rgba(255,255,255,0.8)",
     marginBottom: 2,
   },
-  totalValue: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 24,
-    color: Semantic.text.primary,
+  totalValueWhite: {
+    fontFamily: Typography.fontFamily.interBold,
+    fontSize: Typography.size.xl,
+    color: Semantic.background.primary,
+  },
+  totalValueYellow: {
+    fontFamily: Typography.fontFamily.interBold,
+    fontSize: Typography.size.xl,
+    color: Semantic.warning.main,
+  },
+  btnDanger: {
+    flexDirection: "row",
+    backgroundColor: Semantic.danger.main,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.md,
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
   },
   modalCelebrationBg: {
     flex: 1,
@@ -728,26 +711,30 @@ const styles = StyleSheet.create({
   celebrationCard: {
     backgroundColor: Semantic.background.primary,
     width: "80%",
-    padding: 30,
-    borderRadius: 30,
+    padding: Spacing.xxl,
+    borderRadius: BorderRadius.xl,
     alignItems: "center",
-    shadowColor: Semantic.success.main,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
+    ...Shadows.glow(Semantic.success.main),
+  },
+  checkIconWrapper: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: Semantic.success.main,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: Spacing.xl,
   },
   celebrationTitle: {
-    fontFamily: "Poppins_700Bold",
-    fontSize: 22,
+    fontFamily: Typography.fontFamily.primary,
+    fontSize: Typography.size.xl,
     color: Semantic.text.primary,
-    marginTop: -10,
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
     textAlign: "center",
   },
   celebrationSub: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 14,
+    fontFamily: Typography.fontFamily.inter,
+    fontSize: Typography.size.sm,
     color: Semantic.text.secondary,
     textAlign: "center",
     lineHeight: 20,

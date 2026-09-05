@@ -1,28 +1,43 @@
-import { BorderRadius, Components, Semantic, Spacing } from "@/constants/theme";
-import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
+import React, { useEffect, useState } from "react";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { doc, onSnapshot } from "firebase/firestore";
-import { useEffect, useState } from "react";
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
+import { FontAwesome, MaterialCommunityIcons, Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+  Colors,
+  Semantic,
+  Components,
+  Typography,
+  Shadows,
+  BorderRadius,
+  AnimConfig,
+  Gradients,
+  Spacing,
+} from "@/constants/theme";
+import { CURRENT_USER } from "@/constants/user-config";
+import { AnimatedPress } from "@/components/ui/animated-press";
+import { AnimatedCounter } from "@/components/ui/animated-counter";
+import { GradientHeader } from "@/components/ui/gradient-header";
+
 import { db } from "../../firebaseConfig";
-import { usePoints } from "../../PointContext"; // <--- Import PointContext agar poin bisa terbaca
+import { usePoints } from "../../PointContext";
 
 export default function ProfileScreen() {
-  const [userData, setUserData] = useState({
+  const insets = useSafeAreaInsets();
+  const [userData, setUserData] = useState<any>({
     total_plastik: 0,
     total_logam: 0,
+    streak: 0,
   });
 
-  const { totalPoin } = usePoints(); // <--- Tarik data total poin dari mesin
+  const { totalPoin } = usePoints();
 
   // MATA-MATA FIREBASE: Mendengarkan Brankas Utama
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, "Users", "Nayaka"), (docSnap) => {
+    const unsub = onSnapshot(doc(db, "Users", CURRENT_USER.id), (docSnap) => {
       if (docSnap.exists()) {
         setUserData(docSnap.data());
       }
@@ -35,7 +50,9 @@ export default function ProfileScreen() {
   const l = userData.total_logam || 0;
 
   // Emisi CO2 Terkurangi (kg)
-  const co2Saved = (p * 0.08 + l * 0.2).toFixed(2);
+  const co2Saved = p * 0.08 + l * 0.2;
+  const totalItems = p + l;
+  const streak = userData.streak || 5; // Default demo streak jika tidak ada di DB
 
   // Logika Gamifikasi: Cek Rank Saat Ini
   const getLevelName = () => {
@@ -46,103 +63,139 @@ export default function ProfileScreen() {
     return "Pebble Seed 🌱";
   };
 
+  const MENU_ITEMS = [
+    { id: "edit", icon: "user", label: "Edit Profil" },
+    { id: "history", icon: "clock", label: "Riwayat Penukaran" },
+    { id: "help", icon: "help-circle", label: "Pusat Bantuan" },
+  ];
+
   return (
     <ScrollView
       style={styles.container}
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: 120 }} // <--- TAMBAHKAN INI JUGA
+      contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}
+      bounces={false}
     >
       {/* HEADER PROFIL */}
-      <View style={styles.headerContainer}>
-        <View style={styles.avatarWrapper}>
-          <FontAwesome name="leaf" size={40} color={Semantic.success.main} />
-        </View>
-        <Text style={styles.userName}>Nayaka Alkaesyah S.</Text>
-        <Text style={styles.userSubtitle}>{getLevelName()}</Text>
-      </View>
-
-      {/* JUDUL BAGIAN DAMPAK */}
-      <View style={styles.impactHeader}>
-        <Text style={styles.sectionTitle}>Dampak Lingkunganmu</Text>
-        <Text style={styles.sectionSubtitle}>
-          Kontribusimu sangat berarti bagi bumi!
-        </Text>
-      </View>
-
-      {/* KARTU DAMPAK LINGKUNGAN */}
-      <View style={styles.impactContainer}>
-        {/* Kartu 1: Karbon */}
-        <View style={styles.impactCard}>
-          <View
-            style={[
-              styles.iconBox,
-              { backgroundColor: Components.iconWrapper.success.bg },
-            ]}
+      <GradientHeader extraPaddingBottom={40}>
+        <Animated.View
+          entering={FadeInDown.duration(AnimConfig.duration.normal)}
+          style={styles.headerContent}
+        >
+          <LinearGradient
+            colors={[Colors.teal[200], Semantic.success.main]}
+            style={styles.avatarRing}
           >
-            <MaterialCommunityIcons
-              name="molecule-co2"
-              size={28}
-              color={Semantic.success.main}
-            />
+            <View style={styles.avatarInner}>
+              <FontAwesome name="leaf" size={48} color={Semantic.success.main} />
+            </View>
+          </LinearGradient>
+          <Text style={styles.userName}>{CURRENT_USER.displayName}</Text>
+          <View style={styles.badgeContainer}>
+            <Text style={styles.badgeText}>{getLevelName()}</Text>
           </View>
-          <View style={styles.impactTextContainer}>
-            <Text style={styles.impactValue}>
-              {co2Saved} <Text style={styles.impactUnit}>kg</Text>
-            </Text>
-            <Text style={styles.impactLabel}>Emisi Karbon Dicegah</Text>
-          </View>
+        </Animated.View>
+      </GradientHeader>
+
+      <View style={styles.bodyContainer}>
+        {/* JUDUL BAGIAN DAMPAK */}
+        <Animated.View entering={FadeInUp.delay(100).duration(AnimConfig.duration.normal)}>
+          <Text style={styles.sectionTitle}>Dampak Lingkunganmu</Text>
+          <Text style={styles.sectionSubtitle}>
+            Kontribusimu sangat berarti bagi bumi!
+          </Text>
+        </Animated.View>
+
+        {/* KARTU DAMPAK LINGKUNGAN MINI */}
+        <View style={styles.statsRow}>
+          {/* Kartu 1: Karbon */}
+          <Animated.View
+            entering={FadeInUp.delay(150).springify()}
+            style={styles.statCard}
+          >
+            <View
+              style={[
+                styles.statIconBox,
+                { backgroundColor: Components.iconWrapper.success.bg },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="molecule-co2"
+                size={28}
+                color={Semantic.success.main}
+              />
+            </View>
+            <AnimatedCounter value={co2Saved} style={styles.statValue} />
+            <Text style={styles.statLabel}>CO2 Hemat</Text>
+          </Animated.View>
+
+          {/* Kartu 2: Item */}
+          <Animated.View
+            entering={FadeInUp.delay(200).springify()}
+            style={styles.statCard}
+          >
+            <View
+              style={[
+                styles.statIconBox,
+                { backgroundColor: Components.iconWrapper.primary.bg },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="recycle"
+                size={28}
+                color={Semantic.primary.main}
+              />
+            </View>
+            <AnimatedCounter value={totalItems} style={styles.statValue} />
+            <Text style={styles.statLabel}>Total Item</Text>
+          </Animated.View>
+
+          {/* Kartu 3: Streak */}
+          <Animated.View
+            entering={FadeInUp.delay(250).springify()}
+            style={styles.statCard}
+          >
+            <View
+              style={[
+                styles.statIconBox,
+                { backgroundColor: Components.iconWrapper.warning.bg },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="fire"
+                size={28}
+                color={Components.iconWrapper.warning.color}
+              />
+            </View>
+            <AnimatedCounter value={streak} style={styles.statValue} />
+            <Text style={styles.statLabel}>Hari Beruntun</Text>
+          </Animated.View>
         </View>
+
+        {/* TOMBOL PENGATURAN & BANTUAN */}
+        <Animated.View entering={FadeInUp.delay(350).springify()}>
+          <View style={styles.menuCard}>
+            {MENU_ITEMS.map((item, index) => (
+              <React.Fragment key={item.id}>
+                <AnimatedPress style={styles.menuItem}>
+                  <View style={styles.menuIconWrapper}>
+                    <Feather name={item.icon as any} size={20} color={Semantic.primary.main} />
+                  </View>
+                  <Text style={styles.menuText}>{item.label}</Text>
+                  <Feather name="chevron-right" size={20} color={Semantic.text.muted} />
+                </AnimatedPress>
+                {index < MENU_ITEMS.length - 1 && <View style={styles.menuDivider} />}
+              </React.Fragment>
+            ))}
+          </View>
+        </Animated.View>
+
+        {/* FOOTER */}
+        <Animated.View entering={FadeInUp.delay(450).springify()} style={styles.footer}>
+          <Text style={styles.versionText}>EcoPoint App v2.0.0</Text>
+          <Text style={styles.madeWithText}>Made with 💚 for IoT Competition</Text>
+        </Animated.View>
       </View>
-
-      {/* TOMBOL PENGATURAN & BANTUAN */}
-      <View style={styles.menuContainer}>
-        <TouchableOpacity style={styles.menuItem}>
-          <FontAwesome
-            name="user-circle-o"
-            size={20}
-            color={Semantic.text.secondary}
-            style={styles.menuIcon}
-          />
-          <Text style={styles.menuText}>Edit Profil</Text>
-          <FontAwesome
-            name="chevron-right"
-            size={14}
-            color={Components.card.border}
-          />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <FontAwesome
-            name="history"
-            size={20}
-            color={Semantic.text.secondary}
-            style={styles.menuIcon}
-          />
-          <Text style={styles.menuText}>Riwayat Penukaran</Text>
-          <FontAwesome
-            name="chevron-right"
-            size={14}
-            color={Components.card.border}
-          />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <FontAwesome
-            name="question-circle-o"
-            size={20}
-            color={Semantic.text.secondary}
-            style={styles.menuIcon}
-          />
-          <Text style={styles.menuText}>Pusat Bantuan</Text>
-          <FontAwesome
-            name="chevron-right"
-            size={14}
-            color={Components.card.border}
-          />
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.versionText}>EcoPoint App v1.0.0</Text>
     </ScrollView>
   );
 }
@@ -152,127 +205,141 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Semantic.background.secondary,
   },
-  headerContainer: {
-    backgroundColor: Components.header.bg, // Putih
-    borderBottomWidth: 1,
-    borderBottomColor: Components.header.border, // Border tipis
-    paddingTop: 60,
-    paddingBottom: 24,
-    paddingHorizontal: Spacing.lg,
+  headerContent: {
     alignItems: "center",
+    paddingTop: Spacing.xl,
   },
-  avatarWrapper: {
-    width: 90,
-    height: 90,
+  avatarRing: {
+    width: 108,
+    height: 108,
     borderRadius: BorderRadius.full,
-    backgroundColor: Components.iconWrapper.primary.bg,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: Spacing.lg,
-    borderWidth: 2,
-    borderColor: Components.iconWrapper.primary.color,
+    padding: 4,
+  },
+  avatarInner: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: Colors.neutral[0],
+    borderRadius: BorderRadius.full,
+    justifyContent: "center",
+    alignItems: "center",
   },
   userName: {
-    fontFamily: "Poppins_700Bold",
-    fontSize: 22,
-    color: Semantic.text.primary,
-    marginBottom: 4,
+    fontFamily: Typography.fontFamily.primary,
+    fontSize: Typography.size.xl,
+    color: Colors.neutral[0],
+    marginBottom: Spacing.xs,
   },
-  userSubtitle: {
-    fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
-    color: Semantic.success.main,
+  badgeContainer: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.4)",
   },
-  impactHeader: {
-    marginTop: 25,
-    paddingHorizontal: 20,
-    marginBottom: 15,
+  badgeText: {
+    fontFamily: Typography.fontFamily.secondary,
+    fontSize: Typography.size.sm,
+    color: Colors.neutral[0],
+  },
+  bodyContainer: {
+    paddingHorizontal: Spacing.lg,
+    marginTop: -20,
   },
   sectionTitle: {
-    fontFamily: "Poppins_700Bold",
-    fontSize: 20,
+    fontFamily: Typography.fontFamily.primary,
+    fontSize: Typography.size.lg,
     color: Semantic.text.primary,
   },
   sectionSubtitle: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 14,
+    fontFamily: Typography.fontFamily.inter,
+    fontSize: Typography.size.base,
     color: Semantic.text.secondary,
-    marginTop: 2,
+    marginTop: Spacing.half,
+    marginBottom: Spacing.lg,
   },
-  impactContainer: {
-    paddingHorizontal: 20,
-  },
-  impactCard: {
+  statsRow: {
     flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: Spacing.xxl,
+  },
+  statCard: {
+    flex: 1,
     backgroundColor: Semantic.background.primary,
     borderRadius: BorderRadius.lg,
-    padding: 20,
+    padding: Spacing.md,
     alignItems: "center",
-    marginBottom: 15,
-    shadowColor: Semantic.text.primary,
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: Components.card.border,
+    marginHorizontal: Spacing.xs,
+    ...Shadows.sm,
   },
-  iconBox: {
-    width: 55,
-    height: 55,
-    borderRadius: BorderRadius.md,
+  statIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.full,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 15,
+    marginBottom: Spacing.sm,
   },
-  impactTextContainer: {
-    flex: 1,
-  },
-  impactValue: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 24,
+  statValue: {
+    fontFamily: Typography.fontFamily.interBold,
+    fontSize: Typography.size.lg,
     color: Semantic.text.primary,
   },
-  impactUnit: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 16,
+  statLabel: {
+    fontFamily: Typography.fontFamily.inter,
+    fontSize: Typography.size.xs,
     color: Semantic.text.secondary,
+    marginTop: Spacing.half,
+    textAlign: "center",
   },
-  impactLabel: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 13,
-    color: Semantic.text.secondary,
-    marginTop: 2,
-  },
-  menuContainer: {
+  menuCard: {
     backgroundColor: Semantic.background.primary,
-    marginTop: 20,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: Components.card.border,
+    borderRadius: BorderRadius.xl,
+    ...Shadows.sm,
+    overflow: "hidden",
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderColor: Semantic.background.secondary,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
   },
-  menuIcon: {
-    width: 30,
+  menuIconWrapper: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Semantic.primary.light,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: Spacing.md,
   },
   menuText: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: Typography.fontFamily.interMedium,
     flex: 1,
-    fontSize: 16,
+    fontSize: Typography.size.base,
     color: Semantic.text.primary,
   },
+  menuDivider: {
+    height: 1,
+    backgroundColor: Semantic.border.light,
+    marginLeft: 76,
+  },
+  footer: {
+    marginTop: Spacing.xxxl,
+    alignItems: "center",
+  },
   versionText: {
-    fontFamily: "Inter_400Regular",
-    textAlign: "center",
+    fontFamily: Typography.fontFamily.interMedium,
     color: Semantic.text.muted,
-    fontSize: 12,
-    marginTop: 30,
-    marginBottom: 40,
+    fontSize: Typography.size.base,
+    marginBottom: Spacing.xs,
+  },
+  madeWithText: {
+    fontFamily: Typography.fontFamily.inter,
+    color: Semantic.text.secondary,
+    fontSize: Typography.size.sm,
   },
 });
