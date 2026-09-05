@@ -1,31 +1,38 @@
+import {
+  Feather,
+  FontAwesome,
+  MaterialCommunityIcons,
+} from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { doc, onSnapshot } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { doc, onSnapshot } from "firebase/firestore";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
-import { FontAwesome, MaterialCommunityIcons, Feather } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AnimatedCounter } from "@/components/ui/animated-counter";
+import { AnimatedPress } from "@/components/ui/animated-press";
+import { GradientHeader } from "@/components/ui/gradient-header";
 import {
-  Colors,
-  Semantic,
-  Components,
-  Typography,
-  Shadows,
-  BorderRadius,
   AnimConfig,
-  Gradients,
+  BorderRadius,
+  Colors,
+  Components,
+  Semantic,
+  Shadows,
   Spacing,
+  Typography
 } from "@/constants/theme";
 import { CURRENT_USER } from "@/constants/user-config";
-import { AnimatedPress } from "@/components/ui/animated-press";
-import { AnimatedCounter } from "@/components/ui/animated-counter";
-import { GradientHeader } from "@/components/ui/gradient-header";
 
 import { db } from "../../firebaseConfig";
 import { usePoints } from "../../PointContext";
 
+import { useLocalSearchParams } from "expo-router";
+
 export default function ProfileScreen() {
+  const { ts } = useLocalSearchParams();
+  const animationKey = ts ? String(ts) : "default";
   const insets = useSafeAreaInsets();
   const [userData, setUserData] = useState<any>({
     total_plastik: 0,
@@ -79,6 +86,7 @@ export default function ProfileScreen() {
       {/* HEADER PROFIL */}
       <GradientHeader extraPaddingBottom={40}>
         <Animated.View
+          key={`profile-header-${animationKey}`}
           entering={FadeInDown.duration(AnimConfig.duration.normal)}
           style={styles.headerContent}
         >
@@ -87,7 +95,11 @@ export default function ProfileScreen() {
             style={styles.avatarRing}
           >
             <View style={styles.avatarInner}>
-              <FontAwesome name="leaf" size={48} color={Semantic.success.main} />
+              <FontAwesome
+                name="leaf"
+                size={48}
+                color={Semantic.success.main}
+              />
             </View>
           </LinearGradient>
           <Text style={styles.userName}>{CURRENT_USER.displayName}</Text>
@@ -99,7 +111,10 @@ export default function ProfileScreen() {
 
       <View style={styles.bodyContainer}>
         {/* JUDUL BAGIAN DAMPAK */}
-        <Animated.View entering={FadeInUp.delay(100).duration(AnimConfig.duration.normal)}>
+        <Animated.View
+          key={`profile-title-${animationKey}`}
+          entering={FadeInUp.delay(100).duration(AnimConfig.duration.normal)}
+        >
           <Text style={styles.sectionTitle}>Dampak Lingkunganmu</Text>
           <Text style={styles.sectionSubtitle}>
             Kontribusimu sangat berarti bagi bumi!
@@ -110,6 +125,7 @@ export default function ProfileScreen() {
         <View style={styles.statsRow}>
           {/* Kartu 1: Karbon */}
           <Animated.View
+            key={`profile-stat1-${animationKey}`}
             entering={FadeInUp.delay(150).springify()}
             style={styles.statCard}
           >
@@ -131,6 +147,7 @@ export default function ProfileScreen() {
 
           {/* Kartu 2: Item */}
           <Animated.View
+            key={`profile-stat2-${animationKey}`}
             entering={FadeInUp.delay(200).springify()}
             style={styles.statCard}
           >
@@ -150,8 +167,9 @@ export default function ProfileScreen() {
             <Text style={styles.statLabel}>Total Item</Text>
           </Animated.View>
 
-          {/* Kartu 3: Streak */}
+          {/* Kartu 3: Api/Streak */}
           <Animated.View
+            key={`profile-stat3-${animationKey}`}
             entering={FadeInUp.delay(250).springify()}
             style={styles.statCard}
           >
@@ -164,7 +182,7 @@ export default function ProfileScreen() {
               <MaterialCommunityIcons
                 name="fire"
                 size={28}
-                color={Components.iconWrapper.warning.color}
+                color={Semantic.warning.main}
               />
             </View>
             <AnimatedCounter value={streak} style={styles.statValue} />
@@ -173,27 +191,42 @@ export default function ProfileScreen() {
         </View>
 
         {/* TOMBOL PENGATURAN & BANTUAN */}
-        <Animated.View entering={FadeInUp.delay(350).springify()}>
+        <Animated.View
+          key={`profile-menu-${animationKey}`}
+          entering={FadeInUp.delay(350).springify()}
+        >
           <View style={styles.menuCard}>
             {MENU_ITEMS.map((item, index) => (
               <React.Fragment key={item.id}>
                 <AnimatedPress style={styles.menuItem}>
                   <View style={styles.menuIconWrapper}>
-                    <Feather name={item.icon as any} size={20} color={Semantic.primary.main} />
+                    <Feather
+                      name={item.icon as any}
+                      size={20}
+                      color={Semantic.primary.main}
+                    />
                   </View>
                   <Text style={styles.menuText}>{item.label}</Text>
-                  <Feather name="chevron-right" size={20} color={Semantic.text.muted} />
+                  <Feather
+                    name="chevron-right"
+                    size={20}
+                    color={Semantic.text.muted}
+                  />
                 </AnimatedPress>
-                {index < MENU_ITEMS.length - 1 && <View style={styles.menuDivider} />}
+                {index < MENU_ITEMS.length - 1 && (
+                  <View style={styles.menuDivider} />
+                )}
               </React.Fragment>
             ))}
           </View>
         </Animated.View>
 
         {/* FOOTER */}
-        <Animated.View entering={FadeInUp.delay(450).springify()} style={styles.footer}>
-          <Text style={styles.versionText}>EcoPoint App v2.0.0</Text>
-          <Text style={styles.madeWithText}>Made with 💚 for IoT Competition</Text>
+        <Animated.View
+          entering={FadeInUp.delay(450).springify()}
+          style={styles.footer}
+        >
+          <Text style={styles.versionText}>EcoPoint App v0.2.0</Text>
         </Animated.View>
       </View>
     </ScrollView>
@@ -247,7 +280,7 @@ const styles = StyleSheet.create({
   },
   bodyContainer: {
     paddingHorizontal: Spacing.lg,
-    marginTop: -20,
+    marginTop: Spacing.lg,
   },
   sectionTitle: {
     fontFamily: Typography.fontFamily.primary,

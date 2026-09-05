@@ -12,15 +12,8 @@ import {
 import { CURRENT_USER } from "@/constants/user-config";
 import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
-import * as Haptics from "expo-haptics";
-import React, { useEffect, useState } from "react";
-import {
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { useEffect, useState } from "react";
+import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -44,8 +37,8 @@ import { AnimatedPress } from "@/components/ui/animated-press";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GradientHeader } from "@/components/ui/gradient-header";
 import { SkeletonCard, SkeletonListItem } from "@/components/ui/skeleton";
-import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
+import { router, useLocalSearchParams } from "expo-router";
 
 const GAMIFICATION_TIERS = [
   { name: "Radiant Recycler ✨", req: "50.000+ pts", benefit: "+20% Poin" },
@@ -56,6 +49,9 @@ const GAMIFICATION_TIERS = [
 ];
 
 export default function HomeScreen() {
+  const { ts } = useLocalSearchParams();
+  const animationKey = ts ? String(ts) : "default";
+  
   const insets = useSafeAreaInsets();
   const { totalPoin, totalPlastik, totalLogam, hariKonsisten, loading } =
     usePoints();
@@ -97,10 +93,10 @@ export default function HomeScreen() {
     badgeScale.value = withRepeat(
       withSequence(
         withTiming(1.3, { duration: 600 }),
-        withTiming(1, { duration: 600 })
+        withTiming(1, { duration: 600 }),
       ),
       -1,
-      true
+      true,
     );
   }, []);
 
@@ -114,10 +110,10 @@ export default function HomeScreen() {
     fireScale.value = withRepeat(
       withSequence(
         withTiming(1.1, { duration: 800 }),
-        withTiming(1, { duration: 800 })
+        withTiming(1, { duration: 800 }),
       ),
       -1,
-      true
+      true,
     );
   }, []);
 
@@ -128,7 +124,10 @@ export default function HomeScreen() {
   // Animated progress bar
   const progressWidth = useSharedValue(0);
   useEffect(() => {
-    progressWidth.value = withSpring(progressPercentage, AnimConfig.spring.gentle);
+    progressWidth.value = withSpring(
+      progressPercentage,
+      AnimConfig.spring.gentle,
+    );
   }, [progressPercentage]);
 
   const progressAnimatedStyle = useAnimatedStyle(() => ({
@@ -140,7 +139,7 @@ export default function HomeScreen() {
   useEffect(() => {
     streakWidth.value = withSpring(
       Math.min((hariKonsisten / 7) * 100, 100),
-      AnimConfig.spring.gentle
+      AnimConfig.spring.gentle,
     );
   }, [hariKonsisten]);
 
@@ -175,11 +174,12 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: Spacing.xxxl * 2 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 130 }}
         bounces={false}
       >
         <GradientHeader extraPaddingBottom={60}>
           <Animated.View
+            key={`header-${animationKey}`}
             entering={FadeInDown.duration(400).springify()}
             style={styles.headerContent}
           >
@@ -199,6 +199,7 @@ export default function HomeScreen() {
         </GradientHeader>
 
         <Animated.View
+          key={`main-${animationKey}`}
           entering={FadeInUp.delay(100).springify()}
           style={styles.mainContent}
         >
@@ -239,10 +240,7 @@ export default function HomeScreen() {
                   <Text style={styles.pointLabel}>Total Poin Saat Ini</Text>
                 </View>
 
-                <AnimatedCounter
-                  value={totalPoin}
-                  style={styles.pointValue}
-                />
+                <AnimatedCounter value={totalPoin} style={styles.pointValue} />
               </View>
 
               <View style={styles.progressContainer}>
@@ -343,15 +341,12 @@ export default function HomeScreen() {
                   ]}
                 >
                   <MaterialCommunityIcons
-                    name="package-variant-closed"
+                    name="cylinder"
                     size={28}
                     color={Components.iconWrapper.info.color}
                   />
                 </View>
-                <AnimatedCounter
-                  value={totalLogam}
-                  style={styles.statNumber}
-                />
+                <AnimatedCounter value={totalLogam} style={styles.statNumber} />
                 <Text style={styles.statLabel}>Logam Disetor</Text>
               </AnimatedPress>
             </Animated.View>
@@ -381,7 +376,7 @@ export default function HomeScreen() {
                 <View style={styles.streakBadge}>
                   <MaterialCommunityIcons
                     name="fire"
-                    size={16}
+                    size={20}
                     color={Semantic.danger.main}
                     style={{ marginRight: 4 }}
                   />
@@ -392,7 +387,10 @@ export default function HomeScreen() {
               <View style={styles.progressBarWrapper}>
                 <View style={styles.consistencyBarBg}>
                   <Animated.View
-                    style={[styles.consistencyBarFillContainer, streakAnimatedStyle]}
+                    style={[
+                      styles.consistencyBarFillContainer,
+                      streakAnimatedStyle,
+                    ]}
                   >
                     <LinearGradient
                       colors={[
@@ -416,7 +414,7 @@ export default function HomeScreen() {
                 >
                   <MaterialCommunityIcons
                     name="fire"
-                    size={34}
+                    size={48}
                     color={Semantic.danger.main}
                     style={styles.giantFire}
                   />
@@ -685,11 +683,13 @@ const styles = StyleSheet.create({
   },
   fireIconContainer: {
     position: "absolute",
-    transform: [{ translateX: -22 }, { translateY: -8 }],
+    transform: [{ translateX: -24 }],
+    alignItems: "center",
+    justifyContent: "center",
   },
   giantFire: {
     textShadowColor: "rgba(239, 68, 68, 0.4)",
-    textShadowRadius: 10,
+    textShadowRadius: 12,
   },
   consistencyTitle: {
     fontFamily: Typography.fontFamily.interMedium,

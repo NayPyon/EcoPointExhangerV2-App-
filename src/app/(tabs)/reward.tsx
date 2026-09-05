@@ -2,6 +2,9 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { MaterialCommunityIcons, FontAwesome5 } from "@expo/vector-icons";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { db } from "../../firebaseConfig";
+import { CURRENT_USER } from "@/constants/user-config";
 import React, { useEffect, useState } from "react";
 import {
   Image,
@@ -118,12 +121,26 @@ export default function RewardScreen() {
     }
   };
 
-  const prosesTukar = () => {
-    setModalType("sukses");
-    checkScale.value = 0.5;
-    setTimeout(() => {
-      checkScale.value = withSpring(1, AnimConfig.spring.bouncy);
-    }, 100);
+  const prosesTukar = async () => {
+    if (!selectedReward) return;
+
+    try {
+      await addDoc(collection(db, "Riwayat"), {
+        user: CURRENT_USER.id,
+        tipe: "tukar_voucher",
+        nama_hadiah: selectedReward.title,
+        poin: selectedReward.points,
+        tanggal: serverTimestamp(),
+      });
+
+      setModalType("sukses");
+      checkScale.value = 0.5;
+      setTimeout(() => {
+        checkScale.value = withSpring(1, AnimConfig.spring.bouncy);
+      }, 100);
+    } catch (error) {
+      console.error("Gagal menukar voucher:", error);
+    }
   };
 
   const closeModal = () => {

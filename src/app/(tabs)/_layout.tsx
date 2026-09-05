@@ -1,9 +1,4 @@
-import {
-  Semantic,
-  Typography,
-  AnimConfig,
-  Shadows
-} from "@/constants/theme";
+import { AnimConfig, Semantic, Shadows, Typography } from "@/constants/theme";
 import { FontAwesome } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
@@ -17,16 +12,16 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
-  useSharedValue,
+  Easing,
   useAnimatedStyle,
-  withSpring,
+  useSharedValue,
   withRepeat,
   withSequence,
+  withSpring,
   withTiming,
-  Easing,
 } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type IconName = ComponentProps<typeof FontAwesome>["name"];
 type TabBarProps = Parameters<
@@ -86,7 +81,7 @@ function TabBarItem({
 function CustomFloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
-  
+
   const tabBarWidth = screenWidth - 32;
   const tabContentWidth = tabBarWidth - 20;
   const tabWidth = tabContentWidth / 5;
@@ -106,21 +101,21 @@ function CustomFloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
         withTiming(1, {
           duration: 1200,
           easing: Easing.inOut(Easing.ease),
-        })
+        }),
       ),
       -1,
-      true
+      true,
     );
   }, [pulseAnim]);
 
   useEffect(() => {
     indicatorOffset.value = withSpring(
       state.index * tabWidth,
-      AnimConfig.spring.snappy
+      AnimConfig.spring.snappy,
     );
     indicatorOpacity.value = withSpring(
       state.index === 2 ? 0 : 1,
-      AnimConfig.spring.snappy
+      AnimConfig.spring.snappy,
     );
   }, [state.index, tabWidth, indicatorOffset, indicatorOpacity]);
 
@@ -143,7 +138,10 @@ function CustomFloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
 
   return (
     <View
-      style={[styles.tabBarWrapper, { bottom: Math.max(insets.bottom, 12) + 12 }]}
+      style={[
+        styles.tabBarWrapper,
+        { bottom: Math.max(insets.bottom, 12) + 12 },
+      ]}
       pointerEvents="box-none"
     >
       <View style={styles.pillContainer}>
@@ -190,6 +188,8 @@ function CustomFloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
 
             if (!isFocused && !event.defaultPrevented) {
               navigation.navigate(route.name);
+            } else if (isFocused && !event.defaultPrevented) {
+              navigation.setParams({ ts: Date.now() });
             }
           };
 
@@ -206,26 +206,25 @@ function CustomFloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
                 style={styles.fabContainer}
                 pointerEvents="box-none"
               >
-                <Animated.View
-                  style={[styles.pulseRing, animatedPulseStyle]}
-                />
-                <Pressable
-                  onPressIn={() => (pressed.value = true)}
-                  onPressOut={() => (pressed.value = false)}
-                  onPress={onPress}
-                  android_ripple={{
-                    color: "rgba(255,255,255,0.3)",
-                    borderless: true,
-                  }}
-                >
-                  <Animated.View style={[styles.fabButton, fabStyle]}>
+                <Animated.View style={[styles.pulseRing, animatedPulseStyle]} />
+                <Animated.View style={[styles.fabButtonWrapper, fabStyle]}>
+                  <Pressable
+                    onPressIn={() => (pressed.value = true)}
+                    onPressOut={() => (pressed.value = false)}
+                    onPress={onPress}
+                    style={styles.fabButton}
+                    android_ripple={{
+                      color: "rgba(255,255,255,0.3)",
+                      borderless: true,
+                    }}
+                  >
                     <FontAwesome
                       name="recycle"
                       size={30}
                       color={Semantic.background.primary}
                     />
-                  </Animated.View>
-                </Pressable>
+                  </Pressable>
+                </Animated.View>
               </View>
             );
           }
@@ -252,6 +251,7 @@ export default function TabLayout() {
       tabBar={(props) => <CustomFloatingTabBar {...props} />}
       screenOptions={{
         headerShown: false,
+        unmountOnBlur: true,
       }}
     >
       <Tabs.Screen name="index" options={{ title: "Beranda" }} />
@@ -334,26 +334,27 @@ const styles = StyleSheet.create({
   },
   fabContainer: {
     width: 70,
+    height: "100%",
     alignItems: "center",
     justifyContent: "center",
   },
   pulseRing: {
     position: "absolute",
     top: -35,
+    alignSelf: "center",
     width: 70,
     height: 70,
     borderRadius: 35,
     backgroundColor: Semantic.primary.light,
   },
-  fabButton: {
+  fabButtonWrapper: {
     position: "absolute",
     top: -30,
+    alignSelf: "center",
     width: 60,
     height: 60,
     borderRadius: 30,
     backgroundColor: Semantic.success.main,
-    alignItems: "center",
-    justifyContent: "center",
     shadowColor: Semantic.success.main,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
@@ -361,5 +362,12 @@ const styles = StyleSheet.create({
     elevation: 8,
     borderWidth: 4,
     borderColor: Semantic.background.primary,
+  },
+  fabButton: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 30,
   },
 });

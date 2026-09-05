@@ -1,4 +1,4 @@
-import { collection, onSnapshot, query } from "firebase/firestore";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
 import React, {
   createContext,
   ReactNode,
@@ -7,6 +7,7 @@ import React, {
   useState,
 } from "react";
 import { db } from "./firebaseConfig";
+import { CURRENT_USER } from "./constants/user-config";
 
 interface PointContextType {
   totalPoin: number;
@@ -32,8 +33,11 @@ export const PointProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // KITA BACA KOLEKSI "Riwayat" SESUAI FOTO FIREBASE-MU
-    const q = query(collection(db, "Riwayat"));
+    // KITA BACA KOLEKSI "Riwayat" KHUSUS UNTUK USER AKTIF
+    const q = query(
+      collection(db, "Riwayat"),
+      where("user", "==", CURRENT_USER.id)
+    );
 
     const unsubscribe = onSnapshot(
       q,
@@ -53,7 +57,13 @@ export const PointProvider = ({ children }: { children: ReactNode }) => {
           const data = doc.data();
           console.log("📄 Isi Dokumen Terbaca:", data);
 
-          if (data.poin) hitungPoin += data.poin;
+          if (data.poin) {
+            if (data.tipe === "tukar_voucher") {
+              hitungPoin -= data.poin;
+            } else {
+              hitungPoin += data.poin;
+            }
+          }
           if (data.plastik) hitungPlastik += data.plastik;
           if (data.logam) hitungLogam += data.logam;
 

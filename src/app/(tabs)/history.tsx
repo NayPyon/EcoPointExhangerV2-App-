@@ -7,6 +7,7 @@ import {
   BorderRadius,
   Shadows,
 } from "@/constants/theme";
+import { CURRENT_USER } from "@/constants/user-config";
 import { Feather, FontAwesome } from "@expo/vector-icons";
 import {
   collection,
@@ -41,9 +42,14 @@ interface RiwayatItem {
   nama_hadiah?: string;
 }
 
+import { useLocalSearchParams } from "expo-router";
+
 type FilterType = "Semua" | "Masuk" | "Keluar";
 
 export default function HistoryScreen() {
+  const { ts } = useLocalSearchParams();
+  const animationKey = ts ? String(ts) : "default";
+  
   const insets = useSafeAreaInsets();
   const [riwayatData, setRiwayatData] = useState<RiwayatItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -53,7 +59,7 @@ export default function HistoryScreen() {
     // Mengambil data riwayat milik Nayaka, disusun mengikut tarikh terbaru
     const q = query(
       collection(db, "Riwayat"),
-      where("user", "==", "Nayaka"),
+      where("user", "==", CURRENT_USER.id),
       orderBy("tanggal", "desc")
     );
 
@@ -194,7 +200,7 @@ export default function HistoryScreen() {
       </View>
 
       {loading ? (
-        <View style={styles.listContainer}>
+        <View style={[styles.listContainer, { paddingBottom: insets.bottom + 130 }]}>
           {[1, 2, 3, 4].map((i) => (
             <SkeletonListItem key={i} style={{ marginBottom: Spacing.three }} />
           ))}
@@ -215,10 +221,11 @@ export default function HistoryScreen() {
         </View>
       ) : (
         <FlatList
+          key={`list-${animationKey}`}
           data={filteredData}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          contentContainerStyle={styles.listContainer}
+          contentContainerStyle={[styles.listContainer, { paddingBottom: insets.bottom + 130 }]}
           showsVerticalScrollIndicator={false}
         />
       )}

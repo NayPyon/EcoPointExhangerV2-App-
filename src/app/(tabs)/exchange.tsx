@@ -233,7 +233,7 @@ export default function ExchangeScreen() {
   const totalSemuaSampah = jumlahPlastik + jumlahLogam + jumlahReject;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + Spacing.xl }]}>
+    <View style={[styles.container, { paddingTop: insets.top + Spacing.xl, paddingBottom: insets.bottom + 82 }]}>
       <Modal visible={showCelebration} transparent={true} animationType="fade">
         <View style={styles.modalCelebrationBg}>
           <Animated.View entering={FadeInUp} style={styles.celebrationCard}>
@@ -367,7 +367,7 @@ export default function ExchangeScreen() {
               <View style={styles.detailRow}>
                 <View style={styles.detailLabelRow}>
                   <View style={[styles.iconBg, { backgroundColor: Colors.teal[100] }]}>
-                    <MaterialCommunityIcons name="bottle-soda" size={20} color={Semantic.primary.main} />
+                    <MaterialCommunityIcons name="bottle-soda-classic-outline" size={20} color={Semantic.primary.main} />
                   </View>
                   <Text style={styles.detailLabel}>Plastik</Text>
                 </View>
@@ -378,7 +378,7 @@ export default function ExchangeScreen() {
               <View style={styles.detailRow}>
                 <View style={styles.detailLabelRow}>
                   <View style={[styles.iconBg, { backgroundColor: Colors.teal[100] }]}>
-                    <MaterialCommunityIcons name="package-variant" size={20} color={Semantic.primary.main} />
+                    <MaterialCommunityIcons name="cylinder" size={20} color={Semantic.primary.main} />
                   </View>
                   <Text style={styles.detailLabel}>Logam</Text>
                 </View>
@@ -430,6 +430,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Semantic.background.tertiary,
     alignItems: "center",
+    justifyContent: "center",
     paddingHorizontal: Spacing.xl,
   },
   contentWrapper: {
