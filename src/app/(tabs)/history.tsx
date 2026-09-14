@@ -1,34 +1,38 @@
+import { AnimatedPress } from "@/components/ui/animated-press";
+import { SkeletonListItem } from "@/components/ui/skeleton";
 import {
+  BorderRadius,
   Colors,
   Semantic,
-  Typography,
   Spacing,
-  BorderRadius,
+  Typography,
 } from "@/constants/theme";
-import { useAuth } from "../../AuthContext";
-import { Feather, FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
 import {
+  Feather,
+  FontAwesome,
+  MaterialCommunityIcons,
+} from "@expo/vector-icons";
+import {
+  Timestamp,
   collection,
   onSnapshot,
   orderBy,
   query,
   where,
-  Timestamp,
 } from "firebase/firestore";
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
+  ScrollView,
   SectionList,
   StyleSheet,
   Text,
   View,
   useColorScheme,
-  ScrollView,
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "../../AuthContext";
 import { db } from "../../firebaseConfig";
-import { AnimatedPress } from "@/components/ui/animated-press";
-import { SkeletonListItem } from "@/components/ui/skeleton";
 
 interface RiwayatItem {
   id: string;
@@ -41,8 +45,34 @@ interface RiwayatItem {
   nama_hadiah?: string;
 }
 
-const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
-const MONTHS_LONG = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+const MONTHS_SHORT = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "Mei",
+  "Jun",
+  "Jul",
+  "Agu",
+  "Sep",
+  "Okt",
+  "Nov",
+  "Des",
+];
+const MONTHS_LONG = [
+  "Januari",
+  "Februari",
+  "Maret",
+  "April",
+  "Mei",
+  "Juni",
+  "Juli",
+  "Agustus",
+  "September",
+  "Oktober",
+  "November",
+  "Desember",
+];
 
 export default function HistoryScreen() {
   const { user } = useAuth();
@@ -50,23 +80,29 @@ export default function HistoryScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const getBgColor = () => isDark ? Semantic.background.dark : Semantic.background.primary;
-  const getTextColor = () => isDark ? Semantic.text.light : Semantic.text.primary;
-  const getMutedColor = () => isDark ? Colors.obsidian[400] : Semantic.text.secondary;
-  const getBorderColor = () => isDark ? Colors.obsidian[800] : Semantic.border.light;
+  const getBgColor = () =>
+    isDark ? Semantic.background.dark : Semantic.background.primary;
+  const getTextColor = () =>
+    isDark ? Semantic.text.light : Semantic.text.primary;
+  const getMutedColor = () =>
+    isDark ? Colors.obsidian[400] : Semantic.text.secondary;
+  const getBorderColor = () =>
+    isDark ? Colors.obsidian[800] : Semantic.border.light;
 
   const [riwayatData, setRiwayatData] = useState<RiwayatItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  
+
   // Default to current month and year
   const [activeMonth, setActiveMonth] = useState<number>(new Date().getMonth());
-  const [activeYear, setActiveYear] = useState<number>(new Date().getFullYear());
+  const [activeYear, setActiveYear] = useState<number>(
+    new Date().getFullYear(),
+  );
 
   useEffect(() => {
     const q = query(
       collection(db, "Riwayat"),
       where("user", "==", user!.uid),
-      orderBy("tanggal", "desc")
+      orderBy("tanggal", "desc"),
     );
 
     const unsub = onSnapshot(q, (querySnapshot) => {
@@ -85,7 +121,9 @@ export default function HistoryScreen() {
     const filtered = riwayatData.filter((item) => {
       if (!item.tanggal) return false;
       const date = item.tanggal.toDate();
-      return date.getMonth() === activeMonth && date.getFullYear() === activeYear;
+      return (
+        date.getMonth() === activeMonth && date.getFullYear() === activeYear
+      );
     });
 
     const groups: { [key: string]: RiwayatItem[] } = {};
@@ -121,10 +159,10 @@ export default function HistoryScreen() {
   const renderMonthChips = () => {
     return (
       <View style={styles.monthScrollContainer}>
-        <ScrollView 
+        <ScrollView
           ref={scrollRef}
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
+          horizontal
+          showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.monthScrollContent}
         >
           {MONTHS_SHORT.map((month, index) => {
@@ -135,14 +173,20 @@ export default function HistoryScreen() {
                 onPress={() => setActiveMonth(index)}
                 style={[
                   styles.monthChip,
-                  { backgroundColor: isActive ? Semantic.success.main : (isDark ? Colors.obsidian[900] : Semantic.background.tertiary) },
+                  {
+                    backgroundColor: isActive
+                      ? Semantic.success.main
+                      : isDark
+                        ? Colors.obsidian[900]
+                        : Semantic.background.tertiary,
+                  },
                 ]}
               >
                 <Text
                   style={[
                     styles.monthText,
-                    { color: isActive ? '#FFFFFF' : getMutedColor() },
-                    isActive && { fontFamily: Typography.fontFamily.interBold }
+                    { color: isActive ? "#FFFFFF" : getMutedColor() },
+                    isActive && { fontFamily: Typography.fontFamily.interBold },
                   ]}
                 >
                   {month}
@@ -155,20 +199,32 @@ export default function HistoryScreen() {
     );
   };
 
-  const renderItem = ({ item, index }: { item: RiwayatItem, index: number }) => {
+  const renderItem = ({
+    item,
+    index,
+  }: {
+    item: RiwayatItem;
+    index: number;
+  }) => {
     const isKredit = item.tipe === "tukar_voucher"; // Keluar (-)
     const isPenyetoran = !isKredit; // Masuk (+)
 
     const amountColor = isKredit ? getTextColor() : Semantic.success.main;
     const iconName = isKredit ? "ticket-percent-outline" : "recycle";
-    
-    const iconBgColor = isDark ? Colors.obsidian[800] : Semantic.background.tertiary;
+
+    const iconBgColor = isDark
+      ? Colors.obsidian[800]
+      : Semantic.background.tertiary;
     const iconColor = isDark ? Colors.obsidian[300] : Colors.obsidian[400];
 
     return (
       <Animated.View entering={FadeInDown.delay(index * 50).duration(400)}>
-        <AnimatedPress style={[styles.transactionItem, { backgroundColor: getBgColor() }]}>
-          <View style={[styles.iconContainer, { backgroundColor: iconBgColor }]}>
+        <AnimatedPress
+          style={[styles.transactionItem, { backgroundColor: getBgColor() }]}
+        >
+          <View
+            style={[styles.iconContainer, { backgroundColor: iconBgColor }]}
+          >
             <MaterialCommunityIcons
               name={iconName}
               size={24}
@@ -180,7 +236,10 @@ export default function HistoryScreen() {
             <Text style={[styles.titleText, { color: getTextColor() }]}>
               {isKredit ? "Penukaran Hadiah" : "Penyetoran Sampah"}
             </Text>
-            <Text style={[styles.subText, { color: getMutedColor() }]} numberOfLines={1}>
+            <Text
+              style={[styles.subText, { color: getMutedColor() }]}
+              numberOfLines={1}
+            >
               {isKredit
                 ? `Klaim ${item.nama_hadiah || "Voucher"}`
                 : `Berhasil menyetor ${item.plastik || 0} Plastik & ${item.logam || 0} Logam`}
@@ -189,36 +248,72 @@ export default function HistoryScreen() {
 
           <Text style={[styles.pointsText, { color: amountColor }]}>
             {isKredit ? "-" : "+"}
-            {item.poin.toLocaleString('id-ID')} Poin
+            {item.poin.toLocaleString("id-ID")} Poin
           </Text>
         </AnimatedPress>
       </Animated.View>
     );
   };
 
-  const renderSectionHeader = ({ section: { title } }: { section: { title: string } }) => (
-    <View style={[styles.sectionHeaderContainer, { backgroundColor: getBgColor() }]}>
-      <Text style={[styles.sectionHeaderText, { color: getTextColor() }]}>{title}</Text>
-      <View style={[styles.sectionDivider, { backgroundColor: getBorderColor() }]} />
+  const renderSectionHeader = ({
+    section: { title },
+  }: {
+    section: { title: string };
+  }) => (
+    <View
+      style={[styles.sectionHeaderContainer, { backgroundColor: getBgColor() }]}
+    >
+      <Text style={[styles.sectionHeaderText, { color: getTextColor() }]}>
+        {title}
+      </Text>
+      <View
+        style={[styles.sectionDivider, { backgroundColor: getBorderColor() }]}
+      />
     </View>
   );
 
   return (
     <View style={[styles.container, { backgroundColor: getBgColor() }]}>
-      
       {/* Header Area */}
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.lg, backgroundColor: getBgColor() }]}>
+      <View
+        style={[
+          styles.header,
+          {
+            paddingTop: insets.top + Spacing.lg,
+            backgroundColor: getBgColor(),
+          },
+        ]}
+      >
         <View style={styles.headerTop}>
-          <Text style={[styles.headerTitle, { color: getTextColor() }]}>Semua transaksi</Text>
-          
-          <View style={[styles.yearPicker, { backgroundColor: isDark ? Colors.obsidian[800] : Semantic.background.tertiary }]}>
-             <AnimatedPress onPress={() => setActiveYear(y => y - 1)} style={styles.yearArrow}>
-                <Feather name="chevron-left" size={16} color={getTextColor()} />
-             </AnimatedPress>
-             <Text style={[styles.yearText, { color: getTextColor() }]}>{activeYear}</Text>
-             <AnimatedPress onPress={() => setActiveYear(y => y + 1)} style={styles.yearArrow}>
-                <Feather name="chevron-right" size={16} color={getTextColor()} />
-             </AnimatedPress>
+          <Text style={[styles.headerTitle, { color: getTextColor() }]}>
+            Semua transaksi
+          </Text>
+
+          <View
+            style={[
+              styles.yearPicker,
+              {
+                backgroundColor: isDark
+                  ? Colors.obsidian[800]
+                  : Semantic.background.tertiary,
+              },
+            ]}
+          >
+            <AnimatedPress
+              onPress={() => setActiveYear((y) => y - 1)}
+              style={styles.yearArrow}
+            >
+              <Feather name="chevron-left" size={16} color={getTextColor()} />
+            </AnimatedPress>
+            <Text style={[styles.yearText, { color: getTextColor() }]}>
+              {activeYear}
+            </Text>
+            <AnimatedPress
+              onPress={() => setActiveYear((y) => y + 1)}
+              style={styles.yearArrow}
+            >
+              <Feather name="chevron-right" size={16} color={getTextColor()} />
+            </AnimatedPress>
           </View>
         </View>
         {renderMonthChips()}
@@ -226,23 +321,37 @@ export default function HistoryScreen() {
 
       {/* List Area */}
       {loading ? (
-        <View style={[styles.listContainer, { paddingBottom: insets.bottom + 100 }]}>
+        <View
+          style={[styles.listContainer, { paddingBottom: insets.bottom + 100 }]}
+        >
           {[1, 2, 3, 4].map((i) => (
             <SkeletonListItem key={i} style={{ marginBottom: Spacing.md }} />
           ))}
         </View>
       ) : groupedTransactions.length === 0 ? (
         <View style={styles.emptyState}>
-          <View style={[styles.emptyIconContainer, { backgroundColor: isDark ? Colors.obsidian[800] : Semantic.background.tertiary }]}>
+          <View
+            style={[
+              styles.emptyIconContainer,
+              {
+                backgroundColor: isDark
+                  ? Colors.obsidian[800]
+                  : Semantic.background.tertiary,
+              },
+            ]}
+          >
             <FontAwesome
               name="calendar-times-o"
               size={48}
               color={getMutedColor()}
             />
           </View>
-          <Text style={[styles.emptyStateTitle, { color: getTextColor() }]}>Belum Ada Aktivitas</Text>
+          <Text style={[styles.emptyStateTitle, { color: getTextColor() }]}>
+            Belum Ada Aktivitas
+          </Text>
           <Text style={[styles.emptyStateText, { color: getMutedColor() }]}>
-            Tidak ada transaksi pada bulan {MONTHS_LONG[activeMonth]} {activeYear}.
+            Tidak ada transaksi pada bulan {MONTHS_LONG[activeMonth]}{" "}
+            {activeYear}.
           </Text>
         </View>
       ) : (
@@ -251,7 +360,10 @@ export default function HistoryScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           renderSectionHeader={renderSectionHeader}
-          contentContainerStyle={[styles.listContainer, { paddingBottom: insets.bottom + 100 }]}
+          contentContainerStyle={[
+            styles.listContainer,
+            { paddingBottom: insets.bottom + 100 },
+          ]}
           showsVerticalScrollIndicator={false}
           stickySectionHeadersEnabled={true}
         />
@@ -261,8 +373,8 @@ export default function HistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
+  container: {
+    flex: 1,
   },
   header: {
     paddingBottom: Spacing.sm,

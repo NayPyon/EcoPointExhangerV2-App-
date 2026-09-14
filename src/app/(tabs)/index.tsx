@@ -1,35 +1,37 @@
 import {
-  AnimConfig,
   BorderRadius,
   Colors,
-  Components,
-  Gradients,
   Semantic,
   Shadows,
   Spacing,
-  Typography,
+  Typography
 } from "@/constants/theme";
-import { useAuth } from "../../AuthContext";
 import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { useEffect, useState } from "react";
-import { Platform, ScrollView, StyleSheet, Text, View, useColorScheme, Pressable } from "react-native";
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useColorScheme
+} from "react-native";
 import Animated, {
+  Extrapolate,
   FadeIn,
   FadeInDown,
   FadeInUp,
   FadeOutUp,
+  interpolate,
+  useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withSequence,
-  withSpring,
-  withTiming,
-  useAnimatedScrollHandler,
-  interpolate,
-  Extrapolate,
+  withTiming
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "../../AuthContext";
 
 // Context
 import { usePoints } from "../../PointContext";
@@ -37,7 +39,6 @@ import { usePoints } from "../../PointContext";
 // UI Components
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { AnimatedPress } from "@/components/ui/animated-press";
-import { GlassCard } from "@/components/ui/glass-card";
 import { SkeletonCard, SkeletonListItem } from "@/components/ui/skeleton";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
@@ -54,7 +55,7 @@ export default function HomeScreen() {
   const { userData } = useAuth();
   const { ts } = useLocalSearchParams();
   const animationKey = ts ? String(ts) : "default";
-  
+
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -91,7 +92,7 @@ export default function HomeScreen() {
     setIsExpanded(!isExpanded);
   };
 
-  const firstName = (userData?.displayName || 'Pengguna').split(" ")[0];
+  const firstName = (userData?.displayName || "Pengguna").split(" ")[0];
 
   // Animated badge pulse
   const badgeScale = useSharedValue(1);
@@ -112,10 +113,7 @@ export default function HomeScreen() {
 
   const progressWidth = useSharedValue(0);
   useEffect(() => {
-    progressWidth.value = withTiming(
-      progressPercentage,
-      { duration: 500 }
-    );
+    progressWidth.value = withTiming(progressPercentage, { duration: 500 });
   }, [progressPercentage]);
 
   const progressAnimatedStyle = useAnimatedStyle(() => ({
@@ -131,23 +129,42 @@ export default function HomeScreen() {
   });
 
   const headerStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(scrollY.value, [0, 50], [0, 1], Extrapolate.CLAMP);
-    const translateY = interpolate(scrollY.value, [0, 50], [-20, 0], Extrapolate.CLAMP);
+    const opacity = interpolate(
+      scrollY.value,
+      [0, 50],
+      [0, 1],
+      Extrapolate.CLAMP,
+    );
+    const translateY = interpolate(
+      scrollY.value,
+      [0, 50],
+      [-20, 0],
+      Extrapolate.CLAMP,
+    );
     return {
       opacity,
       transform: [{ translateY }],
     };
   });
-  
+
   const headerOpacityStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(scrollY.value, [0, 50], [1, 0], Extrapolate.CLAMP);
+    const opacity = interpolate(
+      scrollY.value,
+      [0, 50],
+      [1, 0],
+      Extrapolate.CLAMP,
+    );
     return { opacity };
   });
 
-  const getBgColor = () => isDark ? Semantic.background.dark : Semantic.background.secondary;
-  const getCardBg = () => isDark ? Colors.obsidian[800] : Semantic.background.primary;
-  const getTextColor = () => isDark ? Semantic.text.light : Semantic.text.primary;
-  const getMutedColor = () => isDark ? Colors.obsidian[400] : Semantic.text.secondary;
+  const getBgColor = () =>
+    isDark ? Semantic.background.dark : Semantic.background.secondary;
+  const getCardBg = () =>
+    isDark ? Colors.obsidian[800] : Semantic.background.primary;
+  const getTextColor = () =>
+    isDark ? Semantic.text.light : Semantic.text.primary;
+  const getMutedColor = () =>
+    isDark ? Colors.obsidian[400] : Semantic.text.secondary;
 
   const hour = new Date().getHours();
   let timeGreeting = "Halo";
@@ -181,31 +198,50 @@ export default function HomeScreen() {
       {/* BACKGROUND DECORATIVE BLOBS */}
       <View style={styles.bgBlobRight}>
         <LinearGradient
-          colors={[isDark ? 'rgba(16, 185, 129, 0.35)' : 'rgba(16, 185, 129, 0.45)', 'transparent']}
+          colors={[
+            isDark ? "rgba(16, 185, 129, 0.35)" : "rgba(16, 185, 129, 0.45)",
+            "transparent",
+          ]}
           style={StyleSheet.absoluteFill}
         />
       </View>
       <View style={styles.bgBlobLeft}>
         <LinearGradient
-          colors={[isDark ? 'rgba(52, 211, 153, 0.25)' : 'rgba(16, 185, 129, 0.3)', 'transparent']}
+          colors={[
+            isDark ? "rgba(52, 211, 153, 0.25)" : "rgba(16, 185, 129, 0.3)",
+            "transparent",
+          ]}
           style={StyleSheet.absoluteFill}
         />
       </View>
 
       {/* STICKY HEADER (Appears on scroll) */}
-      <Animated.View style={[
-        styles.stickyHeader,
-        { paddingTop: insets.top, backgroundColor: isDark ? 'rgba(11, 17, 24, 0.85)' : 'rgba(248, 250, 252, 0.85)' },
-        headerStyle
-      ]}>
-        <BlurView intensity={isDark ? 50 : 80} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
+      <Animated.View
+        style={[
+          styles.stickyHeader,
+          {
+            paddingTop: insets.top,
+            backgroundColor: isDark
+              ? "rgba(11, 17, 24, 0.85)"
+              : "rgba(248, 250, 252, 0.85)",
+          },
+          headerStyle,
+        ]}
+      >
+        <BlurView
+          intensity={isDark ? 50 : 80}
+          tint={isDark ? "dark" : "light"}
+          style={StyleSheet.absoluteFill}
+        />
         <View style={styles.stickyHeaderContent}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
             <View style={styles.avatarMini}>
               <FontAwesome name="user" size={16} color={Semantic.text.light} />
             </View>
             <View style={{ marginLeft: Spacing.sm }}>
-              <Text style={[styles.stickyGreeting, { color: getTextColor() }]}>{timeGreeting}, {firstName}!</Text>
+              <Text style={[styles.stickyGreeting, { color: getTextColor() }]}>
+                {timeGreeting}, {firstName}!
+              </Text>
               <Text style={styles.stickyRank}>{getLevelName()}</Text>
             </View>
           </View>
@@ -220,19 +256,30 @@ export default function HomeScreen() {
         bounces={true}
       >
         <View style={{ height: insets.top + Spacing.xl }} />
-        
+
         {/* NORMAL HEADER (Fades out on scroll) */}
-        <Animated.View style={[styles.normalHeader, headerOpacityStyle, { paddingHorizontal: Spacing.xl }]}>
-           <View>
-             <Text style={[styles.greetingText, { color: getTextColor() }]}>{timeGreeting}, {firstName}</Text>
-             <View style={styles.badgeRankRow}>
-               <Text style={styles.badgeRankText}>{getLevelName()}</Text>
-             </View>
-           </View>
-           <AnimatedPress onPress={handleBellPress} style={[styles.notificationIcon, { backgroundColor: getCardBg() }]}>
-             <FontAwesome name="bell-o" size={20} color={getTextColor()} />
-             <Animated.View style={[styles.badge, badgeAnimatedStyle]} />
-           </AnimatedPress>
+        <Animated.View
+          style={[
+            styles.normalHeader,
+            headerOpacityStyle,
+            { paddingHorizontal: Spacing.xl },
+          ]}
+        >
+          <View>
+            <Text style={[styles.greetingText, { color: getTextColor() }]}>
+              {timeGreeting}, {firstName}
+            </Text>
+            <View style={styles.badgeRankRow}>
+              <Text style={styles.badgeRankText}>{getLevelName()}</Text>
+            </View>
+          </View>
+          <AnimatedPress
+            onPress={handleBellPress}
+            style={[styles.notificationIcon, { backgroundColor: getCardBg() }]}
+          >
+            <FontAwesome name="bell-o" size={20} color={getTextColor()} />
+            <Animated.View style={[styles.badge, badgeAnimatedStyle]} />
+          </AnimatedPress>
         </Animated.View>
 
         <Animated.View
@@ -245,30 +292,56 @@ export default function HomeScreen() {
             <View style={[styles.bentoCard, { backgroundColor: getCardBg() }]}>
               {/* Saldo Poin & Tombol Tukar */}
               <View style={styles.pointHeaderBento}>
-                 <View>
-                   <Text style={[styles.bentoLabel, { color: getMutedColor() }]}>Total Poin Tersedia</Text>
-                   <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-                      <AnimatedCounter value={totalPoin} style={[styles.bentoPointValue, { color: getTextColor(), fontSize: 44, lineHeight: 52 }]} />
-                      <Text style={[styles.bentoPointSuffix, { color: Semantic.primary.main, fontSize: 16 }]}> Pts</Text>
-                   </View>
-                 </View>
-                 
-                 <Pressable style={styles.bentoTukarBtn} onPress={() => router.push("/reward")}>
-                    <Text style={styles.bentoTukarText}>Tukar</Text>
-                 </Pressable>
+                <View>
+                  <Text style={[styles.bentoLabel, { color: getMutedColor() }]}>
+                    Total Poin Tersedia
+                  </Text>
+                  <View
+                    style={{ flexDirection: "row", alignItems: "baseline" }}
+                  >
+                    <AnimatedCounter
+                      value={totalPoin}
+                      style={[
+                        styles.bentoPointValue,
+                        { color: getTextColor(), fontSize: 44, lineHeight: 52 },
+                      ]}
+                    />
+                    <Text
+                      style={[
+                        styles.bentoPointSuffix,
+                        { color: Semantic.primary.main, fontSize: 16 },
+                      ]}
+                    >
+                      {" "}
+                      Pts
+                    </Text>
+                  </View>
+                </View>
+
+                <Pressable
+                  style={styles.bentoTukarBtn}
+                  onPress={() => router.push("/reward")}
+                >
+                  <Text style={styles.bentoTukarText}>Tukar</Text>
+                </Pressable>
               </View>
 
               <View style={styles.progressContainerBento}>
                 <View style={styles.bentoProgressBg}>
-                  <Animated.View style={[styles.bentoProgressFill, progressAnimatedStyle]}>
+                  <Animated.View
+                    style={[styles.bentoProgressFill, progressAnimatedStyle]}
+                  >
                     <LinearGradient
-                        colors={[Semantic.primary.light, Semantic.primary.main]}
-                        start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                        style={StyleSheet.absoluteFill}
-                      />
+                      colors={[Semantic.primary.light, Semantic.primary.main]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={StyleSheet.absoluteFill}
+                    />
                   </Animated.View>
                 </View>
-                <Text style={[styles.bentoProgressText, { color: getMutedColor() }]}>
+                <Text
+                  style={[styles.bentoProgressText, { color: getMutedColor() }]}
+                >
                   {totalPoin >= 50000
                     ? "Rank Maksimal Tercapai!"
                     : `${targetPoints - totalPoin} Pts lagi ke rank berikutnya`}
@@ -276,17 +349,62 @@ export default function HomeScreen() {
               </View>
 
               {isExpanded && (
-                <Animated.View entering={FadeInDown.duration(400)} exiting={FadeOutUp} style={styles.expandedContent}>
-                  <View style={[styles.divider, { backgroundColor: isDark ? Colors.obsidian[800] : Colors.obsidian[100] }]} />
-                  <Text style={[styles.expandedTitle, { color: getTextColor() }]}>Keuntungan Tiap Rank</Text>
+                <Animated.View
+                  entering={FadeInDown.duration(400)}
+                  exiting={FadeOutUp}
+                  style={styles.expandedContent}
+                >
+                  <View
+                    style={[
+                      styles.divider,
+                      {
+                        backgroundColor: isDark
+                          ? Colors.obsidian[800]
+                          : Colors.obsidian[100],
+                      },
+                    ]}
+                  />
+                  <Text
+                    style={[styles.expandedTitle, { color: getTextColor() }]}
+                  >
+                    Keuntungan Tiap Rank
+                  </Text>
                   {GAMIFICATION_TIERS.map((tier, index) => (
-                    <Animated.View key={index} entering={FadeIn.delay(index * 50)} style={styles.rankRow}>
+                    <Animated.View
+                      key={index}
+                      entering={FadeIn.delay(index * 50)}
+                      style={styles.rankRow}
+                    >
                       <View>
-                        <Text style={[styles.rankName, { color: getTextColor() }]}>{tier.name}</Text>
-                        <Text style={[styles.rankReq, { color: getMutedColor() }]}>Butuh {tier.req}</Text>
+                        <Text
+                          style={[styles.rankName, { color: getTextColor() }]}
+                        >
+                          {tier.name}
+                        </Text>
+                        <Text
+                          style={[styles.rankReq, { color: getMutedColor() }]}
+                        >
+                          Butuh {tier.req}
+                        </Text>
                       </View>
-                      <View style={[styles.benefitBadge, { backgroundColor: isDark ? Colors.obsidian[800] : Colors.emerald[50] }]}>
-                        <Text style={[styles.benefitText, { color: Semantic.primary.main }]}>{tier.benefit}</Text>
+                      <View
+                        style={[
+                          styles.benefitBadge,
+                          {
+                            backgroundColor: isDark
+                              ? Colors.obsidian[800]
+                              : Colors.emerald[50],
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.benefitText,
+                            { color: Semantic.primary.main },
+                          ]}
+                        >
+                          {tier.benefit}
+                        </Text>
                       </View>
                     </Animated.View>
                   ))}
@@ -299,40 +417,130 @@ export default function HomeScreen() {
 
           {/* 2. BENTO GRID SPLIT (Plastik & Logam) */}
           <View style={styles.statsRow}>
-            <Animated.View entering={FadeInUp.delay(200).duration(400)} style={{ flex: 1 }}>
-              <AnimatedPress style={[styles.bentoBoxSmall, { backgroundColor: getCardBg() }]}>
+            <Animated.View
+              entering={FadeInUp.delay(200).duration(400)}
+              style={{ flex: 1 }}
+            >
+              <AnimatedPress
+                style={[styles.bentoBoxSmall, { backgroundColor: getCardBg() }]}
+              >
                 <View style={styles.bentoIconRow}>
-                  <View style={[styles.bentoIconCircle, { backgroundColor: Colors.emerald[50] }]}>
-                    <MaterialCommunityIcons name="bottle-soda-classic-outline" size={24} color={Semantic.primary.main} />
+                  <View
+                    style={[
+                      styles.bentoIconCircle,
+                      { backgroundColor: Colors.emerald[50] },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="bottle-soda-classic-outline"
+                      size={24}
+                      color={Semantic.primary.main}
+                    />
                   </View>
-                  <Text style={[styles.bentoBoxLabel, { color: getMutedColor() }]}>Plastik</Text>
+                  <Text
+                    style={[styles.bentoBoxLabel, { color: getMutedColor() }]}
+                  >
+                    Plastik
+                  </Text>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: Spacing.sm }}>
-                  <AnimatedCounter value={totalPlastik} style={[styles.bentoBoxValue, { color: getTextColor(), fontSize: 28 }]} />
-                  <Text style={[styles.bentoBoxSuffix, { color: getMutedColor() }]}> item</Text>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "baseline",
+                    marginTop: Spacing.sm,
+                  }}
+                >
+                  <AnimatedCounter
+                    value={totalPlastik}
+                    style={[
+                      styles.bentoBoxValue,
+                      { color: getTextColor(), fontSize: 28 },
+                    ]}
+                  />
+                  <Text
+                    style={[styles.bentoBoxSuffix, { color: getMutedColor() }]}
+                  >
+                    {" "}
+                    item
+                  </Text>
                 </View>
-                <Text style={{ fontFamily: Typography.fontFamily.body, fontSize: 11, color: Semantic.primary.main, marginTop: 4 }}>
-                  {totalPlastik > 0 ? ((totalPlastik / (totalPlastik + 15420)) * 100).toFixed(2) : 0}% dari total area
+                <Text
+                  style={{
+                    fontFamily: Typography.fontFamily.body,
+                    fontSize: 11,
+                    color: Semantic.primary.main,
+                    marginTop: 4,
+                  }}
+                >
+                  {totalPlastik > 0
+                    ? ((totalPlastik / (totalPlastik + 15420)) * 100).toFixed(2)
+                    : 0}
+                  % dari total area
                 </Text>
               </AnimatedPress>
             </Animated.View>
 
             <View style={{ width: Spacing.md }} />
 
-            <Animated.View entering={FadeInUp.delay(300).duration(400)} style={{ flex: 1 }}>
-              <AnimatedPress style={[styles.bentoBoxSmall, { backgroundColor: getCardBg() }]}>
+            <Animated.View
+              entering={FadeInUp.delay(300).duration(400)}
+              style={{ flex: 1 }}
+            >
+              <AnimatedPress
+                style={[styles.bentoBoxSmall, { backgroundColor: getCardBg() }]}
+              >
                 <View style={styles.bentoIconRow}>
-                  <View style={[styles.bentoIconCircle, { backgroundColor: Colors.amber[50] }]}>
-                    <MaterialCommunityIcons name="cylinder" size={24} color={Semantic.warning.main} />
+                  <View
+                    style={[
+                      styles.bentoIconCircle,
+                      { backgroundColor: Colors.amber[50] },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="cylinder"
+                      size={24}
+                      color={Semantic.warning.main}
+                    />
                   </View>
-                  <Text style={[styles.bentoBoxLabel, { color: getMutedColor() }]}>Logam</Text>
+                  <Text
+                    style={[styles.bentoBoxLabel, { color: getMutedColor() }]}
+                  >
+                    Logam
+                  </Text>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: Spacing.sm }}>
-                  <AnimatedCounter value={totalLogam} style={[styles.bentoBoxValue, { color: getTextColor(), fontSize: 28 }]} />
-                  <Text style={[styles.bentoBoxSuffix, { color: getMutedColor() }]}> item</Text>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "baseline",
+                    marginTop: Spacing.sm,
+                  }}
+                >
+                  <AnimatedCounter
+                    value={totalLogam}
+                    style={[
+                      styles.bentoBoxValue,
+                      { color: getTextColor(), fontSize: 28 },
+                    ]}
+                  />
+                  <Text
+                    style={[styles.bentoBoxSuffix, { color: getMutedColor() }]}
+                  >
+                    {" "}
+                    item
+                  </Text>
                 </View>
-                <Text style={{ fontFamily: Typography.fontFamily.body, fontSize: 11, color: Semantic.warning.main, marginTop: 4 }}>
-                  {totalLogam > 0 ? ((totalLogam / (totalLogam + 8350)) * 100).toFixed(2) : 0}% dari total area
+                <Text
+                  style={{
+                    fontFamily: Typography.fontFamily.body,
+                    fontSize: 11,
+                    color: Semantic.warning.main,
+                    marginTop: 4,
+                  }}
+                >
+                  {totalLogam > 0
+                    ? ((totalLogam / (totalLogam + 8350)) * 100).toFixed(2)
+                    : 0}
+                  % dari total area
                 </Text>
               </AnimatedPress>
             </Animated.View>
@@ -342,20 +550,54 @@ export default function HomeScreen() {
 
           {/* 1.5 MISI MINGGUAN (Menggantikan RVM) */}
           <Animated.View entering={FadeInUp.delay(150).duration(400)}>
-            <AnimatedPress style={[styles.bentoCard, { backgroundColor: getCardBg(), paddingVertical: Spacing.md }]}>
-               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                 <View style={[styles.bentoIconCircle, { backgroundColor: Colors.teal[50] }]}>
-                    <MaterialCommunityIcons name="target" size={24} color={Colors.teal[500]} />
-                 </View>
-                 <View style={{ marginLeft: Spacing.sm, flex: 1 }}>
-                    <Text style={[styles.bentoLabel, { color: getMutedColor() }]}>Misi Mingguan</Text>
-                    <Text style={[styles.rankName, { color: getTextColor() }]}>Kumpulkan 20 Botol</Text>
-                 </View>
-                 <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={{ fontFamily: Typography.fontFamily.primary, fontSize: 16, color: Semantic.primary.main }}>{totalPlastik}/20</Text>
-                    <Text style={{ fontFamily: Typography.fontFamily.medium, fontSize: 11, color: getMutedColor() }}>+500 Pts</Text>
-                 </View>
-               </View>
+            <AnimatedPress
+              style={[
+                styles.bentoCard,
+                { backgroundColor: getCardBg(), paddingVertical: Spacing.md },
+              ]}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View
+                  style={[
+                    styles.bentoIconCircle,
+                    { backgroundColor: Colors.teal[50] },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="target"
+                    size={24}
+                    color={Colors.teal[500]}
+                  />
+                </View>
+                <View style={{ marginLeft: Spacing.sm, flex: 1 }}>
+                  <Text style={[styles.bentoLabel, { color: getMutedColor() }]}>
+                    Misi Mingguan
+                  </Text>
+                  <Text style={[styles.rankName, { color: getTextColor() }]}>
+                    Kumpulkan 20 Botol
+                  </Text>
+                </View>
+                <View style={{ alignItems: "flex-end" }}>
+                  <Text
+                    style={{
+                      fontFamily: Typography.fontFamily.primary,
+                      fontSize: 16,
+                      color: Semantic.primary.main,
+                    }}
+                  >
+                    {totalPlastik}/20
+                  </Text>
+                  <Text
+                    style={{
+                      fontFamily: Typography.fontFamily.medium,
+                      fontSize: 11,
+                      color: getMutedColor(),
+                    }}
+                  >
+                    +500 Pts
+                  </Text>
+                </View>
+              </View>
             </AnimatedPress>
           </Animated.View>
 
@@ -364,36 +606,85 @@ export default function HomeScreen() {
           {/* 3. STREAK KONSISTENSI (Bento Style) */}
           <Animated.View entering={FadeInUp.delay(400).duration(400)}>
             <View style={[styles.bentoCard, { backgroundColor: getCardBg() }]}>
-               <View style={styles.bentoStreakHeader}>
-                 <View>
-                   <Text style={[styles.bentoLabel, { color: getMutedColor() }]}>Konsistensi (Streak)</Text>
-                   <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-                     <AnimatedCounter value={hariKonsisten} style={[styles.bentoPointValue, { color: getTextColor() }]} />
-                     <Text style={[styles.bentoBoxSuffix, { color: getMutedColor(), fontSize: Typography.size.md }]}> / 7 Hari</Text>
-                   </View>
-                 </View>
-                 <View style={styles.bentoStreakBadge}>
-                   <MaterialCommunityIcons name="fire" size={16} color={Semantic.danger.main} style={{ marginRight: 4 }} />
-                   <Text style={styles.bentoStreakBadgeText}>Aktif</Text>
-                 </View>
-               </View>
+              <View style={styles.bentoStreakHeader}>
+                <View>
+                  <Text style={[styles.bentoLabel, { color: getMutedColor() }]}>
+                    Konsistensi (Streak)
+                  </Text>
+                  <View
+                    style={{ flexDirection: "row", alignItems: "baseline" }}
+                  >
+                    <AnimatedCounter
+                      value={hariKonsisten}
+                      style={[
+                        styles.bentoPointValue,
+                        { color: getTextColor() },
+                      ]}
+                    />
+                    <Text
+                      style={[
+                        styles.bentoBoxSuffix,
+                        {
+                          color: getMutedColor(),
+                          fontSize: Typography.size.md,
+                        },
+                      ]}
+                    >
+                      {" "}
+                      / 7 Hari
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.bentoStreakBadge}>
+                  <MaterialCommunityIcons
+                    name="fire"
+                    size={16}
+                    color={Semantic.danger.main}
+                    style={{ marginRight: 4 }}
+                  />
+                  <Text style={styles.bentoStreakBadgeText}>Aktif</Text>
+                </View>
+              </View>
 
-               {/* 7 Days UI representation */}
-               <View style={styles.sevenDaysContainer}>
-                  {[1,2,3,4,5,6,7].map((day) => {
-                    const isActive = day <= hariKonsisten;
-                    const isToday = day === hariKonsisten;
-                    return (
-                      <View key={day} style={[styles.dayCircle, isActive ? styles.dayCircleActive : { backgroundColor: isDark ? Colors.obsidian[800] : Colors.obsidian[100] }]}>
-                        {isActive ? (
-                          <FontAwesome name="check" size={12} color={Semantic.text.light} />
-                        ) : (
-                          <Text style={[styles.dayCircleText, { color: getMutedColor() }]}>{day}</Text>
-                        )}
-                      </View>
-                    );
-                  })}
-               </View>
+              {/* 7 Days UI representation */}
+              <View style={styles.sevenDaysContainer}>
+                {[1, 2, 3, 4, 5, 6, 7].map((day) => {
+                  const isActive = day <= hariKonsisten;
+                  const isToday = day === hariKonsisten;
+                  return (
+                    <View
+                      key={day}
+                      style={[
+                        styles.dayCircle,
+                        isActive
+                          ? styles.dayCircleActive
+                          : {
+                              backgroundColor: isDark
+                                ? Colors.obsidian[800]
+                                : Colors.obsidian[100],
+                            },
+                      ]}
+                    >
+                      {isActive ? (
+                        <FontAwesome
+                          name="check"
+                          size={12}
+                          color={Semantic.text.light}
+                        />
+                      ) : (
+                        <Text
+                          style={[
+                            styles.dayCircleText,
+                            { color: getMutedColor() },
+                          ]}
+                        >
+                          {day}
+                        </Text>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
             </View>
           </Animated.View>
 
@@ -401,19 +692,36 @@ export default function HomeScreen() {
 
           {/* 4. DAMPAK EKOLOGIS (Bento Style) */}
           <Animated.View entering={FadeInUp.delay(500).duration(400)}>
-             <View style={[styles.bentoCard, { backgroundColor: getCardBg() }]}>
-               <View style={styles.bentoIconRow}>
-                 <View style={[styles.bentoIconCircle, { backgroundColor: Colors.emerald[50] }]}>
-                    <FontAwesome name="tree" size={20} color={Semantic.primary.main} />
-                 </View>
-                 <View style={{ marginLeft: Spacing.sm }}>
-                    <Text style={[styles.bentoLabel, { color: getMutedColor() }]}>Dampak Ekologis Anda</Text>
-                    <Text style={[styles.bentoBoxValue, { color: getTextColor(), fontSize: Typography.size.lg }]}>{co2Saved} kg CO₂ Cegah</Text>
-                 </View>
-               </View>
-             </View>
+            <View style={[styles.bentoCard, { backgroundColor: getCardBg() }]}>
+              <View style={styles.bentoIconRow}>
+                <View
+                  style={[
+                    styles.bentoIconCircle,
+                    { backgroundColor: Colors.emerald[50] },
+                  ]}
+                >
+                  <FontAwesome
+                    name="tree"
+                    size={20}
+                    color={Semantic.primary.main}
+                  />
+                </View>
+                <View style={{ marginLeft: Spacing.sm }}>
+                  <Text style={[styles.bentoLabel, { color: getMutedColor() }]}>
+                    Dampak Ekologis Anda
+                  </Text>
+                  <Text
+                    style={[
+                      styles.bentoBoxValue,
+                      { color: getTextColor(), fontSize: Typography.size.lg },
+                    ]}
+                  >
+                    {co2Saved} kg CO₂ Cegah
+                  </Text>
+                </View>
+              </View>
+            </View>
           </Animated.View>
-
         </Animated.View>
       </Animated.ScrollView>
     </View>
@@ -425,7 +733,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bgBlobRight: {
-    position: 'absolute',
+    position: "absolute",
     top: -50,
     right: -100,
     width: 300,
@@ -434,7 +742,7 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   bgBlobLeft: {
-    position: 'absolute',
+    position: "absolute",
     top: 200,
     left: -150,
     width: 250,
@@ -443,12 +751,12 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   ecoTipBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: Spacing.md,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.2)',
+    borderColor: "rgba(16, 185, 129, 0.2)",
   },
   ecoTipText: {
     fontFamily: Typography.fontFamily.medium,
@@ -458,16 +766,16 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   stickyHeader: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     zIndex: 100,
   },
   stickyHeaderContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: Spacing.xl,
     paddingBottom: Spacing.md,
     paddingTop: Spacing.sm,
@@ -477,8 +785,8 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     backgroundColor: Semantic.primary.main,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   stickyGreeting: {
     fontFamily: Typography.fontFamily.secondary,
@@ -500,8 +808,8 @@ const styles = StyleSheet.create({
     fontSize: Typography.size.xl,
   },
   badgeRankRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 4,
   },
   badgeRankText: {
@@ -514,8 +822,8 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     ...Shadows.sm,
   },
   badge: {
@@ -536,9 +844,9 @@ const styles = StyleSheet.create({
     ...Shadows.sm,
   },
   pointHeaderBento: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
   },
   bentoLabel: {
     fontFamily: Typography.fontFamily.medium,
@@ -553,7 +861,7 @@ const styles = StyleSheet.create({
   bentoPointSuffix: {
     fontFamily: Typography.fontFamily.secondary,
     fontSize: Typography.size.md,
-    alignSelf: 'flex-end',
+    alignSelf: "flex-end",
     marginBottom: 6,
     marginLeft: 4,
   },
@@ -573,7 +881,7 @@ const styles = StyleSheet.create({
   },
   bentoProgressBg: {
     height: 6,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: "rgba(16, 185, 129, 0.15)",
     borderRadius: BorderRadius.full,
     overflow: "hidden",
   },
@@ -632,8 +940,8 @@ const styles = StyleSheet.create({
     ...Shadows.sm,
   },
   bentoIconRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   bentoIconCircle: {
     width: 36,
@@ -657,13 +965,13 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   bentoStreakHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
   },
   bentoStreakBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: Colors.red[50],
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -675,16 +983,16 @@ const styles = StyleSheet.create({
     color: Semantic.danger.main,
   },
   sevenDaysContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginTop: Spacing.lg,
   },
   dayCircle: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   dayCircleActive: {
     backgroundColor: Semantic.primary.main,
@@ -693,5 +1001,5 @@ const styles = StyleSheet.create({
   dayCircleText: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: 12,
-  }
+  },
 });

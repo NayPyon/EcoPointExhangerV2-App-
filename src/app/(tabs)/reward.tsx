@@ -1,11 +1,8 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
-import * as Haptics from "expo-haptics";
-import { MaterialCommunityIcons, FontAwesome5 } from "@expo/vector-icons";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { db } from "../../firebaseConfig";
-import { useAuth } from "../../AuthContext";
-import React, { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Image,
   Modal,
@@ -13,34 +10,30 @@ import {
   StyleSheet,
   Text,
   View,
-  useColorScheme
+  useColorScheme,
 } from "react-native";
 import Animated, {
   FadeInDown,
   FadeInUp,
-  interpolate,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
-  withTiming,
-  Extrapolate,
+  withTiming
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "../../AuthContext";
+import { db } from "../../firebaseConfig";
 
+import { AnimatedCounter } from "@/components/ui/animated-counter";
+import { AnimatedPress } from "@/components/ui/animated-press";
 import {
-  AnimConfig,
   BorderRadius,
   Colors,
-  Components,
   Gradients,
   Semantic,
   Shadows,
   Spacing,
-  Typography,
+  Typography
 } from "@/constants/theme";
-import { AnimatedPress } from "@/components/ui/animated-press";
-import { GlassCard } from "@/components/ui/glass-card";
-import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { usePoints } from "../../PointContext";
 
 export interface RewardItem {
@@ -59,14 +52,21 @@ export default function RewardScreen() {
 
   const { totalPoin } = usePoints();
 
-  const getBgColor = () => isDark ? Semantic.background.dark : Semantic.background.secondary;
-  const getCardBg = () => isDark ? Colors.obsidian[800] : Semantic.background.primary;
-  const getTextColor = () => isDark ? Semantic.text.light : Semantic.text.primary;
-  const getMutedColor = () => isDark ? Colors.obsidian[400] : Semantic.text.secondary;
-  const getBorderColor = () => isDark ? Colors.obsidian[800] : Semantic.border.light;
+  const getBgColor = () =>
+    isDark ? Semantic.background.dark : Semantic.background.secondary;
+  const getCardBg = () =>
+    isDark ? Colors.obsidian[800] : Semantic.background.primary;
+  const getTextColor = () =>
+    isDark ? Semantic.text.light : Semantic.text.primary;
+  const getMutedColor = () =>
+    isDark ? Colors.obsidian[400] : Semantic.text.secondary;
+  const getBorderColor = () =>
+    isDark ? Colors.obsidian[800] : Semantic.border.light;
 
   const [modalVisible, setModalVisible] = useState(false);
-  const [modalType, setModalType] = useState<"konfirmasi" | "sukses" | "gagal">("konfirmasi");
+  const [modalType, setModalType] = useState<"konfirmasi" | "sukses" | "gagal">(
+    "konfirmasi",
+  );
   const [selectedReward, setSelectedReward] = useState<RewardItem | null>(null);
 
   // Modal Animation Values
@@ -82,21 +82,24 @@ export default function RewardScreen() {
           title: "Diskon Rp 20.000 Momoyo Ice Cream",
           points: 15000,
           stock: 45,
-          image: "https://images.unsplash.com/photo-1563805042-7684c8a9e9cb?w=600&q=80",
+          image:
+            "https://images.unsplash.com/photo-1563805042-7684c8a9e9cb?w=600&q=80",
         },
         {
           id: "2",
           title: "Voucher Burger King Rp 50.000",
           points: 35000,
           stock: 12,
-          image: "https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=600&q=80",
+          image:
+            "https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=600&q=80",
         },
         {
           id: "3",
           title: "Potongan Rp 30.000 Wingstop",
           points: 25000,
           stock: 8,
-          image: "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=600&q=80",
+          image:
+            "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=600&q=80",
         },
       ],
     },
@@ -108,14 +111,16 @@ export default function RewardScreen() {
           title: "Saldo GoPay Rp 25.000",
           points: 25000,
           stock: 100,
-          image: "https://images.unsplash.com/photo-1614680376573-df3480f0c6ff?w=600&q=80",
+          image:
+            "https://images.unsplash.com/photo-1614680376573-df3480f0c6ff?w=600&q=80",
         },
         {
           id: "5",
           title: "Valorant Points (VP) 1125",
           points: 55000,
           stock: 3,
-          image: "https://images.unsplash.com/photo-1662514101150-f865f128c946?w=600&q=80",
+          image:
+            "https://images.unsplash.com/photo-1662514101150-f865f128c946?w=600&q=80",
         },
       ],
     },
@@ -130,18 +135,18 @@ export default function RewardScreen() {
     } else {
       setModalType("gagal");
     }
-    
+
     // Set initial positions
     modalY.value = 300;
     backdropOpacity.value = 0;
-    
+
     // Mount modal
     setModalVisible(true);
-    
+
     // Trigger entrance animations
     backdropOpacity.value = withTiming(1, { duration: 250 });
     modalY.value = withTiming(0, { duration: 250 });
-    
+
     if (totalPoin >= item.points) {
       checkScale.value = withTiming(1, { duration: 250 });
     }
@@ -184,7 +189,7 @@ export default function RewardScreen() {
     // Trigger exit animations
     backdropOpacity.value = withTiming(0, { duration: 250 });
     modalY.value = withTiming(300, { duration: 250 });
-    
+
     // Unmount modal exactly when animation finishes
     setTimeout(() => {
       setModalVisible(false);
@@ -203,7 +208,13 @@ export default function RewardScreen() {
     transform: [{ scale: checkScale.value }],
   }));
 
-  const renderRewardItem = ({ item, index }: { item: RewardItem; index: number }) => {
+  const renderRewardItem = ({
+    item,
+    index,
+  }: {
+    item: RewardItem;
+    index: number;
+  }) => {
     const isPoinCukup = totalPoin >= item.points;
 
     return (
@@ -212,16 +223,33 @@ export default function RewardScreen() {
           style={[styles.card, { backgroundColor: getCardBg() }, Shadows.sm]}
           onPress={() => handleRedeem(item)}
         >
-          <View style={[styles.imageContainer, { backgroundColor: isDark ? Colors.obsidian[950] : Semantic.border.light }]}>
+          <View
+            style={[
+              styles.imageContainer,
+              {
+                backgroundColor: isDark
+                  ? Colors.obsidian[950]
+                  : Semantic.border.light,
+              },
+            ]}
+          >
             <Image source={{ uri: item.image }} style={styles.cardImage} />
             <View style={styles.floatingStock}>
-              <View style={[styles.stockBadgeContainer, { backgroundColor: 'rgba(0, 0, 0, 0.7)', borderRadius: 12 }]}>
+              <View
+                style={[
+                  styles.stockBadgeContainer,
+                  { backgroundColor: "rgba(0, 0, 0, 0.7)", borderRadius: 12 },
+                ]}
+              >
                 <Text style={styles.floatingStockText}>Sisa {item.stock}</Text>
               </View>
             </View>
           </View>
           <View style={styles.cardContent}>
-            <Text style={[styles.title, { color: getTextColor() }]} numberOfLines={2}>
+            <Text
+              style={[styles.title, { color: getTextColor() }]}
+              numberOfLines={2}
+            >
               {item.title}
             </Text>
             <View style={styles.cardFooter}>
@@ -242,14 +270,43 @@ export default function RewardScreen() {
                 </Text>
               </View>
               {isPoinCukup ? (
-                <View style={[styles.statusBadge, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.2)' : Semantic.success.light }]}>
-                  <Text style={[styles.statusBadgeText, { color: isDark ? Semantic.success.main : Semantic.success.dark }]}>
+                <View
+                  style={[
+                    styles.statusBadge,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(16, 185, 129, 0.2)"
+                        : Semantic.success.light,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.statusBadgeText,
+                      {
+                        color: isDark
+                          ? Semantic.success.main
+                          : Semantic.success.dark,
+                      },
+                    ]}
+                  >
                     Tukar
                   </Text>
                 </View>
               ) : (
-                <View style={[styles.statusBadge, { backgroundColor: isDark ? Colors.obsidian[950] : Semantic.background.tertiary }]}>
-                  <Text style={[styles.statusBadgeText, { color: getMutedColor() }]}>
+                <View
+                  style={[
+                    styles.statusBadge,
+                    {
+                      backgroundColor: isDark
+                        ? Colors.obsidian[950]
+                        : Semantic.background.tertiary,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[styles.statusBadgeText, { color: getMutedColor() }]}
+                  >
                     Poin Kurang
                   </Text>
                 </View>
@@ -261,105 +318,244 @@ export default function RewardScreen() {
     );
   };
 
-  const renderSectionHeader = ({ section: { title } }: { section: { title: string } }) => (
-    <Animated.View entering={FadeInDown.duration(400)} style={styles.sectionHeaderContainer}>
-      <Text style={[styles.sectionHeader, { color: getTextColor() }]}>{title}</Text>
-      <View style={[styles.sectionLine, { backgroundColor: getBorderColor() }]} />
+  const renderSectionHeader = ({
+    section: { title },
+  }: {
+    section: { title: string };
+  }) => (
+    <Animated.View
+      entering={FadeInDown.duration(400)}
+      style={styles.sectionHeaderContainer}
+    >
+      <Text style={[styles.sectionHeader, { color: getTextColor() }]}>
+        {title}
+      </Text>
+      <View
+        style={[styles.sectionLine, { backgroundColor: getBorderColor() }]}
+      />
     </Animated.View>
   );
 
   return (
     <View style={[styles.container, { backgroundColor: getBgColor() }]}>
-      
       {/* Background Blobs for Ambiance */}
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
-         <View style={[styles.blob, { top: -100, right: -150, backgroundColor: isDark ? 'rgba(245, 158, 11, 0.35)' : 'rgba(245, 158, 11, 0.25)' }]} />
+        <View
+          style={[
+            styles.blob,
+            {
+              top: -100,
+              right: -150,
+              backgroundColor: isDark
+                ? "rgba(245, 158, 11, 0.35)"
+                : "rgba(245, 158, 11, 0.25)",
+            },
+          ]}
+        />
       </View>
 
       <Modal visible={modalVisible} transparent={true} animationType="none">
         <Animated.View style={[StyleSheet.absoluteFill, backdropAnimatedStyle]}>
-          <BlurView intensity={isDark ? 40 : 30} tint={isDark ? "dark" : "dark"} style={styles.modalOverlay}>
-            <Animated.View style={[styles.modalCard, { backgroundColor: getCardBg() }, modalAnimatedStyle]}>
+          <BlurView
+            intensity={isDark ? 40 : 30}
+            tint={isDark ? "dark" : "dark"}
+            style={styles.modalOverlay}
+          >
+            <Animated.View
+              style={[
+                styles.modalCard,
+                { backgroundColor: getCardBg() },
+                modalAnimatedStyle,
+              ]}
+            >
               {modalType === "konfirmasi" && (
-              <>
-                <View style={[styles.modalIconWrapperInfo, { backgroundColor: isDark ? 'rgba(56, 189, 248, 0.2)' : Semantic.secondary.light }]}>
-                  <MaterialCommunityIcons name="gift" size={36} color={Semantic.secondary.main} />
-                </View>
-                <Text style={[styles.modalTitle, { color: getTextColor() }]}>Konfirmasi Penukaran</Text>
-                <Text style={[styles.modalMessage, { color: getMutedColor() }]}>
-                  Tukar{" "}
-                  <Text style={[styles.modalHighlightInfo, { color: Semantic.secondary.main }]}>
-                    {selectedReward?.points.toLocaleString("id-ID")} Poin
-                  </Text>{" "}
-                  dengan {selectedReward?.title}?
-                </Text>
-                <View style={styles.modalButtonRow}>
+                <>
+                  <View
+                    style={[
+                      styles.modalIconWrapperInfo,
+                      {
+                        backgroundColor: isDark
+                          ? "rgba(56, 189, 248, 0.2)"
+                          : Semantic.secondary.light,
+                      },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="gift"
+                      size={36}
+                      color={Semantic.secondary.main}
+                    />
+                  </View>
+                  <Text style={[styles.modalTitle, { color: getTextColor() }]}>
+                    Konfirmasi Penukaran
+                  </Text>
+                  <Text
+                    style={[styles.modalMessage, { color: getMutedColor() }]}
+                  >
+                    Tukar{" "}
+                    <Text
+                      style={[
+                        styles.modalHighlightInfo,
+                        { color: Semantic.secondary.main },
+                      ]}
+                    >
+                      {selectedReward?.points.toLocaleString("id-ID")} Poin
+                    </Text>{" "}
+                    dengan {selectedReward?.title}?
+                  </Text>
+                  <View style={styles.modalButtonRow}>
+                    <AnimatedPress
+                      style={[
+                        styles.buttonOutline,
+                        {
+                          flex: 1,
+                          backgroundColor: isDark
+                            ? Colors.obsidian[950]
+                            : Semantic.background.tertiary,
+                        },
+                      ]}
+                      onPress={closeModal}
+                    >
+                      <Text
+                        style={[
+                          styles.buttonOutlineText,
+                          { color: getTextColor() },
+                        ]}
+                      >
+                        Batal
+                      </Text>
+                    </AnimatedPress>
+                    <AnimatedPress
+                      style={[styles.buttonPrimary, { flex: 1 }]}
+                      onPress={prosesTukar}
+                    >
+                      <Text style={styles.buttonPrimaryText}>Tukar</Text>
+                    </AnimatedPress>
+                  </View>
+                </>
+              )}
+
+              {modalType === "sukses" && (
+                <>
+                  <Animated.View
+                    style={[
+                      styles.modalIconWrapperSuccess,
+                      {
+                        backgroundColor: isDark
+                          ? "rgba(16, 185, 129, 0.2)"
+                          : Semantic.success.light,
+                      },
+                      checkAnimatedStyle,
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="check-decagram"
+                      size={48}
+                      color={Semantic.success.main}
+                    />
+                  </Animated.View>
+                  <Text style={[styles.modalTitle, { color: getTextColor() }]}>
+                    Berhasil!
+                  </Text>
+                  <Text
+                    style={[styles.modalMessage, { color: getMutedColor() }]}
+                  >
+                    Hadiahmu sedang diproses. Cek riwayat atau emailmu secara
+                    berkala ya!
+                  </Text>
                   <AnimatedPress
-                    style={[styles.buttonOutline, { flex: 1, backgroundColor: isDark ? Colors.obsidian[950] : Semantic.background.tertiary }]}
+                    style={[
+                      styles.buttonPrimary,
+                      { width: "100%", marginTop: 10 },
+                    ]}
                     onPress={closeModal}
                   >
-                    <Text style={[styles.buttonOutlineText, { color: getTextColor() }]}>Batal</Text>
+                    <Text style={styles.buttonPrimaryText}>OK, Mengerti</Text>
                   </AnimatedPress>
-                  <AnimatedPress
-                    style={[styles.buttonPrimary, { flex: 1 }]}
-                    onPress={prosesTukar}
+                </>
+              )}
+
+              {modalType === "gagal" && (
+                <>
+                  <View
+                    style={[
+                      styles.modalIconWrapperDanger,
+                      {
+                        backgroundColor: isDark
+                          ? "rgba(239, 68, 68, 0.2)"
+                          : Semantic.danger.light,
+                      },
+                    ]}
                   >
-                    <Text style={styles.buttonPrimaryText}>Tukar</Text>
+                    <MaterialCommunityIcons
+                      name="alert-circle"
+                      size={42}
+                      color={Semantic.danger.main}
+                    />
+                  </View>
+                  <Text style={[styles.modalTitle, { color: getTextColor() }]}>
+                    Poin Belum Cukup
+                  </Text>
+                  <Text
+                    style={[styles.modalMessage, { color: getMutedColor() }]}
+                  >
+                    Kamu butuh{" "}
+                    <Text style={styles.modalHighlightDanger}>
+                      {selectedReward
+                        ? (selectedReward.points - totalPoin).toLocaleString(
+                            "id-ID",
+                          )
+                        : 0}{" "}
+                      poin lagi
+                    </Text>{" "}
+                    untuk menukarkan {selectedReward?.title}.
+                  </Text>
+                  <AnimatedPress
+                    style={[
+                      styles.buttonOutline,
+                      {
+                        width: "100%",
+                        marginTop: 10,
+                        backgroundColor: isDark
+                          ? Colors.obsidian[950]
+                          : Semantic.background.tertiary,
+                      },
+                    ]}
+                    onPress={closeModal}
+                  >
+                    <Text
+                      style={[
+                        styles.buttonOutlineText,
+                        { color: getTextColor() },
+                      ]}
+                    >
+                      Oke, Mengerti
+                    </Text>
                   </AnimatedPress>
-                </View>
-              </>
-            )}
-
-            {modalType === "sukses" && (
-              <>
-                <Animated.View style={[styles.modalIconWrapperSuccess, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.2)' : Semantic.success.light }, checkAnimatedStyle]}>
-                  <MaterialCommunityIcons name="check-decagram" size={48} color={Semantic.success.main} />
-                </Animated.View>
-                <Text style={[styles.modalTitle, { color: getTextColor() }]}>Berhasil!</Text>
-                <Text style={[styles.modalMessage, { color: getMutedColor() }]}>
-                  Hadiahmu sedang diproses. Cek riwayat atau emailmu secara berkala ya!
-                </Text>
-                <AnimatedPress
-                  style={[styles.buttonPrimary, { width: "100%", marginTop: 10 }]}
-                  onPress={closeModal}
-                >
-                  <Text style={styles.buttonPrimaryText}>OK, Mengerti</Text>
-                </AnimatedPress>
-              </>
-            )}
-
-            {modalType === "gagal" && (
-              <>
-                <View style={[styles.modalIconWrapperDanger, { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.2)' : Semantic.danger.light }]}>
-                  <MaterialCommunityIcons name="alert-circle" size={42} color={Semantic.danger.main} />
-                </View>
-                <Text style={[styles.modalTitle, { color: getTextColor() }]}>Poin Belum Cukup</Text>
-                <Text style={[styles.modalMessage, { color: getMutedColor() }]}>
-                  Kamu butuh{" "}
-                  <Text style={styles.modalHighlightDanger}>
-                    {selectedReward
-                      ? (selectedReward.points - totalPoin).toLocaleString("id-ID")
-                      : 0}{" "}
-                    poin lagi
-                  </Text>{" "}
-                  untuk menukarkan {selectedReward?.title}.
-                </Text>
-                <AnimatedPress
-                  style={[styles.buttonOutline, { width: "100%", marginTop: 10, backgroundColor: isDark ? Colors.obsidian[950] : Semantic.background.tertiary }]}
-                  onPress={closeModal}
-                >
-                  <Text style={[styles.buttonOutlineText, { color: getTextColor() }]}>Oke, Mengerti</Text>
-                </AnimatedPress>
-              </>
-            )}
-          </Animated.View>
-        </BlurView>
-      </Animated.View>
-    </Modal>
+                </>
+              )}
+            </Animated.View>
+          </BlurView>
+        </Animated.View>
+      </Modal>
 
       {/* STICKY TOP HEADER */}
-      <View style={[styles.headerContainer, { backgroundColor: isDark ? 'rgba(11, 17, 24, 0.85)' : 'rgba(255, 255, 255, 0.85)', paddingTop: insets.top + Spacing.lg }]}>
-        <BlurView intensity={isDark ? 50 : 80} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
+      <View
+        style={[
+          styles.headerContainer,
+          {
+            backgroundColor: isDark
+              ? "rgba(11, 17, 24, 0.85)"
+              : "rgba(255, 255, 255, 0.85)",
+            paddingTop: insets.top + Spacing.lg,
+          },
+        ]}
+      >
+        <BlurView
+          intensity={isDark ? 50 : 80}
+          tint={isDark ? "dark" : "light"}
+          style={StyleSheet.absoluteFill}
+        />
         <LinearGradient
           colors={Gradients.card}
           start={{ x: 0, y: 0 }}
@@ -400,17 +596,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   blob: {
-    position: 'absolute',
+    position: "absolute",
     width: 300,
     height: 300,
     borderRadius: 150,
-    filter: 'blur(70px)',
+    filter: "blur(70px)",
   },
   headerContainer: {
     paddingHorizontal: Spacing.xl,
     paddingBottom: Spacing.lg,
     borderBottomWidth: 1,
-    borderColor: 'rgba(150,150,150,0.1)',
+    borderColor: "rgba(150,150,150,0.1)",
     zIndex: 10,
   },
   headerGradientCard: {
@@ -447,11 +643,11 @@ const styles = StyleSheet.create({
   coinText: {
     fontFamily: Typography.fontFamily.interBold,
     fontSize: 12,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   headerValue: {
     fontFamily: Typography.fontFamily.primary,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: Typography.size.xxl,
   },
   headerDecoIcon: {
@@ -508,7 +704,7 @@ const styles = StyleSheet.create({
   floatingStockText: {
     fontFamily: Typography.fontFamily.interMedium,
     fontSize: Typography.size.xs,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   cardContent: {
     padding: Spacing.lg,
@@ -538,7 +734,7 @@ const styles = StyleSheet.create({
   coinTextLarge: {
     fontFamily: Typography.fontFamily.interBold,
     fontSize: 12,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   pointText: {
     fontFamily: Typography.fontFamily.interBold,
@@ -628,7 +824,7 @@ const styles = StyleSheet.create({
   },
   buttonPrimaryText: {
     fontFamily: Typography.fontFamily.primary,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: Typography.size.base,
   },
   buttonOutline: {

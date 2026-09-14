@@ -1,23 +1,37 @@
+import { AnimatedPress } from "@/components/ui/animated-press";
 import {
   BorderRadius,
   Colors,
   Semantic,
-  Shadows,
   Spacing,
-  Typography,
+  Typography
 } from "@/constants/theme";
-import { AnimatedPress } from "@/components/ui/animated-press";
 import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
-import { FlatList, StyleSheet, Text, View, useColorScheme, Linking } from "react-native";
+import {
+  FlatList,
+  Linking,
+  StyleSheet,
+  Text,
+  View,
+  useColorScheme,
+} from "react-native";
 import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { db } from "../firebaseConfig";
-import { collection, query, where, orderBy, onSnapshot, updateDoc, doc } from "firebase/firestore";
-import { useAuth } from "../AuthContext";
 import { SkeletonListItem } from "@/components/ui/skeleton";
+import {
+  collection,
+  doc,
+  onSnapshot,
+  orderBy,
+  query,
+  updateDoc,
+  where,
+} from "firebase/firestore";
+import { useAuth } from "../AuthContext";
+import { db } from "../firebaseConfig";
 
 // ── Types ──────────────────────────────────────────────
 interface NotificationItem {
@@ -35,17 +49,24 @@ interface NotificationItem {
 export default function NotificationsScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
-  
+
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const getBgColor = () => isDark ? Semantic.background.dark : Semantic.background.secondary;
-  const getCardBg = () => isDark ? Colors.obsidian[800] : Semantic.background.primary;
-  const getTextColor = () => isDark ? Semantic.text.light : Semantic.text.primary;
-  const getMutedColor = () => isDark ? Colors.obsidian[400] : Semantic.text.secondary;
-  const getBorderColor = () => isDark ? Colors.obsidian[800] : Semantic.border.light;
+  const getBgColor = () =>
+    isDark ? Semantic.background.dark : Semantic.background.secondary;
+  const getCardBg = () =>
+    isDark ? Colors.obsidian[800] : Semantic.background.primary;
+  const getTextColor = () =>
+    isDark ? Semantic.text.light : Semantic.text.primary;
+  const getMutedColor = () =>
+    isDark ? Colors.obsidian[400] : Semantic.text.secondary;
+  const getBorderColor = () =>
+    isDark ? Colors.obsidian[800] : Semantic.border.light;
 
-  const [notifications, setNotifications] = React.useState<NotificationItem[]>([]);
+  const [notifications, setNotifications] = React.useState<NotificationItem[]>(
+    [],
+  );
   const [loading, setLoading] = React.useState(true);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
 
@@ -56,20 +77,24 @@ export default function NotificationsScreen() {
       const q = query(
         collection(db, "Notifications"),
         where("user", "==", user.uid),
-        orderBy("time", "desc")
+        orderBy("time", "desc"),
       );
 
-      const unsub = onSnapshot(q, (snapshot) => {
-        const data: NotificationItem[] = [];
-        snapshot.forEach((doc) => {
-          data.push({ id: doc.id, ...doc.data() } as NotificationItem);
-        });
-        setNotifications(data);
-        setLoading(false);
-      }, (err) => {
-        setErrorMsg(err.message);
-        setLoading(false);
-      });
+      const unsub = onSnapshot(
+        q,
+        (snapshot) => {
+          const data: NotificationItem[] = [];
+          snapshot.forEach((doc) => {
+            data.push({ id: doc.id, ...doc.data() } as NotificationItem);
+          });
+          setNotifications(data);
+          setLoading(false);
+        },
+        (err) => {
+          setErrorMsg(err.message);
+          setLoading(false);
+        },
+      );
 
       return () => unsub();
     } catch (err: any) {
@@ -79,7 +104,8 @@ export default function NotificationsScreen() {
   }, []);
 
   const formatTime = (timestamp: any) => {
-    if (!timestamp || typeof timestamp.toDate !== 'function') return "Baru saja";
+    if (!timestamp || typeof timestamp.toDate !== "function")
+      return "Baru saja";
     try {
       const date = timestamp.toDate();
       const now = new Date();
@@ -100,11 +126,16 @@ export default function NotificationsScreen() {
 
   const getColorHex = (colorType: string) => {
     switch (colorType) {
-      case "success": return Semantic.success.main;
-      case "warning": return Semantic.warning.main;
-      case "primary": return Semantic.primary.main;
-      case "danger": return Semantic.danger.main;
-      default: return Semantic.primary.main;
+      case "success":
+        return Semantic.success.main;
+      case "warning":
+        return Semantic.warning.main;
+      case "primary":
+        return Semantic.primary.main;
+      case "danger":
+        return Semantic.danger.main;
+      default:
+        return Semantic.primary.main;
     }
   };
 
@@ -128,9 +159,15 @@ export default function NotificationsScreen() {
     const hexColor = getColorHex(item.color_type);
     return (
       <Animated.View entering={FadeInRight.delay(index * 80).duration(400)}>
-        <AnimatedPress style={[styles.card, { backgroundColor: getCardBg() }]} haptic={false} onPress={() => handlePress(item)}>
+        <AnimatedPress
+          style={[styles.card, { backgroundColor: getCardBg() }]}
+          haptic={false}
+          onPress={() => handlePress(item)}
+        >
           {/* Unread accent bar */}
-          {item.unread && <View style={[styles.unreadBar, { backgroundColor: hexColor }]} />}
+          {item.unread && (
+            <View style={[styles.unreadBar, { backgroundColor: hexColor }]} />
+          )}
 
           {/* Icon */}
           <View
@@ -139,25 +176,36 @@ export default function NotificationsScreen() {
               { backgroundColor: isDark ? `${hexColor}20` : `${hexColor}15` },
             ]}
           >
-            <FontAwesome
-              name={item.icon as any}
-              size={20}
-              color={hexColor}
-            />
+            <FontAwesome name={item.icon as any} size={20} color={hexColor} />
           </View>
 
           {/* Content */}
           <View style={styles.textContainer}>
             <View style={styles.titleRow}>
-              <Text style={[styles.title, { color: getTextColor() }]} numberOfLines={1}>
+              <Text
+                style={[styles.title, { color: getTextColor() }]}
+                numberOfLines={1}
+              >
                 {item.title}
               </Text>
-              {item.unread && <View style={[styles.unreadDot, { backgroundColor: hexColor }]} />}
+              {item.unread && (
+                <View
+                  style={[styles.unreadDot, { backgroundColor: hexColor }]}
+                />
+              )}
             </View>
-            <Text style={[styles.desc, { color: getMutedColor() }]} numberOfLines={2}>
+            <Text
+              style={[styles.desc, { color: getMutedColor() }]}
+              numberOfLines={2}
+            >
               {item.desc}
             </Text>
-            <Text style={[styles.time, { color: isDark ? Colors.obsidian[500] : Semantic.text.muted }]}>
+            <Text
+              style={[
+                styles.time,
+                { color: isDark ? Colors.obsidian[500] : Semantic.text.muted },
+              ]}
+            >
               {formatTime(item.time)}
             </Text>
           </View>
@@ -171,16 +219,28 @@ export default function NotificationsScreen() {
       entering={FadeInDown.delay(200).duration(400)}
       style={styles.emptyState}
     >
-      <View style={[styles.emptyIconContainer, { backgroundColor: isDark ? Colors.obsidian[800] : Semantic.background.primary }]}>
+      <View
+        style={[
+          styles.emptyIconContainer,
+          {
+            backgroundColor: isDark
+              ? Colors.obsidian[800]
+              : Semantic.background.primary,
+          },
+        ]}
+      >
         <MaterialCommunityIcons
           name="bell-off-outline"
           size={48}
           color={getMutedColor()}
         />
       </View>
-      <Text style={[styles.emptyTitle, { color: getTextColor() }]}>Belum Ada Notifikasi</Text>
+      <Text style={[styles.emptyTitle, { color: getTextColor() }]}>
+        Belum Ada Notifikasi
+      </Text>
       <Text style={[styles.emptyDesc, { color: getMutedColor() }]}>
-        Notifikasi tentang poin masuk, promo reward, dan status mesin akan muncul di sini.
+        Notifikasi tentang poin masuk, promo reward, dan status mesin akan
+        muncul di sini.
       </Text>
     </Animated.View>
   );
@@ -190,40 +250,73 @@ export default function NotificationsScreen() {
       {/* Header */}
       <Animated.View
         entering={FadeInDown.duration(300)}
-        style={[styles.header, { 
-          paddingTop: insets.top + Spacing.sm,
-          backgroundColor: getBgColor(),
-          borderBottomColor: getBorderColor()
-        }]}
+        style={[
+          styles.header,
+          {
+            paddingTop: insets.top + Spacing.sm,
+            backgroundColor: getBgColor(),
+            borderBottomColor: getBorderColor(),
+          },
+        ]}
       >
         <AnimatedPress
           onPress={() => router.back()}
-          style={[styles.backButton, { backgroundColor: isDark ? Colors.obsidian[800] : Semantic.background.primary }]}
+          style={[
+            styles.backButton,
+            {
+              backgroundColor: isDark
+                ? Colors.obsidian[800]
+                : Semantic.background.primary,
+            },
+          ]}
         >
-          <FontAwesome
-            name="arrow-left"
-            size={18}
-            color={getTextColor()}
-          />
+          <FontAwesome name="arrow-left" size={18} color={getTextColor()} />
         </AnimatedPress>
-        <Text style={[styles.headerTitle, { color: getTextColor() }]}>Notifikasi</Text>
+        <Text style={[styles.headerTitle, { color: getTextColor() }]}>
+          Notifikasi
+        </Text>
         <View style={{ width: 40 }} />
       </Animated.View>
 
       {/* List */}
       {errorMsg ? (
         <View style={styles.emptyState}>
-          <Text style={[styles.emptyTitle, { color: Semantic.danger.main }]}>Terjadi Kesalahan</Text>
-          <Text selectable style={[styles.emptyDesc, { color: getMutedColor(), paddingHorizontal: 20 }]}>{errorMsg}</Text>
+          <Text style={[styles.emptyTitle, { color: Semantic.danger.main }]}>
+            Terjadi Kesalahan
+          </Text>
+          <Text
+            selectable
+            style={[
+              styles.emptyDesc,
+              { color: getMutedColor(), paddingHorizontal: 20 },
+            ]}
+          >
+            {errorMsg}
+          </Text>
           {errorMsg.includes("https://console.firebase") && (
-            <AnimatedPress 
-              style={[styles.backButton, { width: 'auto', paddingHorizontal: 20, marginTop: 20, backgroundColor: Semantic.primary.main }]} 
+            <AnimatedPress
+              style={[
+                styles.backButton,
+                {
+                  width: "auto",
+                  paddingHorizontal: 20,
+                  marginTop: 20,
+                  backgroundColor: Semantic.primary.main,
+                },
+              ]}
               onPress={() => {
                 const urlMatch = errorMsg.match(/(https:\/\/[^\s]+)/);
                 if (urlMatch) Linking.openURL(urlMatch[0]);
               }}
             >
-              <Text style={{ color: '#FFF', fontFamily: Typography.fontFamily.primary }}>Buka Link Firebase</Text>
+              <Text
+                style={{
+                  color: "#FFF",
+                  fontFamily: Typography.fontFamily.primary,
+                }}
+              >
+                Buka Link Firebase
+              </Text>
             </AnimatedPress>
           )}
         </View>

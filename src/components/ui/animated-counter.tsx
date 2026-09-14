@@ -1,11 +1,11 @@
 import { useEffect } from "react";
-import { StyleSheet, Text, type TextStyle } from "react-native";
+import { Text } from "react-native";
 import Animated, {
+  Easing,
   useAnimatedProps,
+  useDerivedValue,
   useSharedValue,
   withTiming,
-  Easing,
-  useDerivedValue,
 } from "react-native-reanimated";
 
 const AnimatedText = Animated.createAnimatedComponent(Text);
@@ -13,7 +13,7 @@ const AnimatedText = Animated.createAnimatedComponent(Text);
 interface AnimatedCounterProps {
   value: number;
   duration?: number;
-  style?: import('react-native').StyleProp<import('react-native').TextStyle>;
+  style?: import("react-native").StyleProp<import("react-native").TextStyle>;
   prefix?: string;
   suffix?: string;
   separator?: boolean;
@@ -66,7 +66,9 @@ export function AnimatedCounter({
         text = "0";
       } else {
         while (n > 0) {
-          parts.unshift(String(n % 1000).padStart(parts.length > 0 ? 3 : 1, "0"));
+          parts.unshift(
+            String(n % 1000).padStart(parts.length > 0 ? 3 : 1, "0"),
+          );
           n = Math.floor(n / 1000);
         }
         text = parts.join(".");

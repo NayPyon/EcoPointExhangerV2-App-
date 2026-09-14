@@ -1,3 +1,4 @@
+import { BorderRadius, Components, Shadows } from "@/constants/theme";
 import { BlurView } from "expo-blur";
 import React from "react";
 import {
@@ -7,7 +8,6 @@ import {
   type ViewProps,
   type ViewStyle,
 } from "react-native";
-import { BorderRadius, Components, Shadows } from "@/constants/theme";
 
 interface GlassCardProps extends ViewProps {
   children: React.ReactNode;
@@ -30,19 +30,12 @@ export function GlassCard({
   dark = false,
   ...rest
 }: GlassCardProps) {
-  const bgColor = dark
-    ? Components.glass.bg
-    : Components.glass.bgStrong;
+  const bgColor = dark ? Components.glass.bg : Components.glass.bgStrong;
 
   if (Platform.OS === "ios") {
     return (
       <View
-        style={[
-          styles.wrapper,
-          { borderRadius },
-          Shadows.md,
-          style,
-        ]}
+        style={[styles.wrapper, { borderRadius }, Shadows.md, style]}
         {...rest}
       >
         <BlurView

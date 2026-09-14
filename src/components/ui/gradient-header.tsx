@@ -1,8 +1,8 @@
+import { Gradients, Spacing } from "@/constants/theme";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { StyleSheet, View, type ViewStyle } from "react-native";
+import { StyleSheet, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Gradients, Spacing } from "@/constants/theme";
 
 interface GradientHeaderProps {
   children: React.ReactNode;

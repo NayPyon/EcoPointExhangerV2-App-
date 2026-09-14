@@ -1,48 +1,51 @@
+import { AnimatedCounter } from "@/components/ui/animated-counter";
+import { AnimatedPress } from "@/components/ui/animated-press";
 import {
-  AnimConfig,
   BorderRadius,
   Colors,
-  Components,
   Gradients,
   Semantic,
   Shadows,
   Spacing,
-  Typography,
+  Typography
 } from "@/constants/theme";
 import { useAuth } from "../../AuthContext";
-import { AnimatedPress } from "@/components/ui/animated-press";
-import { AnimatedCounter } from "@/components/ui/animated-counter";
 
 import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
-import { doc, onSnapshot, serverTimestamp, setDoc, addDoc, collection } from "firebase/firestore";
-import React, { useEffect, useRef, useState } from "react";
+import { BlurView } from "expo-blur";
 import {
+  addDoc,
+  collection,
+  doc,
+  onSnapshot,
+  serverTimestamp,
+  setDoc,
+} from "firebase/firestore";
+import { useEffect, useRef, useState } from "react";
+import {
+  Linking,
   Modal,
   StyleSheet,
   Text,
   View,
   useColorScheme,
-  Linking,
 } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { db } from "../../firebaseConfig";
-import { BlurView } from "expo-blur";
 
 import * as Haptics from "expo-haptics";
-import { router, useFocusEffect } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
+import { router, useFocusEffect } from "expo-router";
 import Animated, {
   FadeInDown,
   FadeInUp,
-  FadeIn,
-  withRepeat,
-  withSpring,
-  withTiming,
   useAnimatedStyle,
   useSharedValue,
+  withRepeat,
   withSequence,
+  withTiming
 } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ExchangeScreen() {
   const { user } = useAuth();
@@ -50,7 +53,7 @@ export default function ExchangeScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const isFocusedRef = useRef(true);
-  
+
   const [qrToken, setQrToken] = useState("ECO-SESSION-INITIAL");
   const [timeLeft, setTimeLeft] = useState(60);
 
@@ -64,10 +67,12 @@ export default function ExchangeScreen() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [isMesinAktif, setIsMesinAktif] = useState(true);
 
-  const getBgColor = () => isDark ? Semantic.background.dark : Semantic.background.secondary;
-  const getCardBg = () => isDark ? Colors.obsidian[800] : "#FFFFFF";
-  const getTextColor = () => isDark ? "#FFFFFF" : Colors.obsidian[900];
-  const getMutedColor = () => isDark ? Colors.obsidian[400] : Colors.obsidian[500];
+  const getBgColor = () =>
+    isDark ? Semantic.background.dark : Semantic.background.secondary;
+  const getCardBg = () => (isDark ? Colors.obsidian[800] : "#FFFFFF");
+  const getTextColor = () => (isDark ? "#FFFFFF" : Colors.obsidian[900]);
+  const getMutedColor = () =>
+    isDark ? Colors.obsidian[400] : Colors.obsidian[500];
 
   // Animation Values
   const pulseOpacity = useSharedValue(0.5);
@@ -78,18 +83,18 @@ export default function ExchangeScreen() {
     pulseOpacity.value = withRepeat(
       withSequence(
         withTiming(1, { duration: 1000 }),
-        withTiming(0.5, { duration: 1000 })
+        withTiming(0.5, { duration: 1000 }),
       ),
       -1,
-      true
+      true,
     );
     pulseScale.value = withRepeat(
       withSequence(
         withTiming(1.05, { duration: 1500 }),
-        withTiming(1, { duration: 1500 })
+        withTiming(1, { duration: 1500 }),
       ),
       -1,
-      true
+      true,
     );
   }, []);
 
@@ -99,7 +104,7 @@ export default function ExchangeScreen() {
   const pulseIconStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pulseScale.value }],
   }));
-  
+
   const checkStyle = useAnimatedStyle(() => ({
     transform: [{ scale: checkScale.value }],
   }));
@@ -128,9 +133,11 @@ export default function ExchangeScreen() {
       if (docSnap.exists()) {
         const data = docSnap.data();
         if (data.status) setStatusSesi(data.status);
-        if (data.botol_plastik !== undefined) setJumlahPlastik(data.botol_plastik);
+        if (data.botol_plastik !== undefined)
+          setJumlahPlastik(data.botol_plastik);
         if (data.botol_logam !== undefined) setJumlahLogam(data.botol_logam);
-        if (data.sampah_reject !== undefined) setJumlahReject(data.sampah_reject);
+        if (data.sampah_reject !== undefined)
+          setJumlahReject(data.sampah_reject);
       }
     });
     return () => unsub();
@@ -239,7 +246,8 @@ export default function ExchangeScreen() {
     const timer = setInterval(() => {
       setTimeLeft((prevTime) => {
         if (prevTime <= 1) {
-          const randomCode = "ECO-" + Math.floor(10000000 + Math.random() * 90000000);
+          const randomCode =
+            "ECO-" + Math.floor(10000000 + Math.random() * 90000000);
           setQrToken(randomCode);
           setDoc(
             doc(db, "Sesi_Aktif", user!.uid),
@@ -267,89 +275,238 @@ export default function ExchangeScreen() {
   const totalSemuaSampah = jumlahPlastik + jumlahLogam + jumlahReject;
 
   return (
-    <View style={[styles.container, { backgroundColor: getBgColor(), paddingTop: insets.top + Spacing.xl, paddingBottom: insets.bottom + 82 }]}>
-      
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: getBgColor(),
+          paddingTop: insets.top + Spacing.xl,
+          paddingBottom: insets.bottom + 82,
+        },
+      ]}
+    >
       {/* Background Blobs for ambiance */}
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
-         <View style={[styles.blob, { top: -100, right: -100, backgroundColor: isDark ? 'rgba(16, 185, 129, 0.35)' : 'rgba(16, 185, 129, 0.25)' }]} />
-         <View style={[styles.blob, { bottom: 100, left: -100, backgroundColor: isDark ? 'rgba(245, 158, 11, 0.25)' : 'rgba(245, 158, 11, 0.25)' }]} />
+        <View
+          style={[
+            styles.blob,
+            {
+              top: -100,
+              right: -100,
+              backgroundColor: isDark
+                ? "rgba(16, 185, 129, 0.35)"
+                : "rgba(16, 185, 129, 0.25)",
+            },
+          ]}
+        />
+        <View
+          style={[
+            styles.blob,
+            {
+              bottom: 100,
+              left: -100,
+              backgroundColor: isDark
+                ? "rgba(245, 158, 11, 0.25)"
+                : "rgba(245, 158, 11, 0.25)",
+            },
+          ]}
+        />
       </View>
 
       <Modal visible={showCelebration} transparent={true} animationType="fade">
-        <BlurView intensity={isDark ? 50 : 80} tint={isDark ? "dark" : "light"} style={styles.modalCelebrationBg}>
-          <Animated.View entering={FadeInUp} style={[styles.celebrationCard, { backgroundColor: getCardBg() }]}>
+        <BlurView
+          intensity={isDark ? 50 : 80}
+          tint={isDark ? "dark" : "light"}
+          style={styles.modalCelebrationBg}
+        >
+          <Animated.View
+            entering={FadeInUp}
+            style={[styles.celebrationCard, { backgroundColor: getCardBg() }]}
+          >
             <Animated.View style={checkStyle}>
               <View style={styles.checkIconWrapper}>
                 <FontAwesome name="check" size={50} color="#FFFFFF" />
               </View>
             </Animated.View>
-            <Text style={[styles.celebrationTitle, { color: getTextColor() }]}>Transaksi Berhasil!</Text>
-            
-            <View style={{ marginVertical: Spacing.xl, alignItems: 'center' }}>
-               <Text style={{ fontFamily: Typography.fontFamily.medium, fontSize: Typography.size.sm, color: getMutedColor() }}>Poin Didapatkan</Text>
-               <Text style={{ fontFamily: Typography.fontFamily.primary, fontSize: 36, color: Semantic.warning.main, marginVertical: 4 }}>
-                 +{totalSemuaPoin}
-               </Text>
-               <Text style={{ fontFamily: Typography.fontFamily.medium, fontSize: Typography.size.sm, color: Semantic.success.main }}>
-                 {totalSemuaSampah - jumlahReject} Item Berhasil Didaur Ulang
-               </Text>
+            <Text style={[styles.celebrationTitle, { color: getTextColor() }]}>
+              Transaksi Berhasil!
+            </Text>
+
+            <View style={{ marginVertical: Spacing.xl, alignItems: "center" }}>
+              <Text
+                style={{
+                  fontFamily: Typography.fontFamily.medium,
+                  fontSize: Typography.size.sm,
+                  color: getMutedColor(),
+                }}
+              >
+                Poin Didapatkan
+              </Text>
+              <Text
+                style={{
+                  fontFamily: Typography.fontFamily.primary,
+                  fontSize: 36,
+                  color: Semantic.warning.main,
+                  marginVertical: 4,
+                }}
+              >
+                +{totalSemuaPoin}
+              </Text>
+              <Text
+                style={{
+                  fontFamily: Typography.fontFamily.medium,
+                  fontSize: Typography.size.sm,
+                  color: Semantic.success.main,
+                }}
+              >
+                {totalSemuaSampah - jumlahReject} Item Berhasil Didaur Ulang
+              </Text>
             </View>
 
             <Text style={[styles.celebrationSub, { color: getMutedColor() }]}>
-              Mesin telah ditutup. Terima kasih sudah mengambil peran nyata untuk bumi hari ini!
+              Mesin telah ditutup. Terima kasih sudah mengambil peran nyata
+              untuk bumi hari ini!
             </Text>
           </Animated.View>
         </BlurView>
       </Modal>
 
-      <Text style={[styles.headerTitle, { color: getTextColor() }]}>Tukar Sampah</Text>
+      <Text style={[styles.headerTitle, { color: getTextColor() }]}>
+        Tukar Sampah
+      </Text>
 
       {/* STAGE IDLE */}
       {!showQR && statusSesi !== "pintu_terbuka" && (
-        <Animated.View entering={FadeInDown.duration(400)} style={styles.contentWrapper}>
-          
-          <View style={[styles.bentoCard, { backgroundColor: getCardBg(), marginBottom: Spacing.xl }]}>
+        <Animated.View
+          entering={FadeInDown.duration(400)}
+          style={styles.contentWrapper}
+        >
+          <View
+            style={[
+              styles.bentoCard,
+              { backgroundColor: getCardBg(), marginBottom: Spacing.xl },
+            ]}
+          >
             <View style={styles.statusHeaderRow}>
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-                 <View style={[styles.iconCircle, { backgroundColor: isMesinAktif ? Colors.emerald[50] : Colors.red[50] }]}>
-                   <MaterialCommunityIcons name="recycle-variant" size={24} color={isMesinAktif ? Semantic.success.main : Semantic.danger.main} />
-                 </View>
-                 <View style={{ marginLeft: Spacing.md, flex: 1 }}>
-                    <Text style={[styles.bentoLabel, { color: getMutedColor() }]}>RVM Terdekat</Text>
-                    <Text style={[styles.statusTitle, { color: getTextColor(), marginBottom: 4 }]}>
-                      EcoRVM - Margonda
-                    </Text>
-                    <Text style={{ fontFamily: Typography.fontFamily.inter, fontSize: 13, color: getMutedColor(), lineHeight: 18 }}>
-                      Jl. Margonda Raya No.1, Depok
-                    </Text>
-                 </View>
+              <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
+                <View
+                  style={[
+                    styles.iconCircle,
+                    {
+                      backgroundColor: isMesinAktif
+                        ? Colors.emerald[50]
+                        : Colors.red[50],
+                    },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="recycle-variant"
+                    size={24}
+                    color={
+                      isMesinAktif
+                        ? Semantic.success.main
+                        : Semantic.danger.main
+                    }
+                  />
+                </View>
+                <View style={{ marginLeft: Spacing.md, flex: 1 }}>
+                  <Text style={[styles.bentoLabel, { color: getMutedColor() }]}>
+                    RVM Terdekat
+                  </Text>
+                  <Text
+                    style={[
+                      styles.statusTitle,
+                      { color: getTextColor(), marginBottom: 4 },
+                    ]}
+                  >
+                    EcoRVM - Margonda
+                  </Text>
+                  <Text
+                    style={{
+                      fontFamily: Typography.fontFamily.inter,
+                      fontSize: 13,
+                      color: getMutedColor(),
+                      lineHeight: 18,
+                    }}
+                  >
+                    Jl. Margonda Raya No.1, Depok
+                  </Text>
+                </View>
               </View>
             </View>
-            
+
             <View style={styles.statusIndicatorRow}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                  <Animated.View style={[styles.dotIndicator, isMesinAktif && pulseStyle, { backgroundColor: isMesinAktif ? Semantic.success.main : Semantic.danger.main }]} />
-                  <Text style={{ fontFamily: Typography.fontFamily.medium, fontSize: 13, color: isMesinAktif ? Semantic.success.main : Semantic.danger.main }}>
-                    {isMesinAktif ? "Status: Tersedia" : "Offline"}
-                  </Text>
-                  
-                  <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: getMutedColor(), marginHorizontal: 8 }} />
-                  <FontAwesome name="map-marker" size={12} color={getMutedColor()} />
-                  <Text style={{ fontFamily: Typography.fontFamily.medium, fontSize: 13, color: getMutedColor(), marginLeft: 4 }}>1.2 km</Text>
-                </View>
-                
-                <AnimatedPress 
-                  style={styles.routeButton} 
-                  onPress={() => {
-                     // Coordinate placeholder for RVM Margonda
-                     const lat = -6.373111; 
-                     const lng = 106.834460;
-                     Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`);
+              <View
+                style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
+              >
+                <Animated.View
+                  style={[
+                    styles.dotIndicator,
+                    isMesinAktif && pulseStyle,
+                    {
+                      backgroundColor: isMesinAktif
+                        ? Semantic.success.main
+                        : Semantic.danger.main,
+                    },
+                  ]}
+                />
+                <Text
+                  style={{
+                    fontFamily: Typography.fontFamily.medium,
+                    fontSize: 13,
+                    color: isMesinAktif
+                      ? Semantic.success.main
+                      : Semantic.danger.main,
                   }}
                 >
-                   <FontAwesome name="location-arrow" size={12} color="#FFFFFF" style={{ marginRight: 4 }} />
-                   <Text style={styles.routeButtonText}>Rute</Text>
-                </AnimatedPress>
+                  {isMesinAktif ? "Status: Tersedia" : "Offline"}
+                </Text>
+
+                <View
+                  style={{
+                    width: 4,
+                    height: 4,
+                    borderRadius: 2,
+                    backgroundColor: getMutedColor(),
+                    marginHorizontal: 8,
+                  }}
+                />
+                <FontAwesome
+                  name="map-marker"
+                  size={12}
+                  color={getMutedColor()}
+                />
+                <Text
+                  style={{
+                    fontFamily: Typography.fontFamily.medium,
+                    fontSize: 13,
+                    color: getMutedColor(),
+                    marginLeft: 4,
+                  }}
+                >
+                  1.2 km
+                </Text>
+              </View>
+
+              <AnimatedPress
+                style={styles.routeButton}
+                onPress={() => {
+                  // Coordinate placeholder for RVM Margonda
+                  const lat = -6.373111;
+                  const lng = 106.83446;
+                  Linking.openURL(
+                    `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
+                  );
+                }}
+              >
+                <FontAwesome
+                  name="location-arrow"
+                  size={12}
+                  color="#FFFFFF"
+                  style={{ marginRight: 4 }}
+                />
+                <Text style={styles.routeButtonText}>Rute</Text>
+              </AnimatedPress>
             </View>
           </View>
 
@@ -359,23 +516,51 @@ export default function ExchangeScreen() {
             disabled={!isMesinAktif}
           >
             <LinearGradient
-              colors={isMesinAktif ? Gradients.success : [isDark ? Colors.obsidian[800] : Colors.neutral[200], isDark ? Colors.obsidian[800] : Colors.neutral[200]]}
+              colors={
+                isMesinAktif
+                  ? Gradients.success
+                  : [
+                      isDark ? Colors.obsidian[800] : Colors.neutral[200],
+                      isDark ? Colors.obsidian[800] : Colors.neutral[200],
+                    ]
+              }
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.promoBanner}
             >
               <View style={styles.bannerTextContainer}>
-                <Text style={[styles.bannerTitle, !isMesinAktif && { color: getTextColor() }]}>
+                <Text
+                  style={[
+                    styles.bannerTitle,
+                    !isMesinAktif && { color: getTextColor() },
+                  ]}
+                >
                   Buka Pintu RVM
                 </Text>
-                <Text style={[styles.bannerSubtitle, !isMesinAktif && { color: getMutedColor() }]}>
+                <Text
+                  style={[
+                    styles.bannerSubtitle,
+                    !isMesinAktif && { color: getMutedColor() },
+                  ]}
+                >
                   {isMesinAktif
                     ? "Tekan untuk memunculkan QR Code pemindaian."
                     : "Tidak dapat menukar saat mesin offline."}
                 </Text>
               </View>
               <Animated.View style={isMesinAktif ? pulseIconStyle : undefined}>
-                <View style={[styles.iconCircleLg, { backgroundColor: isMesinAktif ? "rgba(255,255,255,0.2)" : (isDark ? Colors.obsidian[700] : Colors.neutral[300]) }]}>
+                <View
+                  style={[
+                    styles.iconCircleLg,
+                    {
+                      backgroundColor: isMesinAktif
+                        ? "rgba(255,255,255,0.2)"
+                        : isDark
+                          ? Colors.obsidian[700]
+                          : Colors.neutral[300],
+                    },
+                  ]}
+                >
                   <FontAwesome
                     name="qrcode"
                     size={40}
@@ -390,12 +575,29 @@ export default function ExchangeScreen() {
 
       {/* STAGE QR (menunggu_mesin) */}
       {showQR && statusSesi === "menunggu_mesin" && (
-        <Animated.View entering={FadeInDown.duration(400)} style={styles.contentWrapper}>
+        <Animated.View
+          entering={FadeInDown.duration(400)}
+          style={styles.contentWrapper}
+        >
           <Text style={[styles.subtitle, { color: getMutedColor() }]}>
             Arahkan layar HP Anda ke pemindai di mesin RVM.
           </Text>
-          <View style={[styles.bentoCard, { backgroundColor: getCardBg(), alignItems: 'center', padding: Spacing.xxl }]}>
-            <View style={[styles.qrInner, { backgroundColor: "#FFFFFF", borderColor: "#FFFFFF" }]}>
+          <View
+            style={[
+              styles.bentoCard,
+              {
+                backgroundColor: getCardBg(),
+                alignItems: "center",
+                padding: Spacing.xxl,
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.qrInner,
+                { backgroundColor: "#FFFFFF", borderColor: "#FFFFFF" },
+              ]}
+            >
               <QRCode
                 value={qrToken}
                 size={220}
@@ -403,28 +605,69 @@ export default function ExchangeScreen() {
                 backgroundColor="#FFFFFF"
               />
             </View>
-            
-            <Text style={[styles.bentoLabel, { color: getMutedColor(), marginTop: Spacing.lg }]}>Kode Sesi</Text>
-            <Text style={[styles.tokenText, { color: getTextColor() }]}>{qrToken}</Text>
-            
-            <View style={[styles.timerPill, timeLeft <= 10 && styles.timerPillDanger]}>
+
+            <Text
+              style={[
+                styles.bentoLabel,
+                { color: getMutedColor(), marginTop: Spacing.lg },
+              ]}
+            >
+              Kode Sesi
+            </Text>
+            <Text style={[styles.tokenText, { color: getTextColor() }]}>
+              {qrToken}
+            </Text>
+
+            <View
+              style={[
+                styles.timerPill,
+                timeLeft <= 10 && styles.timerPillDanger,
+              ]}
+            >
               <FontAwesome
                 name="clock-o"
                 size={16}
                 color={timeLeft <= 10 ? "#FFFFFF" : Semantic.warning.main}
               />
-              <Text style={[styles.timerText, timeLeft <= 10 && { color: "#FFFFFF" }]}>
+              <Text
+                style={[
+                  styles.timerText,
+                  timeLeft <= 10 && { color: "#FFFFFF" },
+                ]}
+              >
                 Perbarui dalam {timeLeft}s
               </Text>
             </View>
 
             <View style={styles.actionRow}>
-              <AnimatedPress style={styles.btnPrimary} onPress={handleManualRefresh}>
-                <FontAwesome name="refresh" size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
+              <AnimatedPress
+                style={styles.btnPrimary}
+                onPress={handleManualRefresh}
+              >
+                <FontAwesome
+                  name="refresh"
+                  size={16}
+                  color="#FFFFFF"
+                  style={{ marginRight: 8 }}
+                />
                 <Text style={styles.btnPrimaryText}>Segarkan</Text>
               </AnimatedPress>
-              <AnimatedPress style={[styles.btnOutline, { borderColor: isDark ? Colors.obsidian[700] : Colors.neutral[200] }]} onPress={batalkanSesi}>
-                <Text style={[styles.btnOutlineText, { color: getTextColor() }]}>Batal</Text>
+              <AnimatedPress
+                style={[
+                  styles.btnOutline,
+                  {
+                    borderColor: isDark
+                      ? Colors.obsidian[700]
+                      : Colors.neutral[200],
+                  },
+                ]}
+                onPress={batalkanSesi}
+              >
+                <Text
+                  style={[styles.btnOutlineText, { color: getTextColor() }]}
+                >
+                  Batal
+                </Text>
               </AnimatedPress>
             </View>
           </View>
@@ -433,60 +676,183 @@ export default function ExchangeScreen() {
 
       {/* STAGE PINTU TERBUKA */}
       {statusSesi === "pintu_terbuka" && (
-        <Animated.View entering={FadeInUp.duration(500)} style={styles.contentWrapper}>
+        <Animated.View
+          entering={FadeInUp.duration(500)}
+          style={styles.contentWrapper}
+        >
           <Text style={[styles.subtitle, { color: getMutedColor() }]}>
             Mesin terbuka. Masukkan sampah Anda perlahan.
           </Text>
-          
-          <View style={[styles.bentoCard, { backgroundColor: getCardBg(), padding: Spacing.xl, width: '100%', alignItems: 'center' }]}>
+
+          <View
+            style={[
+              styles.bentoCard,
+              {
+                backgroundColor: getCardBg(),
+                padding: Spacing.xl,
+                width: "100%",
+                alignItems: "center",
+              },
+            ]}
+          >
             <Animated.View style={pulseIconStyle}>
-               <View style={[styles.iconCircleLg, { backgroundColor: Colors.emerald[50], marginBottom: Spacing.md }]}>
-                  <FontAwesome name="unlock-alt" size={40} color={Semantic.success.main} />
-               </View>
+              <View
+                style={[
+                  styles.iconCircleLg,
+                  {
+                    backgroundColor: Colors.emerald[50],
+                    marginBottom: Spacing.md,
+                  },
+                ]}
+              >
+                <FontAwesome
+                  name="unlock-alt"
+                  size={40}
+                  color={Semantic.success.main}
+                />
+              </View>
             </Animated.View>
-            <Text style={[styles.doorOpenText, { color: getTextColor() }]}>Memindai Item...</Text>
+            <Text style={[styles.doorOpenText, { color: getTextColor() }]}>
+              Memindai Item...
+            </Text>
 
             {/* Grid for Items */}
             <View style={styles.statsRow}>
-              <View style={[styles.bentoBoxSmall, { backgroundColor: isDark ? Colors.obsidian[950] : Colors.neutral[50] }]}>
-                <Text style={[styles.bentoBoxLabel, { color: getMutedColor() }]}>Plastik</Text>
-                <AnimatedCounter value={jumlahPlastik} style={[styles.bentoBoxValue, { color: Semantic.primary.main }]} />
-                <Text style={{ fontFamily: Typography.fontFamily.medium, fontSize: 12, color: Semantic.primary.main }}>+{poinPlastik} pts</Text>
+              <View
+                style={[
+                  styles.bentoBoxSmall,
+                  {
+                    backgroundColor: isDark
+                      ? Colors.obsidian[950]
+                      : Colors.neutral[50],
+                  },
+                ]}
+              >
+                <Text
+                  style={[styles.bentoBoxLabel, { color: getMutedColor() }]}
+                >
+                  Plastik
+                </Text>
+                <AnimatedCounter
+                  value={jumlahPlastik}
+                  style={[
+                    styles.bentoBoxValue,
+                    { color: Semantic.primary.main },
+                  ]}
+                />
+                <Text
+                  style={{
+                    fontFamily: Typography.fontFamily.medium,
+                    fontSize: 12,
+                    color: Semantic.primary.main,
+                  }}
+                >
+                  +{poinPlastik} pts
+                </Text>
               </View>
 
-              <View style={[styles.bentoBoxSmall, { backgroundColor: isDark ? Colors.obsidian[950] : Colors.neutral[50] }]}>
-                <Text style={[styles.bentoBoxLabel, { color: getMutedColor() }]}>Logam</Text>
-                <AnimatedCounter value={jumlahLogam} style={[styles.bentoBoxValue, { color: Semantic.warning.main }]} />
-                <Text style={{ fontFamily: Typography.fontFamily.medium, fontSize: 12, color: Semantic.warning.main }}>+{poinLogam} pts</Text>
+              <View
+                style={[
+                  styles.bentoBoxSmall,
+                  {
+                    backgroundColor: isDark
+                      ? Colors.obsidian[950]
+                      : Colors.neutral[50],
+                  },
+                ]}
+              >
+                <Text
+                  style={[styles.bentoBoxLabel, { color: getMutedColor() }]}
+                >
+                  Logam
+                </Text>
+                <AnimatedCounter
+                  value={jumlahLogam}
+                  style={[
+                    styles.bentoBoxValue,
+                    { color: Semantic.warning.main },
+                  ]}
+                />
+                <Text
+                  style={{
+                    fontFamily: Typography.fontFamily.medium,
+                    fontSize: 12,
+                    color: Semantic.warning.main,
+                  }}
+                >
+                  +{poinLogam} pts
+                </Text>
               </View>
 
-              <View style={[styles.bentoBoxSmall, { backgroundColor: isDark ? Colors.obsidian[950] : Colors.neutral[50] }]}>
-                <Text style={[styles.bentoBoxLabel, { color: getMutedColor() }]}>Ditolak</Text>
-                <AnimatedCounter value={jumlahReject} style={[styles.bentoBoxValue, { color: Semantic.danger.main }]} />
-                <Text style={{ fontFamily: Typography.fontFamily.medium, fontSize: 12, color: Semantic.danger.main }}>0 pts</Text>
+              <View
+                style={[
+                  styles.bentoBoxSmall,
+                  {
+                    backgroundColor: isDark
+                      ? Colors.obsidian[950]
+                      : Colors.neutral[50],
+                  },
+                ]}
+              >
+                <Text
+                  style={[styles.bentoBoxLabel, { color: getMutedColor() }]}
+                >
+                  Ditolak
+                </Text>
+                <AnimatedCounter
+                  value={jumlahReject}
+                  style={[
+                    styles.bentoBoxValue,
+                    { color: Semantic.danger.main },
+                  ]}
+                />
+                <Text
+                  style={{
+                    fontFamily: Typography.fontFamily.medium,
+                    fontSize: 12,
+                    color: Semantic.danger.main,
+                  }}
+                >
+                  0 pts
+                </Text>
               </View>
             </View>
 
             <View style={{ height: Spacing.xl }} />
 
             <LinearGradient
-              colors={isDark ? [Colors.obsidian[800], Colors.obsidian[950]] : Gradients.card}
+              colors={
+                isDark
+                  ? [Colors.obsidian[800], Colors.obsidian[950]]
+                  : Gradients.card
+              }
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.totalCard}
             >
               <View>
                 <Text style={styles.totalLabelWhite}>Total Poin</Text>
-                <AnimatedCounter value={totalSemuaPoin} style={styles.totalValueYellow} />
+                <AnimatedCounter
+                  value={totalSemuaPoin}
+                  style={styles.totalValueYellow}
+                />
               </View>
               <View style={{ alignItems: "flex-end" }}>
                 <Text style={styles.totalLabelWhite}>Item Diterima</Text>
-                <AnimatedCounter value={totalSemuaSampah - jumlahReject} style={styles.totalValueWhite} />
+                <AnimatedCounter
+                  value={totalSemuaSampah - jumlahReject}
+                  style={styles.totalValueWhite}
+                />
               </View>
             </LinearGradient>
 
             <AnimatedPress style={styles.btnDanger} onPress={akhiriSesi}>
-              <FontAwesome name="check-circle" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+              <FontAwesome
+                name="check-circle"
+                size={18}
+                color="#FFFFFF"
+                style={{ marginRight: 8 }}
+              />
               <Text style={styles.btnPrimaryText}>Tutup Pintu & Selesai</Text>
             </AnimatedPress>
           </View>
@@ -504,11 +870,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   blob: {
-    position: 'absolute',
+    position: "absolute",
     width: 300,
     height: 300,
     borderRadius: 150,
-    filter: 'blur(60px)',
+    filter: "blur(60px)",
   },
   contentWrapper: {
     width: "100%",
@@ -527,7 +893,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   bentoCard: {
-    width: '100%',
+    width: "100%",
     borderRadius: BorderRadius.xl,
     padding: Spacing.lg,
     ...Shadows.sm,
@@ -536,15 +902,15 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   iconCircleLg: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   bentoLabel: {
     fontFamily: Typography.fontFamily.medium,
@@ -557,12 +923,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   statusIndicatorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: Spacing.lg,
     paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(150,150,150,0.1)'
+    borderTopColor: "rgba(150,150,150,0.1)",
   },
   statusTitle: {
     fontFamily: Typography.fontFamily.primary,
@@ -579,13 +945,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: 6,
     borderRadius: BorderRadius.full,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   routeButtonText: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: 12,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   ctaWrapper: {
     width: "100%",
@@ -669,7 +1035,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   btnOutlineText: {
     fontFamily: Typography.fontFamily.secondary,
@@ -681,16 +1047,16 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   statsRow: {
-    flexDirection: 'row',
-    width: '100%',
+    flexDirection: "row",
+    width: "100%",
     gap: Spacing.sm,
   },
   bentoBoxSmall: {
     flex: 1,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   bentoBoxLabel: {
     fontFamily: Typography.fontFamily.medium,

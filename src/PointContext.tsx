@@ -1,13 +1,13 @@
 import { collection, onSnapshot, query, where } from "firebase/firestore";
-import React, {
+import {
   createContext,
   ReactNode,
   useContext,
   useEffect,
   useState,
 } from "react";
-import { db } from "./firebaseConfig";
 import { useAuth } from "./AuthContext";
+import { db } from "./firebaseConfig";
 
 interface PointContextType {
   totalPoin: number;
@@ -27,7 +27,7 @@ const PointContext = createContext<PointContextType>({
 
 export const PointProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
-  
+
   const [totalPoin, setTotalPoin] = useState(0);
   const [totalPlastik, setTotalPlastik] = useState(0);
   const [totalLogam, setTotalLogam] = useState(0);
@@ -45,10 +45,7 @@ export const PointProvider = ({ children }: { children: ReactNode }) => {
     }
 
     // KITA BACA KOLEKSI "Riwayat" KHUSUS UNTUK USER AKTIF
-    const q = query(
-      collection(db, "Riwayat"),
-      where("user", "==", user.uid)
-    );
+    const q = query(collection(db, "Riwayat"), where("user", "==", user.uid));
 
     const unsubscribe = onSnapshot(
       q,
@@ -75,7 +72,10 @@ export const PointProvider = ({ children }: { children: ReactNode }) => {
             try {
               // Jika ini serverTimestamp yang baru dibuat lokal, toDate() mungkin belum ada.
               if (data.tanggal.toDate) {
-                const dateString = data.tanggal.toDate().toISOString().split("T")[0];
+                const dateString = data.tanggal
+                  .toDate()
+                  .toISOString()
+                  .split("T")[0];
                 tanggalUnik.add(dateString);
               }
             } catch (err) {}
@@ -91,7 +91,7 @@ export const PointProvider = ({ children }: { children: ReactNode }) => {
       (error) => {
         console.error("Gagal mendengarkan data Riwayat:", error);
         setLoading(false);
-      }
+      },
     );
 
     return () => unsubscribe();

@@ -1,7 +1,7 @@
-﻿import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth, db } from './firebaseConfig';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+﻿import { onAuthStateChanged, User } from "firebase/auth";
+import { doc, onSnapshot } from "firebase/firestore";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { auth, db } from "./firebaseConfig";
 
 interface AuthData {
   user: User | null;
@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     let unsubUser = () => {};
     if (user) {
-      unsubUser = onSnapshot(doc(db, 'Users', user.uid), (docSnap) => {
+      unsubUser = onSnapshot(doc(db, "Users", user.uid), (docSnap) => {
         if (docSnap.exists()) {
           setUserData(docSnap.data());
         }

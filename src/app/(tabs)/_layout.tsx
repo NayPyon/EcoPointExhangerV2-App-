@@ -1,10 +1,14 @@
-import { AnimConfig, Semantic, Shadows, Typography, Colors } from "@/constants/theme";
+import {
+  AnimConfig,
+  Colors,
+  Semantic,
+  Typography
+} from "@/constants/theme";
 import { FontAwesome } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
-import { Tabs, Redirect } from "expo-router"; 
-import { useAuth } from "../../AuthContext";
+import { LinearGradient } from "expo-linear-gradient";
+import { Redirect, Tabs } from "expo-router";
 import { useEffect, type ComponentProps } from "react";
 import {
   Platform,
@@ -12,8 +16,8 @@ import {
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
   useColorScheme,
+  useWindowDimensions,
 } from "react-native";
 import Animated, {
   Easing,
@@ -25,6 +29,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "../../AuthContext";
 
 type IconName = ComponentProps<typeof FontAwesome>["name"];
 type TabBarProps = Parameters<
@@ -90,7 +95,13 @@ function TabBarItem({
         {options.title || route.name}
       </Text>
       {/* Indicator Dot */}
-      <Animated.View style={[styles.indicatorDot, { backgroundColor: activeColor }, animatedDotStyle]} />
+      <Animated.View
+        style={[
+          styles.indicatorDot,
+          { backgroundColor: activeColor },
+          animatedDotStyle,
+        ]}
+      />
     </Pressable>
   );
 }
@@ -159,8 +170,16 @@ function CustomFloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
   const blob2X = useSharedValue(0);
 
   useEffect(() => {
-    blob1X.value = withRepeat(withTiming(60, { duration: 4000, easing: Easing.inOut(Easing.ease) }), -1, true);
-    blob2X.value = withRepeat(withTiming(-60, { duration: 5000, easing: Easing.inOut(Easing.ease) }), -1, true);
+    blob1X.value = withRepeat(
+      withTiming(60, { duration: 4000, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true,
+    );
+    blob2X.value = withRepeat(
+      withTiming(-60, { duration: 5000, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true,
+    );
   }, [blob1X, blob2X]);
 
   const animatedBlob1 = useAnimatedStyle(() => ({
@@ -172,9 +191,13 @@ function CustomFloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
 
   // Platform specific blur intensity and color
   const blurTint = isDark ? "dark" : "light";
-  const bgColor = isDark 
-    ? (Platform.OS === "android" ? "rgba(11, 17, 24, 0.95)" : "rgba(11, 17, 24, 0.65)")
-    : (Platform.OS === "android" ? "rgba(255, 255, 255, 0.95)" : "rgba(255, 255, 255, 0.65)");
+  const bgColor = isDark
+    ? Platform.OS === "android"
+      ? "rgba(11, 17, 24, 0.95)"
+      : "rgba(11, 17, 24, 0.65)"
+    : Platform.OS === "android"
+      ? "rgba(255, 255, 255, 0.95)"
+      : "rgba(255, 255, 255, 0.65)";
 
   return (
     <View
@@ -184,14 +207,55 @@ function CustomFloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
       ]}
       pointerEvents="box-none"
     >
-      <View style={[styles.pillContainer, { backgroundColor: isDark ? 'rgba(15, 23, 42, 0.7)' : 'rgba(255,255,255,0.7)', borderColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.8)" }]}>
-        
+      <View
+        style={[
+          styles.pillContainer,
+          {
+            backgroundColor: isDark
+              ? "rgba(15, 23, 42, 0.7)"
+              : "rgba(255,255,255,0.7)",
+            borderColor: isDark
+              ? "rgba(255,255,255,0.05)"
+              : "rgba(255,255,255,0.8)",
+          },
+        ]}
+      >
         {/* Aurora Blobs */}
-        <Animated.View style={[StyleSheet.absoluteFill, { opacity: 0.9 }, animatedBlob1]}>
-          <LinearGradient colors={[isDark ? 'rgba(16, 185, 129, 0.6)' : 'rgba(16, 185, 129, 0.3)', 'transparent']} style={{ position: 'absolute', width: 250, height: 120, top: -30, left: -50, borderRadius: 100 }} />
+        <Animated.View
+          style={[StyleSheet.absoluteFill, { opacity: 0.9 }, animatedBlob1]}
+        >
+          <LinearGradient
+            colors={[
+              isDark ? "rgba(16, 185, 129, 0.6)" : "rgba(16, 185, 129, 0.3)",
+              "transparent",
+            ]}
+            style={{
+              position: "absolute",
+              width: 250,
+              height: 120,
+              top: -30,
+              left: -50,
+              borderRadius: 100,
+            }}
+          />
         </Animated.View>
-        <Animated.View style={[StyleSheet.absoluteFill, { opacity: 0.9 }, animatedBlob2]}>
-          <LinearGradient colors={[isDark ? 'rgba(245, 158, 11, 0.5)' : 'rgba(245, 158, 11, 0.25)', 'transparent']} style={{ position: 'absolute', width: 200, height: 120, bottom: -30, right: -50, borderRadius: 100 }} />
+        <Animated.View
+          style={[StyleSheet.absoluteFill, { opacity: 0.9 }, animatedBlob2]}
+        >
+          <LinearGradient
+            colors={[
+              isDark ? "rgba(245, 158, 11, 0.5)" : "rgba(245, 158, 11, 0.25)",
+              "transparent",
+            ]}
+            style={{
+              position: "absolute",
+              width: 200,
+              height: 120,
+              bottom: -30,
+              right: -50,
+              borderRadius: 100,
+            }}
+          />
         </Animated.View>
 
         <BlurView
@@ -202,7 +266,6 @@ function CustomFloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
       </View>
 
       <View style={styles.tabItemsRow} pointerEvents="box-none">
-
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
           const isFocused = state.index === index;
@@ -235,8 +298,24 @@ function CustomFloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
                 style={styles.fabContainer}
                 pointerEvents="box-none"
               >
-                <Animated.View style={[styles.pulseRing, animatedPulseStyle, { backgroundColor: isDark ? "rgba(16, 185, 129, 0.2)" : Colors.emerald[100] }]} />
-                <Animated.View style={[styles.fabButtonWrapper, fabStyle, { borderColor: isDark ? Colors.obsidian[800] : "#FFFFFF" }]}>
+                <Animated.View
+                  style={[
+                    styles.pulseRing,
+                    animatedPulseStyle,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(16, 185, 129, 0.2)"
+                        : Colors.emerald[100],
+                    },
+                  ]}
+                />
+                <Animated.View
+                  style={[
+                    styles.fabButtonWrapper,
+                    fabStyle,
+                    { borderColor: isDark ? Colors.obsidian[800] : "#FFFFFF" },
+                  ]}
+                >
                   <Pressable
                     onPressIn={() => (pressed.value = true)}
                     onPressOut={() => (pressed.value = false)}
@@ -247,11 +326,7 @@ function CustomFloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
                       borderless: true,
                     }}
                   >
-                    <FontAwesome
-                      name="recycle"
-                      size={28}
-                      color="#FFFFFF"
-                    />
+                    <FontAwesome name="recycle" size={28} color="#FFFFFF" />
                   </Pressable>
                 </Animated.View>
               </View>
@@ -277,11 +352,18 @@ function CustomFloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
 
 export default function TabLayout() {
   const { user, loading } = useAuth();
-  
+
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#0B1118', justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ color: '#FFF' }}>Memuat...</Text>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "#0B1118",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <Text style={{ color: "#FFF" }}>Memuat...</Text>
       </View>
     );
   }
@@ -351,7 +433,7 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     marginTop: 4,
-    position: 'absolute',
+    position: "absolute",
     bottom: 6,
   },
   fabContainer: {

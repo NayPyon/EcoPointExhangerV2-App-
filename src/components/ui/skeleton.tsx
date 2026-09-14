@@ -1,15 +1,15 @@
-import React, { useEffect } from "react";
+import { BorderRadius, Colors } from "@/constants/theme";
+import { LinearGradient } from "expo-linear-gradient";
+import { useEffect } from "react";
 import { StyleSheet, type ViewStyle } from "react-native";
 import Animated, {
+  Easing,
+  interpolate,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withTiming,
-  interpolate,
-  Easing,
 } from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
-import { BorderRadius, Colors } from "@/constants/theme";
 
 interface SkeletonProps {
   width: number | `${number}%`;
@@ -41,11 +41,7 @@ export function Skeleton({
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
       {
-        translateX: interpolate(
-          shimmer.value,
-          [0, 1],
-          [-200, 200],
-        ),
+        translateX: interpolate(shimmer.value, [0, 1], [-200, 200]),
       },
     ],
   }));
@@ -65,11 +61,7 @@ export function Skeleton({
     >
       <Animated.View style={[StyleSheet.absoluteFill, animatedStyle]}>
         <LinearGradient
-          colors={[
-            "transparent",
-            "rgba(255, 255, 255, 0.4)",
-            "transparent",
-          ]}
+          colors={["transparent", "rgba(255, 255, 255, 0.4)", "transparent"]}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
           style={{ width: 200, height: "100%" }}

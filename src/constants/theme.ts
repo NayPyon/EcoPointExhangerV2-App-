@@ -131,7 +131,7 @@ export const Colors = {
     700: "#B45309",
     800: "#92400E",
     900: "#78350F",
-  }
+  },
 };
 
 // ============================================
@@ -163,7 +163,7 @@ export const Semantic = {
     main: Colors.red[500],
     dark: Colors.red[900],
   },
-  // Default values assuming Light Mode. 
+  // Default values assuming Light Mode.
   // In components we can conditionally use Dark mode hexes.
   text: {
     primary: Colors.obsidian[900],
@@ -206,19 +206,37 @@ export const Components = {
   },
   modal: {
     overlay: "rgba(11, 17, 24, 0.6)",
-  }
+  },
 };
 
 // ============================================
 // SPACING & RADIUS
 // ============================================
 export const Spacing = {
-  half: 2, xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32, xxxl: 48,
+  half: 2,
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  xxl: 32,
+  xxxl: 48,
   // Backwards compatibility aliases
-  one: 4, two: 8, three: 12, four: 16, five: 24, six: 32
+  one: 4,
+  two: 8,
+  three: 12,
+  four: 16,
+  five: 24,
+  six: 32,
 };
 export const BorderRadius = {
-  xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 28, full: 9999,
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  xxl: 28,
+  full: 9999,
 };
 
 // ============================================
@@ -236,23 +254,55 @@ export const Typography = {
     interBold: "PlusJakartaSans_700Bold",
   },
   size: {
-    xs: 10, sm: 12, base: 14, md: 16, lg: 18, xl: 20, xxl: 24, display: 32, hero: 48,
+    xs: 10,
+    sm: 12,
+    base: 14,
+    md: 16,
+    lg: 18,
+    xl: 20,
+    xxl: 24,
+    display: 32,
+    hero: 48,
   },
   lineHeight: {
     tight: 1.1,
     normal: 1.4,
     relaxed: 1.6,
-  }
+  },
 };
 
 // ============================================
 // SHADOWS
 // ============================================
 export const Shadows = {
-  sm: { shadowColor: Colors.obsidian[950], shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 2 },
-  md: { shadowColor: Colors.obsidian[950], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 4 },
-  lg: { shadowColor: Colors.obsidian[950], shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.12, shadowRadius: 16, elevation: 8 },
-  glow: (color: string) => ({ shadowColor: color, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 10 }),
+  sm: {
+    shadowColor: Colors.obsidian[950],
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  md: {
+    shadowColor: Colors.obsidian[950],
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  lg: {
+    shadowColor: Colors.obsidian[950],
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  glow: (color: string) => ({
+    shadowColor: color,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 10,
+  }),
 };
 
 // ============================================
@@ -302,11 +352,18 @@ export const dark = {
   tabIconSelected: Colors.emerald[400],
 };
 
-
-
 export type ThemeColor = keyof typeof light & keyof typeof dark;
 export const Fonts = { mono: "SpaceMono" };
 
 export default {
-  Colors, Semantic, Components, Spacing, Typography, BorderRadius, Shadows, AnimConfig, Gradients, Fonts
+  Colors,
+  Semantic,
+  Components,
+  Spacing,
+  Typography,
+  BorderRadius,
+  Shadows,
+  AnimConfig,
+  Gradients,
+  Fonts,
 };

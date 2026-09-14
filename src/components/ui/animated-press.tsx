@@ -1,3 +1,4 @@
+import { AnimConfig } from "@/constants/theme";
 import * as Haptics from "expo-haptics";
 import React from "react";
 import { Pressable, type PressableProps, type ViewStyle } from "react-native";
@@ -6,7 +7,6 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
-import { AnimConfig } from "@/constants/theme";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
