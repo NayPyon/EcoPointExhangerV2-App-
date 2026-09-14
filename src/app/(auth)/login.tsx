@@ -179,7 +179,7 @@ export default function LoginScreen() {
               { backgroundColor: Colors.emerald[500] },
             ]}
           >
-            <Feather name="exchange" size={40} color="#FFF" />
+            <Feather name="wind" size={40} color="#FFF" />
           </View>
           <Text style={[styles.title, { color: getTextColor() }]}>
             Masuk ke EcoPoint
