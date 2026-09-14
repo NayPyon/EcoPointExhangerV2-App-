@@ -4,7 +4,7 @@ import * as Haptics from "expo-haptics";
 import { MaterialCommunityIcons, FontAwesome5 } from "@expo/vector-icons";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
-import { CURRENT_USER } from "@/constants/user-config";
+import { useAuth } from "../../AuthContext";
 import React, { useEffect, useState } from "react";
 import {
   Image,
@@ -13,13 +13,17 @@ import {
   StyleSheet,
   Text,
   View,
+  useColorScheme
 } from "react-native";
 import Animated, {
-  FadeInUp,
   FadeInDown,
-  withSpring,
+  FadeInUp,
+  interpolate,
   useAnimatedStyle,
   useSharedValue,
+  withSpring,
+  withTiming,
+  Extrapolate,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -48,8 +52,18 @@ export interface RewardItem {
 }
 
 export default function RewardScreen() {
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+
   const { totalPoin } = usePoints();
+
+  const getBgColor = () => isDark ? Semantic.background.dark : Semantic.background.secondary;
+  const getCardBg = () => isDark ? Colors.obsidian[800] : Semantic.background.primary;
+  const getTextColor = () => isDark ? Semantic.text.light : Semantic.text.primary;
+  const getMutedColor = () => isDark ? Colors.obsidian[400] : Semantic.text.secondary;
+  const getBorderColor = () => isDark ? Colors.obsidian[800] : Semantic.border.light;
 
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState<"konfirmasi" | "sukses" | "gagal">("konfirmasi");
@@ -107,6 +121,8 @@ export default function RewardScreen() {
     },
   ];
 
+  const backdropOpacity = useSharedValue(0);
+
   const handleRedeem = (item: RewardItem) => {
     setSelectedReward(item);
     if (totalPoin >= item.points) {
@@ -114,10 +130,20 @@ export default function RewardScreen() {
     } else {
       setModalType("gagal");
     }
+    
+    // Set initial positions
+    modalY.value = 300;
+    backdropOpacity.value = 0;
+    
+    // Mount modal
     setModalVisible(true);
-    modalY.value = withSpring(0, AnimConfig.spring.snappy);
+    
+    // Trigger entrance animations
+    backdropOpacity.value = withTiming(1, { duration: 250 });
+    modalY.value = withTiming(0, { duration: 250 });
+    
     if (totalPoin >= item.points) {
-      checkScale.value = withSpring(1, AnimConfig.spring.bouncy);
+      checkScale.value = withTiming(1, { duration: 250 });
     }
   };
 
@@ -126,17 +152,28 @@ export default function RewardScreen() {
 
     try {
       await addDoc(collection(db, "Riwayat"), {
-        user: CURRENT_USER.id,
+        user: user!.uid,
         tipe: "tukar_voucher",
         nama_hadiah: selectedReward.title,
         poin: selectedReward.points,
         tanggal: serverTimestamp(),
       });
 
+      await addDoc(collection(db, "Notifications"), {
+        user: user!.uid,
+        title: "Klaim Hadiah Sukses",
+        desc: `Voucher ${selectedReward.title} senilai ${selectedReward.points} poin sudah ditambahkan ke dompetmu.`,
+        type: "klaim",
+        icon: "gift",
+        color_type: "success",
+        unread: true,
+        time: serverTimestamp(),
+      });
+
       setModalType("sukses");
       checkScale.value = 0.5;
       setTimeout(() => {
-        checkScale.value = withSpring(1, AnimConfig.spring.bouncy);
+        checkScale.value = withTiming(1, { duration: 300 });
       }, 100);
     } catch (error) {
       console.error("Gagal menukar voucher:", error);
@@ -144,14 +181,22 @@ export default function RewardScreen() {
   };
 
   const closeModal = () => {
-    modalY.value = withSpring(300, AnimConfig.spring.snappy);
+    // Trigger exit animations
+    backdropOpacity.value = withTiming(0, { duration: 250 });
+    modalY.value = withTiming(300, { duration: 250 });
+    
+    // Unmount modal exactly when animation finishes
     setTimeout(() => {
       setModalVisible(false);
-    }, 300);
+    }, 250);
   };
 
   const modalAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: modalY.value }],
+  }));
+
+  const backdropAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: backdropOpacity.value,
   }));
 
   const checkAnimatedStyle = useAnimatedStyle(() => ({
@@ -162,21 +207,21 @@ export default function RewardScreen() {
     const isPoinCukup = totalPoin >= item.points;
 
     return (
-      <Animated.View entering={FadeInUp.delay(index * 100).springify()}>
+      <Animated.View entering={FadeInUp.delay(index * 100).duration(400)}>
         <AnimatedPress
-          style={[styles.card, Shadows.md]}
+          style={[styles.card, { backgroundColor: getCardBg() }, Shadows.sm]}
           onPress={() => handleRedeem(item)}
         >
-          <View style={styles.imageContainer}>
+          <View style={[styles.imageContainer, { backgroundColor: isDark ? Colors.obsidian[950] : Semantic.border.light }]}>
             <Image source={{ uri: item.image }} style={styles.cardImage} />
             <View style={styles.floatingStock}>
-              <GlassCard intensity={80} borderRadius={12} style={styles.stockBadgeContainer}>
+              <View style={[styles.stockBadgeContainer, { backgroundColor: 'rgba(0, 0, 0, 0.7)', borderRadius: 12 }]}>
                 <Text style={styles.floatingStockText}>Sisa {item.stock}</Text>
-              </GlassCard>
+              </View>
             </View>
           </View>
           <View style={styles.cardContent}>
-            <Text style={styles.title} numberOfLines={2}>
+            <Text style={[styles.title, { color: getTextColor() }]} numberOfLines={2}>
               {item.title}
             </Text>
             <View style={styles.cardFooter}>
@@ -190,21 +235,21 @@ export default function RewardScreen() {
                 <Text
                   style={[
                     styles.pointText,
-                    !isPoinCukup && { color: Semantic.text.muted },
+                    !isPoinCukup && { color: getMutedColor() },
                   ]}
                 >
                   {item.points.toLocaleString("id-ID")}
                 </Text>
               </View>
               {isPoinCukup ? (
-                <View style={[styles.statusBadge, { backgroundColor: Semantic.success.light }]}>
-                  <Text style={[styles.statusBadgeText, { color: Semantic.success.dark }]}>
+                <View style={[styles.statusBadge, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.2)' : Semantic.success.light }]}>
+                  <Text style={[styles.statusBadgeText, { color: isDark ? Semantic.success.main : Semantic.success.dark }]}>
                     Tukar
                   </Text>
                 </View>
               ) : (
-                <View style={[styles.statusBadge, { backgroundColor: Semantic.background.tertiary }]}>
-                  <Text style={[styles.statusBadgeText, { color: Semantic.text.muted }]}>
+                <View style={[styles.statusBadge, { backgroundColor: isDark ? Colors.obsidian[950] : Semantic.background.tertiary }]}>
+                  <Text style={[styles.statusBadgeText, { color: getMutedColor() }]}>
                     Poin Kurang
                   </Text>
                 </View>
@@ -217,36 +262,43 @@ export default function RewardScreen() {
   };
 
   const renderSectionHeader = ({ section: { title } }: { section: { title: string } }) => (
-    <Animated.View entering={FadeInDown.springify()} style={styles.sectionHeaderContainer}>
-      <Text style={styles.sectionHeader}>{title}</Text>
-      <View style={styles.sectionLine} />
+    <Animated.View entering={FadeInDown.duration(400)} style={styles.sectionHeaderContainer}>
+      <Text style={[styles.sectionHeader, { color: getTextColor() }]}>{title}</Text>
+      <View style={[styles.sectionLine, { backgroundColor: getBorderColor() }]} />
     </Animated.View>
   );
 
   return (
-    <View style={styles.container}>
-      <Modal visible={modalVisible} transparent={true} animationType="fade">
-        <BlurView intensity={30} tint="dark" style={styles.modalOverlay}>
-          <Animated.View style={[styles.modalCard, modalAnimatedStyle]}>
-            {modalType === "konfirmasi" && (
+    <View style={[styles.container, { backgroundColor: getBgColor() }]}>
+      
+      {/* Background Blobs for Ambiance */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+         <View style={[styles.blob, { top: -100, right: -150, backgroundColor: isDark ? 'rgba(245, 158, 11, 0.35)' : 'rgba(245, 158, 11, 0.25)' }]} />
+      </View>
+
+      <Modal visible={modalVisible} transparent={true} animationType="none">
+        <Animated.View style={[StyleSheet.absoluteFill, backdropAnimatedStyle]}>
+          <BlurView intensity={isDark ? 40 : 30} tint={isDark ? "dark" : "dark"} style={styles.modalOverlay}>
+            <Animated.View style={[styles.modalCard, { backgroundColor: getCardBg() }, modalAnimatedStyle]}>
+              {modalType === "konfirmasi" && (
               <>
-                <View style={styles.modalIconWrapperInfo}>
+                <View style={[styles.modalIconWrapperInfo, { backgroundColor: isDark ? 'rgba(56, 189, 248, 0.2)' : Semantic.secondary.light }]}>
                   <MaterialCommunityIcons name="gift" size={36} color={Semantic.secondary.main} />
                 </View>
-                <Text style={styles.modalTitle}>Konfirmasi Penukaran</Text>
-                <Text style={styles.modalMessage}>
+                <Text style={[styles.modalTitle, { color: getTextColor() }]}>Konfirmasi Penukaran</Text>
+                <Text style={[styles.modalMessage, { color: getMutedColor() }]}>
                   Tukar{" "}
-                  <Text style={styles.modalHighlightInfo}>
+                  <Text style={[styles.modalHighlightInfo, { color: Semantic.secondary.main }]}>
                     {selectedReward?.points.toLocaleString("id-ID")} Poin
                   </Text>{" "}
                   dengan {selectedReward?.title}?
                 </Text>
                 <View style={styles.modalButtonRow}>
                   <AnimatedPress
-                    style={[styles.buttonOutline, { flex: 1 }]}
+                    style={[styles.buttonOutline, { flex: 1, backgroundColor: isDark ? Colors.obsidian[950] : Semantic.background.tertiary }]}
                     onPress={closeModal}
                   >
-                    <Text style={styles.buttonOutlineText}>Batal</Text>
+                    <Text style={[styles.buttonOutlineText, { color: getTextColor() }]}>Batal</Text>
                   </AnimatedPress>
                   <AnimatedPress
                     style={[styles.buttonPrimary, { flex: 1 }]}
@@ -260,11 +312,11 @@ export default function RewardScreen() {
 
             {modalType === "sukses" && (
               <>
-                <Animated.View style={[styles.modalIconWrapperSuccess, checkAnimatedStyle]}>
+                <Animated.View style={[styles.modalIconWrapperSuccess, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.2)' : Semantic.success.light }, checkAnimatedStyle]}>
                   <MaterialCommunityIcons name="check-decagram" size={48} color={Semantic.success.main} />
                 </Animated.View>
-                <Text style={styles.modalTitle}>Berhasil!</Text>
-                <Text style={styles.modalMessage}>
+                <Text style={[styles.modalTitle, { color: getTextColor() }]}>Berhasil!</Text>
+                <Text style={[styles.modalMessage, { color: getMutedColor() }]}>
                   Hadiahmu sedang diproses. Cek riwayat atau emailmu secara berkala ya!
                 </Text>
                 <AnimatedPress
@@ -278,11 +330,11 @@ export default function RewardScreen() {
 
             {modalType === "gagal" && (
               <>
-                <View style={styles.modalIconWrapperDanger}>
+                <View style={[styles.modalIconWrapperDanger, { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.2)' : Semantic.danger.light }]}>
                   <MaterialCommunityIcons name="alert-circle" size={42} color={Semantic.danger.main} />
                 </View>
-                <Text style={styles.modalTitle}>Poin Belum Cukup</Text>
-                <Text style={styles.modalMessage}>
+                <Text style={[styles.modalTitle, { color: getTextColor() }]}>Poin Belum Cukup</Text>
+                <Text style={[styles.modalMessage, { color: getMutedColor() }]}>
                   Kamu butuh{" "}
                   <Text style={styles.modalHighlightDanger}>
                     {selectedReward
@@ -293,20 +345,23 @@ export default function RewardScreen() {
                   untuk menukarkan {selectedReward?.title}.
                 </Text>
                 <AnimatedPress
-                  style={[styles.buttonOutline, { width: "100%", marginTop: 10 }]}
+                  style={[styles.buttonOutline, { width: "100%", marginTop: 10, backgroundColor: isDark ? Colors.obsidian[950] : Semantic.background.tertiary }]}
                   onPress={closeModal}
                 >
-                  <Text style={styles.buttonOutlineText}>Oke, Mengerti</Text>
+                  <Text style={[styles.buttonOutlineText, { color: getTextColor() }]}>Oke, Mengerti</Text>
                 </AnimatedPress>
               </>
             )}
           </Animated.View>
         </BlurView>
-      </Modal>
+      </Animated.View>
+    </Modal>
 
-      <View style={[styles.headerContainer, { paddingTop: insets.top + Spacing.four }]}>
+      {/* STICKY TOP HEADER */}
+      <View style={[styles.headerContainer, { backgroundColor: isDark ? 'rgba(11, 17, 24, 0.85)' : 'rgba(255, 255, 255, 0.85)', paddingTop: insets.top + Spacing.lg }]}>
+        <BlurView intensity={isDark ? 50 : 80} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
         <LinearGradient
-          colors={Gradients.primary}
+          colors={Gradients.card}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[styles.headerGradientCard, Shadows.lg]}
@@ -324,7 +379,6 @@ export default function RewardScreen() {
               />
             </View>
           </View>
-          <MaterialCommunityIcons name="star-four-points" size={42} color="rgba(255,255,255,0.2)" style={styles.headerDecoIcon} />
         </LinearGradient>
       </View>
 
@@ -344,22 +398,24 @@ export default function RewardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Semantic.background.secondary,
+  },
+  blob: {
+    position: 'absolute',
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    filter: 'blur(70px)',
   },
   headerContainer: {
-    backgroundColor: Semantic.background.primary,
-    paddingHorizontal: Spacing.five,
-    paddingBottom: Spacing.five,
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.lg,
     borderBottomWidth: 1,
-    borderColor: Semantic.border.light,
-    borderBottomLeftRadius: BorderRadius.xl,
-    borderBottomRightRadius: BorderRadius.xl,
-    ...Shadows.sm,
+    borderColor: 'rgba(150,150,150,0.1)',
     zIndex: 10,
   },
   headerGradientCard: {
     borderRadius: BorderRadius.xl,
-    padding: Spacing.five,
+    padding: Spacing.xl,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -391,11 +447,11 @@ const styles = StyleSheet.create({
   coinText: {
     fontFamily: Typography.fontFamily.interBold,
     fontSize: 12,
-    color: Semantic.background.primary,
+    color: '#FFFFFF',
   },
   headerValue: {
     fontFamily: Typography.fontFamily.primary,
-    color: Semantic.text.light,
+    color: '#FFFFFF',
     fontSize: Typography.size.xxl,
   },
   headerDecoIcon: {
@@ -409,35 +465,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: Spacing.xl,
     marginBottom: Spacing.md,
-    paddingHorizontal: Spacing.five,
+    paddingHorizontal: Spacing.xl,
   },
   sectionHeader: {
     fontFamily: Typography.fontFamily.primary,
     fontSize: Typography.size.lg,
-    color: Semantic.text.primary,
     marginRight: Spacing.md,
   },
   sectionLine: {
     flex: 1,
     height: 2,
-    backgroundColor: Semantic.border.light,
     borderRadius: BorderRadius.full,
   },
   listContainer: {
     paddingBottom: 120,
-    paddingTop: Spacing.md,
+    paddingTop: Spacing.sm,
   },
   card: {
-    backgroundColor: Semantic.background.primary,
     borderRadius: BorderRadius.xl,
-    marginHorizontal: Spacing.five,
+    marginHorizontal: Spacing.xl,
     marginBottom: Spacing.lg,
     overflow: "hidden",
   },
   imageContainer: {
     width: "100%",
     height: 160,
-    backgroundColor: Semantic.border.light,
   },
   cardImage: {
     width: "100%",
@@ -456,15 +508,14 @@ const styles = StyleSheet.create({
   floatingStockText: {
     fontFamily: Typography.fontFamily.interMedium,
     fontSize: Typography.size.xs,
-    color: Semantic.text.light,
+    color: '#FFFFFF',
   },
   cardContent: {
-    padding: Spacing.four,
+    padding: Spacing.lg,
   },
   title: {
     fontFamily: Typography.fontFamily.secondary,
     fontSize: Typography.size.md,
-    color: Semantic.text.primary,
     marginBottom: Spacing.md,
     lineHeight: 22,
   },
@@ -487,7 +538,7 @@ const styles = StyleSheet.create({
   coinTextLarge: {
     fontFamily: Typography.fontFamily.interBold,
     fontSize: 12,
-    color: Semantic.background.primary,
+    color: '#FFFFFF',
   },
   pointText: {
     fontFamily: Typography.fontFamily.interBold,
@@ -508,11 +559,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: Spacing.five,
+    padding: Spacing.xl,
     backgroundColor: "rgba(0,0,0,0.4)",
   },
   modalCard: {
-    backgroundColor: Semantic.background.primary,
     width: "100%",
     maxWidth: 340,
     borderRadius: BorderRadius.xxl,
@@ -524,7 +574,6 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: Semantic.secondary.light,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: Spacing.lg,
@@ -533,7 +582,6 @@ const styles = StyleSheet.create({
     width: 84,
     height: 84,
     borderRadius: 42,
-    backgroundColor: Semantic.success.light,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: Spacing.lg,
@@ -542,7 +590,6 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: Semantic.danger.light,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: Spacing.lg,
@@ -550,21 +597,18 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontFamily: Typography.fontFamily.primary,
     fontSize: Typography.size.xl,
-    color: Semantic.text.primary,
     marginBottom: Spacing.sm,
     textAlign: "center",
   },
   modalMessage: {
     fontFamily: Typography.fontFamily.inter,
     fontSize: Typography.size.base,
-    color: Semantic.text.secondary,
     textAlign: "center",
     marginBottom: Spacing.xl,
     lineHeight: 22,
   },
   modalHighlightInfo: {
     fontFamily: Typography.fontFamily.primary,
-    color: Semantic.secondary.main,
   },
   modalHighlightDanger: {
     fontFamily: Typography.fontFamily.primary,
@@ -577,26 +621,24 @@ const styles = StyleSheet.create({
   },
   buttonPrimary: {
     backgroundColor: Semantic.success.main,
-    paddingVertical: Spacing.four,
+    paddingVertical: Spacing.lg,
     borderRadius: BorderRadius.md,
     alignItems: "center",
     justifyContent: "center",
   },
   buttonPrimaryText: {
     fontFamily: Typography.fontFamily.primary,
-    color: Semantic.text.light,
+    color: '#FFFFFF',
     fontSize: Typography.size.base,
   },
   buttonOutline: {
-    backgroundColor: Semantic.background.tertiary,
-    paddingVertical: Spacing.four,
+    paddingVertical: Spacing.lg,
     borderRadius: BorderRadius.md,
     alignItems: "center",
     justifyContent: "center",
   },
   buttonOutlineText: {
     fontFamily: Typography.fontFamily.primary,
-    color: Semantic.text.primary,
     fontSize: Typography.size.base,
   },
 });

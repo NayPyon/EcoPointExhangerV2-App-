@@ -9,22 +9,24 @@ import {
   Spacing,
   Typography,
 } from "@/constants/theme";
-import { CURRENT_USER } from "@/constants/user-config";
+import { useAuth } from "../../AuthContext";
 import { AnimatedPress } from "@/components/ui/animated-press";
-import { GlassCard } from "@/components/ui/glass-card";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 
 import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
-import { doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, onSnapshot, serverTimestamp, setDoc, addDoc, collection } from "firebase/firestore";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Modal,
   StyleSheet,
   Text,
   View,
+  useColorScheme,
+  Linking,
 } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { db } from "../../firebaseConfig";
+import { BlurView } from "expo-blur";
 
 import * as Haptics from "expo-haptics";
 import { router, useFocusEffect } from "expo-router";
@@ -40,12 +42,13 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSequence,
-  withDelay,
-  Easing,
 } from "react-native-reanimated";
 
 export default function ExchangeScreen() {
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
   const isFocusedRef = useRef(true);
   
   const [qrToken, setQrToken] = useState("ECO-SESSION-INITIAL");
@@ -60,6 +63,11 @@ export default function ExchangeScreen() {
 
   const [showCelebration, setShowCelebration] = useState(false);
   const [isMesinAktif, setIsMesinAktif] = useState(true);
+
+  const getBgColor = () => isDark ? Semantic.background.dark : Semantic.background.secondary;
+  const getCardBg = () => isDark ? Colors.obsidian[800] : "#FFFFFF";
+  const getTextColor = () => isDark ? "#FFFFFF" : Colors.obsidian[900];
+  const getMutedColor = () => isDark ? Colors.obsidian[400] : Colors.obsidian[500];
 
   // Animation Values
   const pulseOpacity = useSharedValue(0.5);
@@ -77,7 +85,7 @@ export default function ExchangeScreen() {
     );
     pulseScale.value = withRepeat(
       withSequence(
-        withTiming(1.1, { duration: 1500 }),
+        withTiming(1.05, { duration: 1500 }),
         withTiming(1, { duration: 1500 })
       ),
       -1,
@@ -116,7 +124,7 @@ export default function ExchangeScreen() {
   }, []);
 
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, "Sesi_Aktif", CURRENT_USER.id), (docSnap) => {
+    const unsub = onSnapshot(doc(db, "Sesi_Aktif", user!.uid), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         if (data.status) setStatusSesi(data.status);
@@ -139,7 +147,7 @@ export default function ExchangeScreen() {
     const newToken = generateNewToken();
     try {
       await setDoc(
-        doc(db, "Sesi_Aktif", CURRENT_USER.id),
+        doc(db, "Sesi_Aktif", user!.uid),
         { kode_sesi: newToken },
         { merge: true },
       );
@@ -154,7 +162,7 @@ export default function ExchangeScreen() {
     setShowQR(true);
     try {
       await setDoc(
-        doc(db, "Sesi_Aktif", CURRENT_USER.id),
+        doc(db, "Sesi_Aktif", user!.uid),
         {
           kode_sesi: newToken,
           waktu_dibuat: serverTimestamp(),
@@ -173,7 +181,7 @@ export default function ExchangeScreen() {
   const batalkanSesi = async () => {
     setShowQR(false);
     await setDoc(
-      doc(db, "Sesi_Aktif", CURRENT_USER.id),
+      doc(db, "Sesi_Aktif", user!.uid),
       { status: "idle" },
       { merge: true },
     );
@@ -183,10 +191,36 @@ export default function ExchangeScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setShowCelebration(true);
     checkScale.value = 0;
-    checkScale.value = withSpring(1, AnimConfig.spring.bouncy);
+    checkScale.value = withTiming(1, { duration: 300 });
+
+    if (totalSemuaPoin > 0) {
+      try {
+        await addDoc(collection(db, "Riwayat"), {
+          user: user!.uid,
+          tipe: "penyetoran",
+          plastik: jumlahPlastik,
+          logam: jumlahLogam,
+          poin: totalSemuaPoin,
+          tanggal: serverTimestamp(),
+        });
+
+        await addDoc(collection(db, "Notifications"), {
+          user: user!.uid,
+          title: "Penyetoran Berhasil",
+          desc: `Berhasil menyetor ${jumlahPlastik} plastik & ${jumlahLogam} logam. Kamu mendapatkan +${totalSemuaPoin} Poin.`,
+          type: "penyetoran",
+          icon: "recycle",
+          color_type: "primary",
+          unread: true,
+          time: serverTimestamp(),
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
 
     await setDoc(
-      doc(db, "Sesi_Aktif", CURRENT_USER.id),
+      doc(db, "Sesi_Aktif", user!.uid),
       { status: "selesai" },
       { merge: true },
     );
@@ -208,7 +242,7 @@ export default function ExchangeScreen() {
           const randomCode = "ECO-" + Math.floor(10000000 + Math.random() * 90000000);
           setQrToken(randomCode);
           setDoc(
-            doc(db, "Sesi_Aktif", CURRENT_USER.id),
+            doc(db, "Sesi_Aktif", user!.uid),
             { kode_sesi: randomCode },
             { merge: true },
           );
@@ -233,76 +267,121 @@ export default function ExchangeScreen() {
   const totalSemuaSampah = jumlahPlastik + jumlahLogam + jumlahReject;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + Spacing.xl, paddingBottom: insets.bottom + 82 }]}>
+    <View style={[styles.container, { backgroundColor: getBgColor(), paddingTop: insets.top + Spacing.xl, paddingBottom: insets.bottom + 82 }]}>
+      
+      {/* Background Blobs for ambiance */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+         <View style={[styles.blob, { top: -100, right: -100, backgroundColor: isDark ? 'rgba(16, 185, 129, 0.35)' : 'rgba(16, 185, 129, 0.25)' }]} />
+         <View style={[styles.blob, { bottom: 100, left: -100, backgroundColor: isDark ? 'rgba(245, 158, 11, 0.25)' : 'rgba(245, 158, 11, 0.25)' }]} />
+      </View>
+
       <Modal visible={showCelebration} transparent={true} animationType="fade">
-        <View style={styles.modalCelebrationBg}>
-          <Animated.View entering={FadeInUp} style={styles.celebrationCard}>
+        <BlurView intensity={isDark ? 50 : 80} tint={isDark ? "dark" : "light"} style={styles.modalCelebrationBg}>
+          <Animated.View entering={FadeInUp} style={[styles.celebrationCard, { backgroundColor: getCardBg() }]}>
             <Animated.View style={checkStyle}>
               <View style={styles.checkIconWrapper}>
-                <FontAwesome name="check" size={60} color={Semantic.background.primary} />
+                <FontAwesome name="check" size={50} color="#FFFFFF" />
               </View>
             </Animated.View>
-            <Text style={styles.celebrationTitle}>Sesi Selesai!</Text>
-            <Text style={styles.celebrationSub}>
-              Pintu ditutup. Terima kasih telah mendaur ulang hari ini!
+            <Text style={[styles.celebrationTitle, { color: getTextColor() }]}>Transaksi Berhasil!</Text>
+            
+            <View style={{ marginVertical: Spacing.xl, alignItems: 'center' }}>
+               <Text style={{ fontFamily: Typography.fontFamily.medium, fontSize: Typography.size.sm, color: getMutedColor() }}>Poin Didapatkan</Text>
+               <Text style={{ fontFamily: Typography.fontFamily.primary, fontSize: 36, color: Semantic.warning.main, marginVertical: 4 }}>
+                 +{totalSemuaPoin}
+               </Text>
+               <Text style={{ fontFamily: Typography.fontFamily.medium, fontSize: Typography.size.sm, color: Semantic.success.main }}>
+                 {totalSemuaSampah - jumlahReject} Item Berhasil Didaur Ulang
+               </Text>
+            </View>
+
+            <Text style={[styles.celebrationSub, { color: getMutedColor() }]}>
+              Mesin telah ditutup. Terima kasih sudah mengambil peran nyata untuk bumi hari ini!
             </Text>
           </Animated.View>
-        </View>
+        </BlurView>
       </Modal>
 
-      <Text style={styles.headerTitle}>Tukar Sampah</Text>
+      <Text style={[styles.headerTitle, { color: getTextColor() }]}>Tukar Sampah</Text>
 
       {/* STAGE IDLE */}
       {!showQR && statusSesi !== "pintu_terbuka" && (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.contentWrapper}>
-          <View style={styles.statusRvmCard}>
+          
+          <View style={[styles.bentoCard, { backgroundColor: getCardBg(), marginBottom: Spacing.xl }]}>
             <View style={styles.statusHeaderRow}>
-              <Text style={styles.statusTitle}>Status RVM Saat Ini</Text>
-              <View style={[styles.badgeBase, isMesinAktif ? styles.badgeOnline : styles.badgeOffline]}>
-                {isMesinAktif && (
-                  <Animated.View style={[styles.dotIndicator, pulseStyle]} />
-                )}
-                {!isMesinAktif && <View style={[styles.dotIndicator, { backgroundColor: Semantic.text.muted }]} />}
-                <Text style={[styles.badgeText, !isMesinAktif && styles.badgeTextOffline]}>
-                  {isMesinAktif ? " AKTIF" : " NONAKTIF"}
-                </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                 <View style={[styles.iconCircle, { backgroundColor: isMesinAktif ? Colors.emerald[50] : Colors.red[50] }]}>
+                   <MaterialCommunityIcons name="recycle-variant" size={24} color={isMesinAktif ? Semantic.success.main : Semantic.danger.main} />
+                 </View>
+                 <View style={{ marginLeft: Spacing.md, flex: 1 }}>
+                    <Text style={[styles.bentoLabel, { color: getMutedColor() }]}>RVM Terdekat</Text>
+                    <Text style={[styles.statusTitle, { color: getTextColor(), marginBottom: 4 }]}>
+                      EcoRVM - Margonda
+                    </Text>
+                    <Text style={{ fontFamily: Typography.fontFamily.inter, fontSize: 13, color: getMutedColor(), lineHeight: 18 }}>
+                      Jl. Margonda Raya No.1, Depok
+                    </Text>
+                 </View>
               </View>
             </View>
-            <Text style={styles.statusSub}>
-              {isMesinAktif
-                ? "Mesin siap digunakan"
-                : "Mesin sedang offline / tidak terhubung"}
-            </Text>
+            
+            <View style={styles.statusIndicatorRow}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                  <Animated.View style={[styles.dotIndicator, isMesinAktif && pulseStyle, { backgroundColor: isMesinAktif ? Semantic.success.main : Semantic.danger.main }]} />
+                  <Text style={{ fontFamily: Typography.fontFamily.medium, fontSize: 13, color: isMesinAktif ? Semantic.success.main : Semantic.danger.main }}>
+                    {isMesinAktif ? "Status: Tersedia" : "Offline"}
+                  </Text>
+                  
+                  <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: getMutedColor(), marginHorizontal: 8 }} />
+                  <FontAwesome name="map-marker" size={12} color={getMutedColor()} />
+                  <Text style={{ fontFamily: Typography.fontFamily.medium, fontSize: 13, color: getMutedColor(), marginLeft: 4 }}>1.2 km</Text>
+                </View>
+                
+                <AnimatedPress 
+                  style={styles.routeButton} 
+                  onPress={() => {
+                     // Coordinate placeholder for RVM Margonda
+                     const lat = -6.373111; 
+                     const lng = 106.834460;
+                     Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`);
+                  }}
+                >
+                   <FontAwesome name="location-arrow" size={12} color="#FFFFFF" style={{ marginRight: 4 }} />
+                   <Text style={styles.routeButtonText}>Rute</Text>
+                </AnimatedPress>
+            </View>
           </View>
 
           <AnimatedPress
-            style={[styles.ctaWrapper, !isMesinAktif ? { opacity: 0.7 } : {}]}
+            style={[styles.ctaWrapper, !isMesinAktif ? { opacity: 0.6 } : {}]}
             onPress={mulaiSesi}
             disabled={!isMesinAktif}
           >
             <LinearGradient
-              colors={isMesinAktif ? Gradients.success : [Semantic.background.secondary, Semantic.background.secondary]}
+              colors={isMesinAktif ? Gradients.success : [isDark ? Colors.obsidian[800] : Colors.neutral[200], isDark ? Colors.obsidian[800] : Colors.neutral[200]]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.promoBanner}
             >
               <View style={styles.bannerTextContainer}>
-                <Text style={[styles.bannerTitle, !isMesinAktif && { color: Semantic.text.primary }]}>
-                  Ayo Mulai Menukar!
+                <Text style={[styles.bannerTitle, !isMesinAktif && { color: getTextColor() }]}>
+                  Buka Pintu RVM
                 </Text>
-                <Text style={[styles.bannerSubtitle, !isMesinAktif && { color: Semantic.text.secondary }]}>
+                <Text style={[styles.bannerSubtitle, !isMesinAktif && { color: getMutedColor() }]}>
                   {isMesinAktif
-                    ? "Tekan di sini untuk memunculkan QR Code dan membuka pintu mesin."
-                    : "Harap tunggu hingga mesin kembali online untuk menukar."}
+                    ? "Tekan untuk memunculkan QR Code pemindaian."
+                    : "Tidak dapat menukar saat mesin offline."}
                 </Text>
               </View>
               <Animated.View style={isMesinAktif ? pulseIconStyle : undefined}>
-                <FontAwesome
-                  name="qrcode"
-                  size={60}
-                  color={isMesinAktif ? Semantic.background.primary : Semantic.text.muted}
-                  style={styles.bannerIcon}
-                />
+                <View style={[styles.iconCircleLg, { backgroundColor: isMesinAktif ? "rgba(255,255,255,0.2)" : (isDark ? Colors.obsidian[700] : Colors.neutral[300]) }]}>
+                  <FontAwesome
+                    name="qrcode"
+                    size={40}
+                    color={isMesinAktif ? "#FFFFFF" : getMutedColor()}
+                  />
+                </View>
               </Animated.View>
             </LinearGradient>
           </AnimatedPress>
@@ -312,111 +391,103 @@ export default function ExchangeScreen() {
       {/* STAGE QR (menunggu_mesin) */}
       {showQR && statusSesi === "menunggu_mesin" && (
         <Animated.View entering={FadeInDown.duration(400)} style={styles.contentWrapper}>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.subtitle, { color: getMutedColor() }]}>
             Arahkan layar HP Anda ke pemindai di mesin RVM.
           </Text>
-          <GlassCard style={styles.qrCard} intensity={80}>
-            <View style={styles.qrInner}>
+          <View style={[styles.bentoCard, { backgroundColor: getCardBg(), alignItems: 'center', padding: Spacing.xxl }]}>
+            <View style={[styles.qrInner, { backgroundColor: "#FFFFFF", borderColor: "#FFFFFF" }]}>
               <QRCode
                 value={qrToken}
-                size={240}
-                color={Semantic.text.primary}
-                backgroundColor="transparent"
+                size={220}
+                color="#000000"
+                backgroundColor="#FFFFFF"
               />
             </View>
-            <Text style={styles.tokenLabel}>Kode Sesi Sementara:</Text>
-            <Text style={styles.tokenText}>{qrToken}</Text>
+            
+            <Text style={[styles.bentoLabel, { color: getMutedColor(), marginTop: Spacing.lg }]}>Kode Sesi</Text>
+            <Text style={[styles.tokenText, { color: getTextColor() }]}>{qrToken}</Text>
             
             <View style={[styles.timerPill, timeLeft <= 10 && styles.timerPillDanger]}>
               <FontAwesome
                 name="clock-o"
                 size={16}
-                color={timeLeft <= 10 ? Semantic.background.primary : Semantic.warning.main}
+                color={timeLeft <= 10 ? "#FFFFFF" : Semantic.warning.main}
               />
-              <Text style={[styles.timerText, timeLeft <= 10 && { color: Semantic.background.primary }]}>
+              <Text style={[styles.timerText, timeLeft <= 10 && { color: "#FFFFFF" }]}>
                 Perbarui dalam {timeLeft}s
               </Text>
             </View>
 
             <View style={styles.actionRow}>
               <AnimatedPress style={styles.btnPrimary} onPress={handleManualRefresh}>
-                <FontAwesome name="refresh" size={16} color={Semantic.background.primary} style={{ marginRight: 8 }} />
-                <Text style={styles.btnPrimaryText}>Perbarui</Text>
+                <FontAwesome name="refresh" size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
+                <Text style={styles.btnPrimaryText}>Segarkan</Text>
               </AnimatedPress>
-              <AnimatedPress style={styles.btnOutline} onPress={batalkanSesi}>
-                <Text style={styles.btnOutlineText}>Batal</Text>
+              <AnimatedPress style={[styles.btnOutline, { borderColor: isDark ? Colors.obsidian[700] : Colors.neutral[200] }]} onPress={batalkanSesi}>
+                <Text style={[styles.btnOutlineText, { color: getTextColor() }]}>Batal</Text>
               </AnimatedPress>
             </View>
-          </GlassCard>
+          </View>
         </Animated.View>
       )}
 
       {/* STAGE PINTU TERBUKA */}
       {statusSesi === "pintu_terbuka" && (
         <Animated.View entering={FadeInUp.duration(500)} style={styles.contentWrapper}>
-          <Text style={styles.subtitle}>
-            Mesin mengenali Anda. Masukkan sampah satu per satu.
+          <Text style={[styles.subtitle, { color: getMutedColor() }]}>
+            Mesin terbuka. Masukkan sampah Anda perlahan.
           </Text>
-          <View style={styles.dashCard}>
+          
+          <View style={[styles.bentoCard, { backgroundColor: getCardBg(), padding: Spacing.xl, width: '100%', alignItems: 'center' }]}>
             <Animated.View style={pulseIconStyle}>
-              <FontAwesome name="unlock-alt" size={48} color={Semantic.success.main} style={{ marginBottom: 10 }} />
+               <View style={[styles.iconCircleLg, { backgroundColor: Colors.emerald[50], marginBottom: Spacing.md }]}>
+                  <FontAwesome name="unlock-alt" size={40} color={Semantic.success.main} />
+               </View>
             </Animated.View>
-            <Text style={styles.doorOpenText}>Pintu Terbuka</Text>
+            <Text style={[styles.doorOpenText, { color: getTextColor() }]}>Memindai Item...</Text>
 
-            <View style={styles.detailsContainer}>
-              <View style={styles.detailRow}>
-                <View style={styles.detailLabelRow}>
-                  <View style={[styles.iconBg, { backgroundColor: Colors.teal[100] }]}>
-                    <MaterialCommunityIcons name="bottle-soda-classic-outline" size={20} color={Semantic.primary.main} />
-                  </View>
-                  <Text style={styles.detailLabel}>Plastik</Text>
-                </View>
-                <AnimatedCounter value={jumlahPlastik} suffix="x" style={styles.detailCount} />
-                <AnimatedCounter value={poinPlastik} prefix="+" style={styles.detailSubtotal} />
+            {/* Grid for Items */}
+            <View style={styles.statsRow}>
+              <View style={[styles.bentoBoxSmall, { backgroundColor: isDark ? Colors.obsidian[950] : Colors.neutral[50] }]}>
+                <Text style={[styles.bentoBoxLabel, { color: getMutedColor() }]}>Plastik</Text>
+                <AnimatedCounter value={jumlahPlastik} style={[styles.bentoBoxValue, { color: Semantic.primary.main }]} />
+                <Text style={{ fontFamily: Typography.fontFamily.medium, fontSize: 12, color: Semantic.primary.main }}>+{poinPlastik} pts</Text>
               </View>
 
-              <View style={styles.detailRow}>
-                <View style={styles.detailLabelRow}>
-                  <View style={[styles.iconBg, { backgroundColor: Colors.teal[100] }]}>
-                    <MaterialCommunityIcons name="cylinder" size={20} color={Semantic.primary.main} />
-                  </View>
-                  <Text style={styles.detailLabel}>Logam</Text>
-                </View>
-                <AnimatedCounter value={jumlahLogam} suffix="x" style={styles.detailCount} />
-                <AnimatedCounter value={poinLogam} prefix="+" style={styles.detailSubtotal} />
+              <View style={[styles.bentoBoxSmall, { backgroundColor: isDark ? Colors.obsidian[950] : Colors.neutral[50] }]}>
+                <Text style={[styles.bentoBoxLabel, { color: getMutedColor() }]}>Logam</Text>
+                <AnimatedCounter value={jumlahLogam} style={[styles.bentoBoxValue, { color: Semantic.warning.main }]} />
+                <Text style={{ fontFamily: Typography.fontFamily.medium, fontSize: 12, color: Semantic.warning.main }}>+{poinLogam} pts</Text>
               </View>
 
-              <View style={styles.detailRow}>
-                <View style={styles.detailLabelRow}>
-                  <View style={[styles.iconBg, { backgroundColor: Colors.red[100] }]}>
-                    <MaterialCommunityIcons name="close-circle" size={20} color={Semantic.danger.main} />
-                  </View>
-                  <Text style={styles.detailLabel}>Ditolak</Text>
-                </View>
-                <AnimatedCounter value={jumlahReject} suffix="x" style={{...styles.detailCount, color: Semantic.danger.main}} />
-                <Text style={[styles.detailSubtotal, { color: Semantic.danger.main }]}>0</Text>
+              <View style={[styles.bentoBoxSmall, { backgroundColor: isDark ? Colors.obsidian[950] : Colors.neutral[50] }]}>
+                <Text style={[styles.bentoBoxLabel, { color: getMutedColor() }]}>Ditolak</Text>
+                <AnimatedCounter value={jumlahReject} style={[styles.bentoBoxValue, { color: Semantic.danger.main }]} />
+                <Text style={{ fontFamily: Typography.fontFamily.medium, fontSize: 12, color: Semantic.danger.main }}>0 pts</Text>
               </View>
             </View>
 
+            <View style={{ height: Spacing.xl }} />
+
             <LinearGradient
-              colors={Gradients.card}
+              colors={isDark ? [Colors.obsidian[800], Colors.obsidian[950]] : Gradients.card}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.totalCard}
             >
               <View>
-                <Text style={styles.totalLabelWhite}>Total Item</Text>
-                <AnimatedCounter value={totalSemuaSampah} style={styles.totalValueWhite} />
+                <Text style={styles.totalLabelWhite}>Total Poin</Text>
+                <AnimatedCounter value={totalSemuaPoin} style={styles.totalValueYellow} />
               </View>
               <View style={{ alignItems: "flex-end" }}>
-                <Text style={styles.totalLabelWhite}>Grand Total Poin</Text>
-                <AnimatedCounter value={totalSemuaPoin} style={styles.totalValueYellow} />
+                <Text style={styles.totalLabelWhite}>Item Diterima</Text>
+                <AnimatedCounter value={totalSemuaSampah - jumlahReject} style={styles.totalValueWhite} />
               </View>
             </LinearGradient>
 
             <AnimatedPress style={styles.btnDanger} onPress={akhiriSesi}>
-              <FontAwesome name="check-circle" size={18} color={Semantic.background.primary} style={{ marginRight: 8 }} />
-              <Text style={styles.btnPrimaryText}>Akhiri Sesi & Tutup Pintu</Text>
+              <FontAwesome name="check-circle" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+              <Text style={styles.btnPrimaryText}>Tutup Pintu & Selesai</Text>
             </AnimatedPress>
           </View>
         </Animated.View>
@@ -428,10 +499,16 @@ export default function ExchangeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Semantic.background.tertiary,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: Spacing.xl,
+  },
+  blob: {
+    position: 'absolute',
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    filter: 'blur(60px)',
   },
   contentWrapper: {
     width: "100%",
@@ -440,70 +517,75 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontFamily: Typography.fontFamily.primary,
     fontSize: Typography.size.xxl,
-    color: Semantic.text.primary,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xl,
+    textAlign: "center",
   },
   subtitle: {
     fontFamily: Typography.fontFamily.inter,
     fontSize: Typography.size.base,
-    color: Semantic.text.secondary,
     textAlign: "center",
     marginBottom: Spacing.xl,
-    paddingHorizontal: Spacing.md,
   },
-  statusRvmCard: {
-    backgroundColor: Semantic.background.primary,
-    width: "100%",
-    borderRadius: BorderRadius.lg,
+  bentoCard: {
+    width: '100%',
+    borderRadius: BorderRadius.xl,
     padding: Spacing.lg,
-    marginBottom: Spacing.xl,
-    borderWidth: 1,
-    borderColor: Components.card.border,
     ...Shadows.sm,
+  },
+  iconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconCircleLg: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bentoLabel: {
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: Typography.size.sm,
+    marginBottom: 4,
   },
   statusHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: Spacing.sm,
+  },
+  statusIndicatorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: Spacing.lg,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(150,150,150,0.1)'
   },
   statusTitle: {
-    fontFamily: Typography.fontFamily.secondary,
-    fontSize: Typography.size.md,
-    color: Semantic.text.primary,
-  },
-  badgeBase: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.full,
-  },
-  badgeOnline: {
-    backgroundColor: Components.iconWrapper.success.bg,
-  },
-  badgeOffline: {
-    backgroundColor: Semantic.background.tertiary,
+    fontFamily: Typography.fontFamily.primary,
+    fontSize: Typography.size.lg,
   },
   dotIndicator: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Semantic.success.main,
-    marginRight: 4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
   },
-  badgeText: {
-    fontFamily: Typography.fontFamily.interBold,
-    fontSize: Typography.size.xs,
-    color: Semantic.success.main,
+  routeButton: {
+    backgroundColor: Semantic.primary.main,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  badgeTextOffline: {
-    color: Semantic.text.muted,
-  },
-  statusSub: {
-    fontFamily: Typography.fontFamily.inter,
-    fontSize: Typography.size.sm,
-    color: Semantic.text.secondary,
+  routeButtonText: {
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: 12,
+    color: '#FFFFFF',
   },
   ctaWrapper: {
     width: "100%",
@@ -518,47 +600,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  bannerTextContainer: { flex: 1, paddingRight: Spacing.lg },
+  bannerTextContainer: { flex: 1, paddingRight: Spacing.md },
   bannerTitle: {
     fontFamily: Typography.fontFamily.primary,
-    fontSize: Typography.size.lg,
-    color: Semantic.background.primary,
+    fontSize: Typography.size.xl,
+    color: "#FFFFFF",
     marginBottom: Spacing.xs,
   },
   bannerSubtitle: {
     fontFamily: Typography.fontFamily.inter,
     fontSize: Typography.size.sm,
     color: "rgba(255,255,255,0.9)",
-    lineHeight: 18,
-  },
-  bannerIcon: { opacity: 0.9 },
-  qrCard: {
-    width: "100%",
-    padding: Spacing.xl,
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    lineHeight: 20,
   },
   qrInner: {
-    padding: Spacing.lg,
-    backgroundColor: Semantic.background.primary,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Components.card.border,
-    marginBottom: Spacing.xl,
+    padding: Spacing.md,
+    backgroundColor: "#FFFFFF",
+    borderRadius: BorderRadius.lg,
     ...Shadows.sm,
-  },
-  tokenLabel: {
-    fontFamily: Typography.fontFamily.inter,
-    fontSize: Typography.size.sm,
-    color: Semantic.text.muted,
-    marginBottom: 4,
   },
   tokenText: {
     fontFamily: Typography.fontFamily.primary,
     fontSize: Typography.size.xxl,
-    color: Semantic.success.main,
     letterSpacing: 2,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
+    marginTop: Spacing.xs,
   },
   timerPill: {
     flexDirection: "row",
@@ -575,7 +641,6 @@ const styles = StyleSheet.create({
   timerText: {
     fontFamily: Typography.fontFamily.interMedium,
     fontSize: Typography.size.sm,
-    color: Semantic.warning.main,
     marginLeft: Spacing.xs,
   },
   actionRow: {
@@ -588,85 +653,54 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     backgroundColor: Semantic.success.main,
     paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.full,
     alignItems: "center",
     justifyContent: "center",
   },
   btnPrimaryText: {
     fontFamily: Typography.fontFamily.secondary,
-    color: Semantic.background.primary,
+    color: "#FFFFFF",
     fontSize: Typography.size.base,
   },
   btnOutline: {
     flex: 1,
     paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.full,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 2,
-    borderColor: Semantic.danger.main,
-    backgroundColor: Colors.red[50],
+    borderWidth: 1,
+    backgroundColor: 'transparent',
   },
   btnOutlineText: {
     fontFamily: Typography.fontFamily.secondary,
-    color: Semantic.danger.main,
     fontSize: Typography.size.base,
-  },
-  dashCard: {
-    backgroundColor: Semantic.background.primary,
-    width: "100%",
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.xl,
-    alignItems: "center",
-    ...Shadows.md,
   },
   doorOpenText: {
     fontFamily: Typography.fontFamily.primary,
     fontSize: Typography.size.xl,
-    color: Semantic.text.primary,
     marginBottom: Spacing.xl,
   },
-  detailsContainer: {
-    width: "100%",
-    marginBottom: Spacing.lg,
-  },
-  detailRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Spacing.md,
-    paddingBottom: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Components.card.border,
-  },
-  detailLabelRow: {
-    flex: 2,
-    flexDirection: "row",
-    alignItems: "center",
+  statsRow: {
+    flexDirection: 'row',
+    width: '100%',
     gap: Spacing.sm,
   },
-  iconBg: {
-    padding: Spacing.xs,
-    borderRadius: BorderRadius.sm,
-  },
-  detailLabel: {
-    fontFamily: Typography.fontFamily.interMedium,
-    fontSize: Typography.size.sm,
-    color: Semantic.text.primary,
-  },
-  detailCount: {
-    fontFamily: Typography.fontFamily.interBold,
+  bentoBoxSmall: {
     flex: 1,
-    fontSize: Typography.size.base,
-    color: Semantic.text.primary,
-    textAlign: "center",
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  detailSubtotal: {
-    fontFamily: Typography.fontFamily.interBold,
-    flex: 1,
-    fontSize: Typography.size.base,
-    color: Semantic.success.main,
-    textAlign: "right",
+  bentoBoxLabel: {
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: Typography.size.xs,
+    marginBottom: Spacing.xs,
+  },
+  bentoBoxValue: {
+    fontFamily: Typography.fontFamily.primary,
+    fontSize: 24,
+    marginBottom: 2,
   },
   totalCard: {
     flexDirection: "row",
@@ -674,23 +708,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: "100%",
     padding: Spacing.lg,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.lg,
     marginBottom: Spacing.xl,
   },
   totalLabelWhite: {
     fontFamily: Typography.fontFamily.inter,
-    fontSize: Typography.size.xs,
-    color: "rgba(255,255,255,0.8)",
-    marginBottom: 2,
+    fontSize: Typography.size.sm,
+    color: "rgba(255,255,255,0.7)",
+    marginBottom: 4,
   },
   totalValueWhite: {
     fontFamily: Typography.fontFamily.interBold,
-    fontSize: Typography.size.xl,
-    color: Semantic.background.primary,
+    fontSize: 28,
+    color: "#FFFFFF",
   },
   totalValueYellow: {
     fontFamily: Typography.fontFamily.interBold,
-    fontSize: Typography.size.xl,
+    fontSize: 28,
     color: Semantic.warning.main,
   },
   btnDanger: {
@@ -698,19 +732,17 @@ const styles = StyleSheet.create({
     backgroundColor: Semantic.danger.main,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.xl,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.full,
     alignItems: "center",
     justifyContent: "center",
     width: "100%",
   },
   modalCelebrationBg: {
     flex: 1,
-    backgroundColor: Components.modal.overlay,
     justifyContent: "center",
     alignItems: "center",
   },
   celebrationCard: {
-    backgroundColor: Semantic.background.primary,
     width: "80%",
     padding: Spacing.xxl,
     borderRadius: BorderRadius.xl,
@@ -718,9 +750,9 @@ const styles = StyleSheet.create({
     ...Shadows.glow(Semantic.success.main),
   },
   checkIconWrapper: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: Semantic.success.main,
     justifyContent: "center",
     alignItems: "center",
@@ -729,14 +761,12 @@ const styles = StyleSheet.create({
   celebrationTitle: {
     fontFamily: Typography.fontFamily.primary,
     fontSize: Typography.size.xl,
-    color: Semantic.text.primary,
     marginBottom: Spacing.sm,
     textAlign: "center",
   },
   celebrationSub: {
     fontFamily: Typography.fontFamily.inter,
     fontSize: Typography.size.sm,
-    color: Semantic.text.secondary,
     textAlign: "center",
     lineHeight: 20,
   },

@@ -1,72 +1,122 @@
 import {
   BorderRadius,
   Colors,
-  Components,
   Semantic,
   Shadows,
   Spacing,
+  Typography,
 } from "@/constants/theme";
 import { AnimatedPress } from "@/components/ui/animated-press";
 import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { FlatList, StyleSheet, Text, View, useColorScheme, Linking } from "react-native";
 import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { db } from "../firebaseConfig";
+import { collection, query, where, orderBy, onSnapshot, updateDoc, doc } from "firebase/firestore";
+import { useAuth } from "../AuthContext";
+import { SkeletonListItem } from "@/components/ui/skeleton";
 
 // ── Types ──────────────────────────────────────────────
 interface NotificationItem {
   id: string;
+  user: string;
   title: string;
   desc: string;
-  time: string;
+  time: any;
   icon: string;
-  color: string;
-  unread?: boolean;
+  color_type: string;
+  unread: boolean;
+  type: string;
 }
 
-// ── Static Data ────────────────────────────────────────
-const NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: "1",
-    title: "Selamat Datang di EcoPoint!",
-    desc: "Terima kasih sudah bergabung. Mari selamatkan bumi bersama-sama.",
-    time: "Baru saja",
-    icon: "leaf",
-    color: Semantic.success.main,
-    unread: true,
-  },
-  {
-    id: "2",
-    title: "Level Up Terbuka 🌟",
-    desc: "Kumpulkan 1000 poin pertamamu untuk naik dari level Eco-Starter.",
-    time: "2 jam yang lalu",
-    icon: "star",
-    color: Semantic.warning.main,
-    unread: true,
-  },
-  {
-    id: "3",
-    title: "Mesin RVM #01 Aktif Kembali",
-    desc: "Mesin penukar di Gedung A sudah online. Yuk setor sampahmu!",
-    time: "5 jam yang lalu",
-    icon: "recycle",
-    color: Semantic.primary.main,
-    unread: false,
-  },
-  {
-    id: "4",
-    title: "Promo Reward Baru! 🎁",
-    desc: "Voucher GoPay Rp 25.000 kini tersedia di katalog reward.",
-    time: "1 hari yang lalu",
-    icon: "gift",
-    color: Colors.red[400],
-    unread: false,
-  },
-];
-
 export default function NotificationsScreen() {
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+
+  const getBgColor = () => isDark ? Semantic.background.dark : Semantic.background.secondary;
+  const getCardBg = () => isDark ? Colors.obsidian[800] : Semantic.background.primary;
+  const getTextColor = () => isDark ? Semantic.text.light : Semantic.text.primary;
+  const getMutedColor = () => isDark ? Colors.obsidian[400] : Semantic.text.secondary;
+  const getBorderColor = () => isDark ? Colors.obsidian[800] : Semantic.border.light;
+
+  const [notifications, setNotifications] = React.useState<NotificationItem[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!user) return;
+
+    try {
+      const q = query(
+        collection(db, "Notifications"),
+        where("user", "==", user.uid),
+        orderBy("time", "desc")
+      );
+
+      const unsub = onSnapshot(q, (snapshot) => {
+        const data: NotificationItem[] = [];
+        snapshot.forEach((doc) => {
+          data.push({ id: doc.id, ...doc.data() } as NotificationItem);
+        });
+        setNotifications(data);
+        setLoading(false);
+      }, (err) => {
+        setErrorMsg(err.message);
+        setLoading(false);
+      });
+
+      return () => unsub();
+    } catch (err: any) {
+      setErrorMsg(err.message);
+      setLoading(false);
+    }
+  }, []);
+
+  const formatTime = (timestamp: any) => {
+    if (!timestamp || typeof timestamp.toDate !== 'function') return "Baru saja";
+    try {
+      const date = timestamp.toDate();
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMins / 60);
+      const diffDays = Math.floor(diffHours / 24);
+
+      if (diffMins < 1) return "Baru saja";
+      if (diffMins < 60) return `${diffMins} menit yang lalu`;
+      if (diffHours < 24) return `${diffHours} jam yang lalu`;
+      if (diffDays === 1) return "Kemarin";
+      return `${diffDays} hari yang lalu`;
+    } catch (e) {
+      return "Baru saja";
+    }
+  };
+
+  const getColorHex = (colorType: string) => {
+    switch (colorType) {
+      case "success": return Semantic.success.main;
+      case "warning": return Semantic.warning.main;
+      case "primary": return Semantic.primary.main;
+      case "danger": return Semantic.danger.main;
+      default: return Semantic.primary.main;
+    }
+  };
+
+  const handlePress = async (item: NotificationItem) => {
+    if (item.unread) {
+      try {
+        await updateDoc(doc(db, "Notifications", item.id), { unread: false });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  };
 
   const renderItem = ({
     item,
@@ -74,93 +124,125 @@ export default function NotificationsScreen() {
   }: {
     item: NotificationItem;
     index: number;
-  }) => (
-    <Animated.View entering={FadeInRight.delay(index * 80).springify()}>
-      <AnimatedPress style={styles.card} haptic={false}>
-        {/* Unread accent bar */}
-        {item.unread && <View style={[styles.unreadBar, { backgroundColor: item.color }]} />}
+  }) => {
+    const hexColor = getColorHex(item.color_type);
+    return (
+      <Animated.View entering={FadeInRight.delay(index * 80).duration(400)}>
+        <AnimatedPress style={[styles.card, { backgroundColor: getCardBg() }]} haptic={false} onPress={() => handlePress(item)}>
+          {/* Unread accent bar */}
+          {item.unread && <View style={[styles.unreadBar, { backgroundColor: hexColor }]} />}
 
-        {/* Icon */}
-        <View
-          style={[
-            styles.iconContainer,
-            { backgroundColor: item.color + "15" },
-          ]}
-        >
-          <FontAwesome
-            name={item.icon as any}
-            size={20}
-            color={item.color}
-          />
-        </View>
-
-        {/* Content */}
-        <View style={styles.textContainer}>
-          <View style={styles.titleRow}>
-            <Text style={styles.title} numberOfLines={1}>
-              {item.title}
-            </Text>
-            {item.unread && <View style={[styles.unreadDot, { backgroundColor: item.color }]} />}
+          {/* Icon */}
+          <View
+            style={[
+              styles.iconContainer,
+              { backgroundColor: isDark ? `${hexColor}20` : `${hexColor}15` },
+            ]}
+          >
+            <FontAwesome
+              name={item.icon as any}
+              size={20}
+              color={hexColor}
+            />
           </View>
-          <Text style={styles.desc} numberOfLines={2}>
-            {item.desc}
-          </Text>
-          <Text style={styles.time}>{item.time}</Text>
-        </View>
-      </AnimatedPress>
-    </Animated.View>
-  );
+
+          {/* Content */}
+          <View style={styles.textContainer}>
+            <View style={styles.titleRow}>
+              <Text style={[styles.title, { color: getTextColor() }]} numberOfLines={1}>
+                {item.title}
+              </Text>
+              {item.unread && <View style={[styles.unreadDot, { backgroundColor: hexColor }]} />}
+            </View>
+            <Text style={[styles.desc, { color: getMutedColor() }]} numberOfLines={2}>
+              {item.desc}
+            </Text>
+            <Text style={[styles.time, { color: isDark ? Colors.obsidian[500] : Semantic.text.muted }]}>
+              {formatTime(item.time)}
+            </Text>
+          </View>
+        </AnimatedPress>
+      </Animated.View>
+    );
+  };
 
   const renderEmpty = () => (
     <Animated.View
-      entering={FadeInDown.delay(200).springify()}
+      entering={FadeInDown.delay(200).duration(400)}
       style={styles.emptyState}
     >
-      <View style={styles.emptyIconContainer}>
+      <View style={[styles.emptyIconContainer, { backgroundColor: isDark ? Colors.obsidian[800] : Semantic.background.primary }]}>
         <MaterialCommunityIcons
           name="bell-off-outline"
           size={48}
-          color={Semantic.text.muted}
+          color={getMutedColor()}
         />
       </View>
-      <Text style={styles.emptyTitle}>Belum Ada Notifikasi</Text>
-      <Text style={styles.emptyDesc}>
-        Notifikasi tentang poin masuk, promo reward, dan status mesin akan muncul
-        di sini.
+      <Text style={[styles.emptyTitle, { color: getTextColor() }]}>Belum Ada Notifikasi</Text>
+      <Text style={[styles.emptyDesc, { color: getMutedColor() }]}>
+        Notifikasi tentang poin masuk, promo reward, dan status mesin akan muncul di sini.
       </Text>
     </Animated.View>
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: getBgColor() }]}>
       {/* Header */}
       <Animated.View
         entering={FadeInDown.duration(300)}
-        style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}
+        style={[styles.header, { 
+          paddingTop: insets.top + Spacing.sm,
+          backgroundColor: getBgColor(),
+          borderBottomColor: getBorderColor()
+        }]}
       >
         <AnimatedPress
           onPress={() => router.back()}
-          style={styles.backButton}
+          style={[styles.backButton, { backgroundColor: isDark ? Colors.obsidian[800] : Semantic.background.primary }]}
         >
           <FontAwesome
             name="arrow-left"
             size={18}
-            color={Semantic.text.primary}
+            color={getTextColor()}
           />
         </AnimatedPress>
-        <Text style={styles.headerTitle}>Notifikasi</Text>
+        <Text style={[styles.headerTitle, { color: getTextColor() }]}>Notifikasi</Text>
         <View style={{ width: 40 }} />
       </Animated.View>
 
       {/* List */}
-      <FlatList
-        data={NOTIFICATIONS}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={styles.listContainer}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={renderEmpty}
-      />
+      {errorMsg ? (
+        <View style={styles.emptyState}>
+          <Text style={[styles.emptyTitle, { color: Semantic.danger.main }]}>Terjadi Kesalahan</Text>
+          <Text selectable style={[styles.emptyDesc, { color: getMutedColor(), paddingHorizontal: 20 }]}>{errorMsg}</Text>
+          {errorMsg.includes("https://console.firebase") && (
+            <AnimatedPress 
+              style={[styles.backButton, { width: 'auto', paddingHorizontal: 20, marginTop: 20, backgroundColor: Semantic.primary.main }]} 
+              onPress={() => {
+                const urlMatch = errorMsg.match(/(https:\/\/[^\s]+)/);
+                if (urlMatch) Linking.openURL(urlMatch[0]);
+              }}
+            >
+              <Text style={{ color: '#FFF', fontFamily: Typography.fontFamily.primary }}>Buka Link Firebase</Text>
+            </AnimatedPress>
+          )}
+        </View>
+      ) : loading ? (
+        <View style={styles.listContainer}>
+          {[1, 2, 3, 4].map((i) => (
+            <SkeletonListItem key={i} style={{ marginBottom: Spacing.md }} />
+          ))}
+        </View>
+      ) : (
+        <FlatList
+          data={notifications}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={renderEmpty}
+        />
+      )}
     </View>
   );
 }
@@ -168,7 +250,6 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Semantic.background.tertiary,
   },
   header: {
     flexDirection: "row",
@@ -176,9 +257,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingBottom: Spacing.lg,
     paddingHorizontal: Spacing.xl,
-    backgroundColor: Semantic.background.primary,
     borderBottomWidth: 1,
-    borderBottomColor: Semantic.border.light,
   },
   backButton: {
     width: 40,
@@ -186,12 +265,10 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: Semantic.background.tertiary,
   },
   headerTitle: {
-    fontFamily: "Poppins_700Bold",
+    fontFamily: Typography.fontFamily.primary,
     fontSize: 18,
-    color: Semantic.text.primary,
   },
   listContainer: {
     padding: Spacing.xl,
@@ -199,12 +276,10 @@ const styles = StyleSheet.create({
   },
   card: {
     flexDirection: "row",
-    backgroundColor: Semantic.background.primary,
     borderRadius: BorderRadius.xl,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
     overflow: "hidden",
-    ...Shadows.sm,
   },
   unreadBar: {
     position: "absolute",
@@ -232,9 +307,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   title: {
-    fontFamily: "Poppins_600SemiBold",
+    fontFamily: Typography.fontFamily.secondary,
     fontSize: 15,
-    color: Semantic.text.primary,
     flex: 1,
   },
   unreadDot: {
@@ -243,20 +317,16 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   desc: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: Typography.fontFamily.inter,
     fontSize: 13,
-    color: Semantic.text.secondary,
     marginTop: 2,
     marginBottom: Spacing.sm,
     lineHeight: 18,
   },
   time: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: Typography.fontFamily.interMedium,
     fontSize: 11,
-    color: Semantic.text.muted,
   },
-
-  // Empty state
   emptyState: {
     alignItems: "center",
     paddingTop: 80,
@@ -266,21 +336,18 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: Semantic.background.secondary,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: Spacing.xl,
   },
   emptyTitle: {
-    fontFamily: "Poppins_600SemiBold",
+    fontFamily: Typography.fontFamily.secondary,
     fontSize: 16,
-    color: Semantic.text.primary,
     marginBottom: Spacing.sm,
   },
   emptyDesc: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: Typography.fontFamily.inter,
     fontSize: 13,
-    color: Semantic.text.secondary,
     textAlign: "center",
     lineHeight: 20,
   },

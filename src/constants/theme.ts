@@ -1,49 +1,75 @@
 /**
- * EcoPoint V2 — Premium Design System
- * "Deep Teal Freshness" — Modern, Glassmorphism-inspired
+ * EcoVibe Design System — Premium UI
+ * "Obsidian Dark & Fresh Emerald"
  */
 
 // ============================================
-// RAW COLOR PALETTE
+// RAW COLOR PALETTE (EcoVibe)
 // ============================================
 export const Colors = {
-  teal: {
-    50: "#E8F4F8",
-    100: "#B8DAEB",
-    200: "#88C0DE",
-    400: "#4A9CC8",
-    600: "#1E78A8",
-    700: "#056B8D",
-    800: "#044B66",
-    900: "#022E40",
-  },
-
-  blue: {
-    50: "#F0F6FB",
-    100: "#D1E3F0",
-    200: "#B2D0E5",
-    400: "#6BA8C8",
-    600: "#4E8BA6",
-    700: "#427AA1",
-    800: "#2F5475",
-    900: "#1C3149",
-  },
-
-  sky: {
-    50: "#F8FAFB",
-    100: "#F0F4F8",
-    200: "#EBF2FA",
-    400: "#D4DFE8",
-    600: "#8B9AAC",
-    700: "#5A6B7F",
-    800: "#3D4A5C",
-    900: "#1F2838",
-  },
-
-  green: {
+  emerald: {
+    0: "#FFFFFF",
     50: "#ECFDF5",
     100: "#D1FAE5",
     200: "#A7F3D0",
+    300: "#6EE7B7",
+    400: "#34D399",
+    500: "#10B981", // EcoVibe Primary
+    600: "#059669", // EcoVibe Secondary
+    700: "#047857",
+    800: "#065F46",
+    900: "#064E3B",
+  },
+
+  amber: {
+    0: "#FFFFFF",
+    50: "#FFFBEB",
+    100: "#FEF3C7",
+    200: "#FDE68A",
+    300: "#FCD34D",
+    400: "#FBBF24",
+    500: "#F59E0B", // EcoVibe Tertiary
+    600: "#D97706",
+    700: "#B45309",
+    800: "#92400E",
+    900: "#78350F",
+  },
+
+  obsidian: {
+    0: "#FFFFFF",
+    50: "#F8FAFC", // Light Mode Background
+    100: "#F1F5F9", // Light Mode Surface
+    200: "#E2E8F0",
+    300: "#CBD5E1",
+    400: "#94A3B8",
+    500: "#64748B", // Muted Text
+    600: "#475569",
+    700: "#334155",
+    800: "#1E293B", // Dark Mode Surface Light
+    900: "#0F172A", // Light Mode Text (Slate)
+    950: "#0B1118", // EcoVibe Neutral (Obsidian Dark Background)
+  },
+
+  red: {
+    0: "#FFFFFF",
+    50: "#FEF2F2",
+    100: "#FEE2E2",
+    200: "#FECACA",
+    300: "#FCA5A5",
+    400: "#F87171",
+    500: "#EF4444",
+    600: "#DC2626",
+    700: "#B91C1C",
+    800: "#991B1B",
+    900: "#7F1D1D",
+  },
+  // Backwards compatibility aliases
+  teal: {
+    0: "#FFFFFF",
+    50: "#ECFDF5",
+    100: "#D1FAE5",
+    200: "#A7F3D0",
+    300: "#6EE7B7",
     400: "#34D399",
     500: "#10B981",
     600: "#059669",
@@ -51,137 +77,110 @@ export const Colors = {
     800: "#065F46",
     900: "#064E3B",
   },
-
-  lime: {
-    50: "#FAFBF0",
-    100: "#F3F6DB",
-    200: "#EDF1C6",
-    400: "#D4DF65",
-    600: "#B4C81F",
-    700: "#A5BE00",
-    800: "#7D8F00",
-    900: "#556000",
-  },
-
   neutral: {
     0: "#FFFFFF",
-    50: "#F9FAFB",
-    100: "#F3F4F6",
-    200: "#E5E7EB",
-    300: "#D1D5DB",
-    400: "#9CA3AF",
-    500: "#6B7280",
-    600: "#4B5563",
-    700: "#374151",
-    800: "#1F2937",
-    900: "#111827",
+    50: "#F8FAFC",
+    100: "#F1F5F9",
+    200: "#E2E8F0",
+    300: "#CBD5E1",
+    400: "#94A3B8",
+    500: "#64748B",
+    600: "#475569",
+    700: "#334155",
+    800: "#1E293B",
+    900: "#0F172A",
   },
-
+  light: {
+    text: "#0F172A",
+    background: "#FFFFFF",
+    tint: "#10B981",
+    icon: "#94A3B8",
+    tabIconDefault: "#94A3B8",
+    tabIconSelected: "#10B981",
+  },
+  dark: {
+    text: "#FFFFFF",
+    background: "#0B1118",
+    tint: "#34D399",
+    icon: "#94A3B8",
+    tabIconDefault: "#94A3B8",
+    tabIconSelected: "#34D399",
+  },
+  green: {
+    0: "#FFFFFF",
+    50: "#ECFDF5",
+    100: "#D1FAE5",
+    200: "#A7F3D0",
+    300: "#6EE7B7",
+    400: "#34D399",
+    500: "#10B981",
+    600: "#059669",
+    700: "#047857",
+    800: "#065F46",
+    900: "#064E3B",
+  },
   warning: {
+    0: "#FFFFFF",
     50: "#FFFBEB",
     100: "#FEF3C7",
     200: "#FDE68A",
+    300: "#FCD34D",
     400: "#FBBF24",
+    500: "#F59E0B",
     600: "#D97706",
-    700: "#F59E0B",
-    800: "#B45309",
-    900: "#92400E",
-  },
-
-  red: {
-    50: "#FEF2F2",
-    100: "#FEE2E2",
-    200: "#FECACA",
-    400: "#F87171",
-    600: "#DC2626",
-    700: "#B91C1C",
-    800: "#991B1B",
-    900: "#7F1D1D",
-  },
-
-  // Compatibility aliases for starter components
-  light: {
-    text: "#111827",
-    textSecondary: "#4B5563",
-    background: "#FFFFFF",
-    tint: "#056B8D",
-    icon: "#4B5563",
-    tabIconDefault: "#9CA3AF",
-    tabIconSelected: "#056B8D",
-    backgroundElement: "#F3F4F6",
-    backgroundSelected: "#E8F4F8",
-  },
-  dark: {
-    text: "#F9FAFB",
-    textSecondary: "#D1D5DB",
-    background: "#111827",
-    tint: "#88C0DE",
-    icon: "#D1D5DB",
-    tabIconDefault: "#9CA3AF",
-    tabIconSelected: "#88C0DE",
-    backgroundElement: "#1F2937",
-    backgroundSelected: "#044B66",
-  },
+    700: "#B45309",
+    800: "#92400E",
+    900: "#78350F",
+  }
 };
 
 // ============================================
-// SEMANTIC TOKENS
+// SEMANTIC TOKENS (Adapting to System Theme)
 // ============================================
 export const Semantic = {
   primary: {
-    light: Colors.teal[50],
-    main: Colors.teal[700],
-    dark: Colors.teal[900],
+    light: Colors.emerald[100],
+    main: Colors.emerald[500],
+    dark: Colors.emerald[700],
   },
-
   secondary: {
-    light: Colors.blue[100],
-    main: Colors.blue[700],
-    dark: Colors.blue[900],
+    light: Colors.emerald[50],
+    main: Colors.emerald[600],
+    dark: Colors.emerald[800],
   },
-
   success: {
-    light: Colors.green[100],
-    main: Colors.green[500],
-    dark: Colors.green[900],
+    light: Colors.emerald[100],
+    main: Colors.emerald[500],
+    dark: Colors.emerald[700],
   },
-
   warning: {
-    light: Colors.warning[100],
-    main: Colors.warning[700],
-    dark: Colors.warning[900],
+    light: Colors.amber[100],
+    main: Colors.amber[500],
+    dark: Colors.amber[700],
   },
-
   danger: {
-    light: Colors.red[100],
-    main: Colors.red[700],
+    light: Colors.red[50],
+    main: Colors.red[500],
     dark: Colors.red[900],
   },
-
-  accent: {
-    light: Colors.lime[100],
-    main: Colors.lime[700],
-    dark: Colors.lime[900],
-  },
-
+  // Default values assuming Light Mode. 
+  // In components we can conditionally use Dark mode hexes.
   text: {
-    primary: Colors.neutral[900],
-    secondary: Colors.neutral[600],
-    muted: Colors.neutral[400],
-    light: Colors.neutral[0],
+    primary: Colors.obsidian[900],
+    secondary: Colors.obsidian[600],
+    muted: Colors.obsidian[400],
+    light: "#FFFFFF",
   },
-
   background: {
-    primary: Colors.neutral[0],
-    secondary: Colors.sky[200],
-    tertiary: Colors.sky[100],
-    dark: Colors.neutral[900],
+    primary: "#FFFFFF",
+    secondary: Colors.obsidian[50],
+    tertiary: Colors.obsidian[100],
+    dark: Colors.obsidian[950],
   },
-
   border: {
-    light: Colors.neutral[200],
-    main: Colors.neutral[300],
-    dark: Colors.neutral[500],
+    light: Colors.obsidian[200],
+    main: Colors.obsidian[300],
+    dark: Colors.obsidian[700],
   },
 };
 
@@ -189,181 +188,75 @@ export const Semantic = {
 // COMPONENT TOKENS
 // ============================================
 export const Components = {
-  button: {
-    primary: {
-      bg: Semantic.primary.main,
-      text: Colors.neutral[0],
-      hover: Colors.teal[800],
-    },
-    success: {
-      bg: Semantic.success.main,
-      text: Colors.neutral[0],
-      hover: Colors.green[800],
-    },
-    ghost: {
-      bg: "transparent",
-      text: Semantic.primary.main,
-      border: Semantic.border.light,
-    },
-  },
-
   card: {
-    bg: Semantic.background.primary,
-    bgLight: Semantic.background.secondary,
     border: Semantic.border.light,
-    shadow: "rgba(0, 0, 0, 0.08)",
   },
-
-  header: {
-    bg: Colors.neutral[0],
-    border: Semantic.border.light,
-    text: Semantic.text.primary,
-  },
-
-  modal: {
-    bg: Colors.neutral[0],
-    overlay: "rgba(0, 0, 0, 0.5)",
-  },
-
-  badge: {
-    success: Colors.green[100],
-    successText: Colors.green[800],
-    warning: Colors.warning[100],
-    warningText: Colors.warning[800],
-    danger: Colors.red[100],
-    dangerText: Colors.red[800],
-  },
-
   iconWrapper: {
-    success: {
-      bg: Colors.green[100],
-      color: Semantic.success.main,
-    },
-    warning: {
-      bg: Colors.warning[100],
-      color: Colors.warning[700],
-    },
-    danger: {
-      bg: Colors.red[100],
-      color: Colors.red[700],
-    },
-    primary: {
-      bg: Colors.teal[100],
-      color: Semantic.primary.main,
-    },
-    info: {
-      bg: Colors.blue[100],
-      color: Semantic.secondary.main,
-    },
+    success: { bg: Colors.emerald[100], color: Semantic.success.main },
+    warning: { bg: Colors.amber[100], color: Semantic.warning.main },
+    danger: { bg: Colors.red[100], color: Semantic.danger.main },
+    primary: { bg: Colors.emerald[50], color: Semantic.primary.main },
+    info: { bg: Colors.obsidian[100], color: Colors.obsidian[600] },
   },
-
   glass: {
     bg: "rgba(255, 255, 255, 0.15)",
     bgStrong: "rgba(255, 255, 255, 0.25)",
     border: "rgba(255, 255, 255, 0.3)",
-    bgDark: "rgba(0, 0, 0, 0.06)",
+    bgDark: "rgba(11, 17, 24, 0.4)",
   },
+  modal: {
+    overlay: "rgba(11, 17, 24, 0.6)",
+  }
 };
 
 // ============================================
-// SPACING
+// SPACING & RADIUS
 // ============================================
 export const Spacing = {
-  half: 2,
-  one: 4,
-  two: 8,
-  three: 12,
-  four: 16,
-  five: 20,
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 24,
-  xxl: 32,
-  xxxl: 48,
+  half: 2, xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32, xxxl: 48,
+  // Backwards compatibility aliases
+  one: 4, two: 8, three: 12, four: 16, five: 24, six: 32
+};
+export const BorderRadius = {
+  xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 28, full: 9999,
 };
 
 // ============================================
-// TYPOGRAPHY (NEW)
+// TYPOGRAPHY (EcoVibe - Plus Jakarta Sans)
 // ============================================
 export const Typography = {
   fontFamily: {
-    primary: "Poppins_700Bold",
-    secondary: "Poppins_600SemiBold",
-    medium: "Poppins_500Medium",
-    body: "Poppins_400Regular",
-    inter: "Inter_400Regular",
-    interMedium: "Inter_600SemiBold",
-    interBold: "Inter_700Bold",
+    primary: "PlusJakartaSans_700Bold",
+    secondary: "PlusJakartaSans_600SemiBold",
+    medium: "PlusJakartaSans_500Medium",
+    body: "PlusJakartaSans_400Regular",
+    // Fallbacks just in case
+    inter: "PlusJakartaSans_400Regular",
+    interMedium: "PlusJakartaSans_600SemiBold",
+    interBold: "PlusJakartaSans_700Bold",
   },
   size: {
-    xs: 10,
-    sm: 12,
-    base: 14,
-    md: 16,
-    lg: 18,
-    xl: 20,
-    xxl: 24,
-    display: 32,
-    hero: 48,
+    xs: 10, sm: 12, base: 14, md: 16, lg: 18, xl: 20, xxl: 24, display: 32, hero: 48,
   },
   lineHeight: {
     tight: 1.1,
     normal: 1.4,
     relaxed: 1.6,
-  },
+  }
 };
 
 // ============================================
-// BORDER RADIUS
-// ============================================
-export const BorderRadius = {
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  xxl: 28,
-  full: 9999,
-};
-
-// ============================================
-// SHADOWS (NEW)
+// SHADOWS
 // ============================================
 export const Shadows = {
-  sm: {
-    shadowColor: Colors.neutral[900],
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  md: {
-    shadowColor: Colors.neutral[900],
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  lg: {
-    shadowColor: Colors.neutral[900],
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  glow: (color: string) => ({
-    shadowColor: color,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 10,
-  }),
+  sm: { shadowColor: Colors.obsidian[950], shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 2 },
+  md: { shadowColor: Colors.obsidian[950], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 4 },
+  lg: { shadowColor: Colors.obsidian[950], shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.12, shadowRadius: 16, elevation: 8 },
+  glow: (color: string) => ({ shadowColor: color, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 10 }),
 };
 
 // ============================================
-// ANIMATION CONFIG (NEW)
+// ANIMATION & GRADIENTS
 // ============================================
 export const AnimConfig = {
   duration: {
@@ -383,40 +276,37 @@ export const AnimConfig = {
   },
 };
 
-// ============================================
-// GRADIENT PRESETS (NEW)
-// ============================================
 export const Gradients = {
-  primary: [Colors.teal[900], Colors.teal[700], Colors.teal[400]] as const,
-  success: [Colors.green[800], Colors.green[500], Colors.green[400]] as const,
-  warmFire: [Colors.warning[100], Colors.warning[700], Colors.red[700]] as const,
-  card: [Colors.teal[800], Colors.teal[700], Colors.blue[400]] as const,
+  primary: [Colors.emerald[500], Colors.emerald[600]] as const,
+  success: [Colors.emerald[400], Colors.emerald[500]] as const,
+  card: [Colors.obsidian[800], Colors.obsidian[900]] as const,
 };
 
 // ============================================
-// COMPATIBILITY
+// EXPO DEFAULT COMPATIBILITY
 // ============================================
-export const Fonts = {
-  mono: "SpaceMono",
+export const light = {
+  text: Colors.obsidian[900],
+  background: "#FFFFFF",
+  tint: Colors.emerald[500],
+  icon: Colors.obsidian[400],
+  tabIconDefault: Colors.obsidian[400],
+  tabIconSelected: Colors.emerald[500],
+};
+export const dark = {
+  text: "#FFFFFF",
+  background: Colors.obsidian[950],
+  tint: Colors.emerald[400],
+  icon: Colors.obsidian[400],
+  tabIconDefault: Colors.obsidian[400],
+  tabIconSelected: Colors.emerald[400],
 };
 
-export type ThemeColor =
-  | "text"
-  | "textSecondary"
-  | "background"
-  | "backgroundElement"
-  | "backgroundSelected";
 
-export const MaxContentWidth = 960;
+
+export type ThemeColor = keyof typeof light & keyof typeof dark;
+export const Fonts = { mono: "SpaceMono" };
 
 export default {
-  Colors,
-  Semantic,
-  Components,
-  Spacing,
-  Typography,
-  BorderRadius,
-  Shadows,
-  AnimConfig,
-  Gradients,
+  Colors, Semantic, Components, Spacing, Typography, BorderRadius, Shadows, AnimConfig, Gradients, Fonts
 };

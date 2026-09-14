@@ -13,7 +13,7 @@ const AnimatedText = Animated.createAnimatedComponent(Text);
 interface AnimatedCounterProps {
   value: number;
   duration?: number;
-  style?: TextStyle;
+  style?: import('react-native').StyleProp<import('react-native').TextStyle>;
   prefix?: string;
   suffix?: string;
   separator?: boolean;

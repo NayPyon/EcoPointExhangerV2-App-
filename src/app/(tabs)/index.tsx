@@ -9,11 +9,11 @@ import {
   Spacing,
   Typography,
 } from "@/constants/theme";
-import { CURRENT_USER } from "@/constants/user-config";
+import { useAuth } from "../../AuthContext";
 import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { useEffect, useState } from "react";
-import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Platform, ScrollView, StyleSheet, Text, View, useColorScheme, Pressable } from "react-native";
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -25,6 +25,9 @@ import Animated, {
   withSequence,
   withSpring,
   withTiming,
+  useAnimatedScrollHandler,
+  interpolate,
+  Extrapolate,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -35,7 +38,6 @@ import { usePoints } from "../../PointContext";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { AnimatedPress } from "@/components/ui/animated-press";
 import { GlassCard } from "@/components/ui/glass-card";
-import { GradientHeader } from "@/components/ui/gradient-header";
 import { SkeletonCard, SkeletonListItem } from "@/components/ui/skeleton";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
@@ -49,10 +51,14 @@ const GAMIFICATION_TIERS = [
 ];
 
 export default function HomeScreen() {
+  const { userData } = useAuth();
   const { ts } = useLocalSearchParams();
   const animationKey = ts ? String(ts) : "default";
   
   const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+
   const { totalPoin, totalPlastik, totalLogam, hariKonsisten, loading } =
     usePoints();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -85,7 +91,7 @@ export default function HomeScreen() {
     setIsExpanded(!isExpanded);
   };
 
-  const firstName = CURRENT_USER.displayName.split(" ")[0];
+  const firstName = (userData?.displayName || 'Pengguna').split(" ")[0];
 
   // Animated badge pulse
   const badgeScale = useSharedValue(1);
@@ -104,29 +110,11 @@ export default function HomeScreen() {
     transform: [{ scale: badgeScale.value }],
   }));
 
-  // Fire pulse
-  const fireScale = useSharedValue(1);
-  useEffect(() => {
-    fireScale.value = withRepeat(
-      withSequence(
-        withTiming(1.1, { duration: 800 }),
-        withTiming(1, { duration: 800 }),
-      ),
-      -1,
-      true,
-    );
-  }, []);
-
-  const fireAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: fireScale.value }],
-  }));
-
-  // Animated progress bar
   const progressWidth = useSharedValue(0);
   useEffect(() => {
-    progressWidth.value = withSpring(
+    progressWidth.value = withTiming(
       progressPercentage,
-      AnimConfig.spring.gentle,
+      { duration: 500 }
     );
   }, [progressPercentage]);
 
@@ -134,28 +122,45 @@ export default function HomeScreen() {
     width: `${progressWidth.value}%`,
   }));
 
-  // Streak progress
-  const streakWidth = useSharedValue(0);
-  useEffect(() => {
-    streakWidth.value = withSpring(
-      Math.min((hariKonsisten / 7) * 100, 100),
-      AnimConfig.spring.gentle,
-    );
-  }, [hariKonsisten]);
+  // Sticky Header Scroll Animation
+  const scrollY = useSharedValue(0);
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
 
-  const streakAnimatedStyle = useAnimatedStyle(() => ({
-    width: `${streakWidth.value}%`,
-  }));
+  const headerStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(scrollY.value, [0, 50], [0, 1], Extrapolate.CLAMP);
+    const translateY = interpolate(scrollY.value, [0, 50], [-20, 0], Extrapolate.CLAMP);
+    return {
+      opacity,
+      transform: [{ translateY }],
+    };
+  });
+  
+  const headerOpacityStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(scrollY.value, [0, 50], [1, 0], Extrapolate.CLAMP);
+    return { opacity };
+  });
+
+  const getBgColor = () => isDark ? Semantic.background.dark : Semantic.background.secondary;
+  const getCardBg = () => isDark ? Colors.obsidian[800] : Semantic.background.primary;
+  const getTextColor = () => isDark ? Semantic.text.light : Semantic.text.primary;
+  const getMutedColor = () => isDark ? Colors.obsidian[400] : Semantic.text.secondary;
+
+  const hour = new Date().getHours();
+  let timeGreeting = "Halo";
+  if (hour < 11) timeGreeting = "Selamat Pagi";
+  else if (hour < 15) timeGreeting = "Selamat Siang";
+  else if (hour < 18) timeGreeting = "Selamat Sore";
+  else timeGreeting = "Selamat Malam";
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <GradientHeader extraPaddingBottom={60}>
-          <View style={styles.headerContent}>
-            <Text style={styles.greetingText}>Halo, {firstName}! 👋</Text>
-          </View>
-        </GradientHeader>
-        <View style={{ marginTop: -40, paddingHorizontal: Spacing.xl }}>
+      <View style={[styles.container, { backgroundColor: getBgColor() }]}>
+        <View style={{ height: insets.top + 20 }} />
+        <View style={{ paddingHorizontal: Spacing.xl }}>
           <SkeletonCard />
           <View style={{ height: Spacing.xl }} />
           <View style={styles.statsRow}>
@@ -163,273 +168,254 @@ export default function HomeScreen() {
             <View style={{ width: Spacing.md }} />
             <SkeletonListItem style={{ flex: 1 }} />
           </View>
-          <View style={{ height: Spacing.xl }} />
-          <SkeletonCard />
         </View>
       </View>
     );
   }
 
+  // Menghitung dampak ekologis (Asumsi: 1 Botol = 0.05kg CO2 hemat, 1 Kaleng = 0.1kg CO2 hemat)
+  const co2Saved = (totalPlastik * 0.05 + totalLogam * 0.1).toFixed(2);
+
   return (
-    <View style={styles.container}>
-      <ScrollView
+    <View style={[styles.container, { backgroundColor: getBgColor() }]}>
+      {/* BACKGROUND DECORATIVE BLOBS */}
+      <View style={styles.bgBlobRight}>
+        <LinearGradient
+          colors={[isDark ? 'rgba(16, 185, 129, 0.35)' : 'rgba(16, 185, 129, 0.45)', 'transparent']}
+          style={StyleSheet.absoluteFill}
+        />
+      </View>
+      <View style={styles.bgBlobLeft}>
+        <LinearGradient
+          colors={[isDark ? 'rgba(52, 211, 153, 0.25)' : 'rgba(16, 185, 129, 0.3)', 'transparent']}
+          style={StyleSheet.absoluteFill}
+        />
+      </View>
+
+      {/* STICKY HEADER (Appears on scroll) */}
+      <Animated.View style={[
+        styles.stickyHeader,
+        { paddingTop: insets.top, backgroundColor: isDark ? 'rgba(11, 17, 24, 0.85)' : 'rgba(248, 250, 252, 0.85)' },
+        headerStyle
+      ]}>
+        <BlurView intensity={isDark ? 50 : 80} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
+        <View style={styles.stickyHeaderContent}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={styles.avatarMini}>
+              <FontAwesome name="user" size={16} color={Semantic.text.light} />
+            </View>
+            <View style={{ marginLeft: Spacing.sm }}>
+              <Text style={[styles.stickyGreeting, { color: getTextColor() }]}>{timeGreeting}, {firstName}!</Text>
+              <Text style={styles.stickyRank}>{getLevelName()}</Text>
+            </View>
+          </View>
+        </View>
+      </Animated.View>
+
+      <Animated.ScrollView
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + 130 }}
-        bounces={false}
+        bounces={true}
       >
-        <GradientHeader extraPaddingBottom={60}>
-          <Animated.View
-            key={`header-${animationKey}`}
-            entering={FadeInDown.duration(400).springify()}
-            style={styles.headerContent}
-          >
-            <Text style={styles.greetingText}>Halo, {firstName}! 👋</Text>
-            <AnimatedPress
-              onPress={handleBellPress}
-              style={styles.notificationIcon}
-            >
-              <FontAwesome
-                name="bell-o"
-                size={22}
-                color={Semantic.text.primary}
-              />
-              <Animated.View style={[styles.badge, badgeAnimatedStyle]} />
-            </AnimatedPress>
-          </Animated.View>
-        </GradientHeader>
+        <View style={{ height: insets.top + Spacing.xl }} />
+        
+        {/* NORMAL HEADER (Fades out on scroll) */}
+        <Animated.View style={[styles.normalHeader, headerOpacityStyle, { paddingHorizontal: Spacing.xl }]}>
+           <View>
+             <Text style={[styles.greetingText, { color: getTextColor() }]}>{timeGreeting}, {firstName}</Text>
+             <View style={styles.badgeRankRow}>
+               <Text style={styles.badgeRankText}>{getLevelName()}</Text>
+             </View>
+           </View>
+           <AnimatedPress onPress={handleBellPress} style={[styles.notificationIcon, { backgroundColor: getCardBg() }]}>
+             <FontAwesome name="bell-o" size={20} color={getTextColor()} />
+             <Animated.View style={[styles.badge, badgeAnimatedStyle]} />
+           </AnimatedPress>
+        </Animated.View>
 
         <Animated.View
           key={`main-${animationKey}`}
-          entering={FadeInUp.delay(100).springify()}
+          entering={FadeInUp.delay(100).duration(400)}
           style={styles.mainContent}
         >
-          {/* Point Card */}
+          {/* 1. KARTU POIN (Bento Full Width) */}
           <AnimatedPress onPress={toggleExpand} scaleDown={0.98}>
-            <GlassCard dark style={styles.pointCard}>
-              <View style={styles.pointHeader}>
-                {Platform.OS === "ios" ? (
-                  <BlurView
-                    intensity={20}
-                    tint="light"
-                    style={styles.glassBadge}
-                  >
-                    <Text style={styles.levelText}>{getLevelName()}</Text>
-                  </BlurView>
-                ) : (
-                  <View
-                    style={[
-                      styles.glassBadge,
-                      { backgroundColor: Components.glass.bgStrong },
-                    ]}
-                  >
-                    <Text style={styles.levelText}>{getLevelName()}</Text>
-                  </View>
-                )}
-                <FontAwesome
-                  name="leaf"
-                  size={24}
-                  color={Components.iconWrapper.success.bg}
-                />
+            <View style={[styles.bentoCard, { backgroundColor: getCardBg() }]}>
+              {/* Saldo Poin & Tombol Tukar */}
+              <View style={styles.pointHeaderBento}>
+                 <View>
+                   <Text style={[styles.bentoLabel, { color: getMutedColor() }]}>Total Poin Tersedia</Text>
+                   <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                      <AnimatedCounter value={totalPoin} style={[styles.bentoPointValue, { color: getTextColor(), fontSize: 44, lineHeight: 52 }]} />
+                      <Text style={[styles.bentoPointSuffix, { color: Semantic.primary.main, fontSize: 16 }]}> Pts</Text>
+                   </View>
+                 </View>
+                 
+                 <Pressable style={styles.bentoTukarBtn} onPress={() => router.push("/reward")}>
+                    <Text style={styles.bentoTukarText}>Tukar</Text>
+                 </Pressable>
               </View>
 
-              <View style={styles.pointContent}>
-                <View style={styles.pointLabelRow}>
-                  <View style={styles.smallCoinIcon}>
-                    <Text style={styles.smallCoinText}>P</Text>
-                  </View>
-                  <Text style={styles.pointLabel}>Total Poin Saat Ini</Text>
+              <View style={styles.progressContainerBento}>
+                <View style={styles.bentoProgressBg}>
+                  <Animated.View style={[styles.bentoProgressFill, progressAnimatedStyle]}>
+                    <LinearGradient
+                        colors={[Semantic.primary.light, Semantic.primary.main]}
+                        start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                        style={StyleSheet.absoluteFill}
+                      />
+                  </Animated.View>
                 </View>
-
-                <AnimatedCounter value={totalPoin} style={styles.pointValue} />
-              </View>
-
-              <View style={styles.progressContainer}>
-                <View style={styles.progressBarBackground}>
-                  <Animated.View
-                    style={[styles.progressBarFill, progressAnimatedStyle]}
-                  />
-                </View>
-                <Text style={styles.progressText}>
+                <Text style={[styles.bentoProgressText, { color: getMutedColor() }]}>
                   {totalPoin >= 50000
-                    ? "Rank Maksimal Tercapai! Sultan RVM 🎉"
-                    : `${totalPoin} / ${targetPoints} Poin menuju level berikutnya`}
+                    ? "Rank Maksimal Tercapai!"
+                    : `${targetPoints - totalPoin} Pts lagi ke rank berikutnya`}
                 </Text>
               </View>
 
               {isExpanded && (
-                <Animated.View
-                  entering={FadeInDown.springify()}
-                  exiting={FadeOutUp}
-                  style={styles.expandedContent}
-                >
-                  <View style={styles.divider} />
-                  <Text style={styles.expandedTitle}>Keuntungan Tiap Rank</Text>
+                <Animated.View entering={FadeInDown.duration(400)} exiting={FadeOutUp} style={styles.expandedContent}>
+                  <View style={[styles.divider, { backgroundColor: isDark ? Colors.obsidian[800] : Colors.obsidian[100] }]} />
+                  <Text style={[styles.expandedTitle, { color: getTextColor() }]}>Keuntungan Tiap Rank</Text>
                   {GAMIFICATION_TIERS.map((tier, index) => (
-                    <Animated.View
-                      key={index}
-                      entering={FadeIn.delay(index * 50)}
-                      style={styles.rankRow}
-                    >
+                    <Animated.View key={index} entering={FadeIn.delay(index * 50)} style={styles.rankRow}>
                       <View>
-                        <Text style={styles.rankName}>{tier.name}</Text>
-                        <Text style={styles.rankReq}>Butuh {tier.req}</Text>
+                        <Text style={[styles.rankName, { color: getTextColor() }]}>{tier.name}</Text>
+                        <Text style={[styles.rankReq, { color: getMutedColor() }]}>Butuh {tier.req}</Text>
                       </View>
-                      <View style={styles.benefitBadge}>
-                        <Text style={styles.benefitText}>{tier.benefit}</Text>
+                      <View style={[styles.benefitBadge, { backgroundColor: isDark ? Colors.obsidian[800] : Colors.emerald[50] }]}>
+                        <Text style={[styles.benefitText, { color: Semantic.primary.main }]}>{tier.benefit}</Text>
                       </View>
                     </Animated.View>
                   ))}
                 </Animated.View>
               )}
-
-              <View style={styles.expandHintRow}>
-                <Text style={styles.expandHintText}>
-                  {isExpanded
-                    ? "Tutup Info Rank"
-                    : "Lihat Info Rank & Keuntungan"}
-                </Text>
-                <FontAwesome
-                  name={isExpanded ? "chevron-up" : "chevron-down"}
-                  size={10}
-                  color={Semantic.text.light}
-                  style={{ opacity: 0.7 }}
-                />
-              </View>
-            </GlassCard>
+            </View>
           </AnimatedPress>
 
-          <View style={{ height: Spacing.xl }} />
+          <View style={{ height: Spacing.md }} />
 
-          {/* Stats Row */}
+          {/* 2. BENTO GRID SPLIT (Plastik & Logam) */}
           <View style={styles.statsRow}>
-            <Animated.View
-              entering={FadeInUp.delay(200).springify()}
-              style={{ flex: 1 }}
-            >
-              <AnimatedPress style={styles.statBoxSmall}>
-                <View
-                  style={[
-                    styles.iconCircle,
-                    { backgroundColor: Components.iconWrapper.info.bg },
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name="bottle-soda-classic-outline"
-                    size={28}
-                    color={Components.iconWrapper.info.color}
-                  />
+            <Animated.View entering={FadeInUp.delay(200).duration(400)} style={{ flex: 1 }}>
+              <AnimatedPress style={[styles.bentoBoxSmall, { backgroundColor: getCardBg() }]}>
+                <View style={styles.bentoIconRow}>
+                  <View style={[styles.bentoIconCircle, { backgroundColor: Colors.emerald[50] }]}>
+                    <MaterialCommunityIcons name="bottle-soda-classic-outline" size={24} color={Semantic.primary.main} />
+                  </View>
+                  <Text style={[styles.bentoBoxLabel, { color: getMutedColor() }]}>Plastik</Text>
                 </View>
-                <AnimatedCounter
-                  value={totalPlastik}
-                  style={styles.statNumber}
-                />
-                <Text style={styles.statLabel}>Plastik Disetor</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: Spacing.sm }}>
+                  <AnimatedCounter value={totalPlastik} style={[styles.bentoBoxValue, { color: getTextColor(), fontSize: 28 }]} />
+                  <Text style={[styles.bentoBoxSuffix, { color: getMutedColor() }]}> item</Text>
+                </View>
+                <Text style={{ fontFamily: Typography.fontFamily.body, fontSize: 11, color: Semantic.primary.main, marginTop: 4 }}>
+                  {totalPlastik > 0 ? ((totalPlastik / (totalPlastik + 15420)) * 100).toFixed(2) : 0}% dari total area
+                </Text>
               </AnimatedPress>
             </Animated.View>
 
             <View style={{ width: Spacing.md }} />
 
-            <Animated.View
-              entering={FadeInUp.delay(300).springify()}
-              style={{ flex: 1 }}
-            >
-              <AnimatedPress style={styles.statBoxSmall}>
-                <View
-                  style={[
-                    styles.iconCircle,
-                    { backgroundColor: Components.iconWrapper.info.bg },
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name="cylinder"
-                    size={28}
-                    color={Components.iconWrapper.info.color}
-                  />
+            <Animated.View entering={FadeInUp.delay(300).duration(400)} style={{ flex: 1 }}>
+              <AnimatedPress style={[styles.bentoBoxSmall, { backgroundColor: getCardBg() }]}>
+                <View style={styles.bentoIconRow}>
+                  <View style={[styles.bentoIconCircle, { backgroundColor: Colors.amber[50] }]}>
+                    <MaterialCommunityIcons name="cylinder" size={24} color={Semantic.warning.main} />
+                  </View>
+                  <Text style={[styles.bentoBoxLabel, { color: getMutedColor() }]}>Logam</Text>
                 </View>
-                <AnimatedCounter value={totalLogam} style={styles.statNumber} />
-                <Text style={styles.statLabel}>Logam Disetor</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: Spacing.sm }}>
+                  <AnimatedCounter value={totalLogam} style={[styles.bentoBoxValue, { color: getTextColor(), fontSize: 28 }]} />
+                  <Text style={[styles.bentoBoxSuffix, { color: getMutedColor() }]}> item</Text>
+                </View>
+                <Text style={{ fontFamily: Typography.fontFamily.body, fontSize: 11, color: Semantic.warning.main, marginTop: 4 }}>
+                  {totalLogam > 0 ? ((totalLogam / (totalLogam + 8350)) * 100).toFixed(2) : 0}% dari total area
+                </Text>
               </AnimatedPress>
             </Animated.View>
           </View>
 
-          <View style={{ height: Spacing.xl }} />
+          <View style={{ height: Spacing.md }} />
 
-          {/* Consistency Card */}
-          <Animated.View entering={FadeInUp.delay(400).springify()}>
-            <GlassCard
-              style={styles.consistencyCard}
-              intensity={100}
-              dark={false}
-            >
-              <View style={styles.consistencyHeader}>
-                <View style={{ flexDirection: "row", alignItems: "flex-end" }}>
-                  <AnimatedCounter
-                    value={hariKonsisten}
-                    style={styles.consistencyValue}
-                  />
-                  {hariKonsisten <= 7 && (
-                    <Text style={styles.consistencyMax}>/7</Text>
-                  )}
-                  <Text style={styles.consistencyUnit}>Hari</Text>
-                </View>
-
-                <View style={styles.streakBadge}>
-                  <MaterialCommunityIcons
-                    name="fire"
-                    size={20}
-                    color={Semantic.danger.main}
-                    style={{ marginRight: 4 }}
-                  />
-                  <Text style={styles.streakText}>Streak</Text>
-                </View>
-              </View>
-
-              <View style={styles.progressBarWrapper}>
-                <View style={styles.consistencyBarBg}>
-                  <Animated.View
-                    style={[
-                      styles.consistencyBarFillContainer,
-                      streakAnimatedStyle,
-                    ]}
-                  >
-                    <LinearGradient
-                      colors={[
-                        Colors.warning[100],
-                        Semantic.warning.main,
-                        Semantic.danger.main,
-                      ]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={StyleSheet.absoluteFill}
-                    />
-                  </Animated.View>
-                </View>
-
-                <Animated.View
-                  style={[
-                    styles.fireIconContainer,
-                    { left: `${Math.min((hariKonsisten / 7) * 100, 92)}%` },
-                    fireAnimatedStyle,
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name="fire"
-                    size={48}
-                    color={Semantic.danger.main}
-                    style={styles.giantFire}
-                  />
-                </Animated.View>
-              </View>
-
-              <Text style={styles.consistencyTitle}>
-                {hariKonsisten >= 7
-                  ? "Pencapaian Luar Biasa! Terus Pertahankan 🔥"
-                  : "Target Konsistensi 7 Hari"}
-              </Text>
-            </GlassCard>
+          {/* 1.5 MISI MINGGUAN (Menggantikan RVM) */}
+          <Animated.View entering={FadeInUp.delay(150).duration(400)}>
+            <AnimatedPress style={[styles.bentoCard, { backgroundColor: getCardBg(), paddingVertical: Spacing.md }]}>
+               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                 <View style={[styles.bentoIconCircle, { backgroundColor: Colors.teal[50] }]}>
+                    <MaterialCommunityIcons name="target" size={24} color={Colors.teal[500]} />
+                 </View>
+                 <View style={{ marginLeft: Spacing.sm, flex: 1 }}>
+                    <Text style={[styles.bentoLabel, { color: getMutedColor() }]}>Misi Mingguan</Text>
+                    <Text style={[styles.rankName, { color: getTextColor() }]}>Kumpulkan 20 Botol</Text>
+                 </View>
+                 <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={{ fontFamily: Typography.fontFamily.primary, fontSize: 16, color: Semantic.primary.main }}>{totalPlastik}/20</Text>
+                    <Text style={{ fontFamily: Typography.fontFamily.medium, fontSize: 11, color: getMutedColor() }}>+500 Pts</Text>
+                 </View>
+               </View>
+            </AnimatedPress>
           </Animated.View>
+
+          <View style={{ height: Spacing.md }} />
+
+          {/* 3. STREAK KONSISTENSI (Bento Style) */}
+          <Animated.View entering={FadeInUp.delay(400).duration(400)}>
+            <View style={[styles.bentoCard, { backgroundColor: getCardBg() }]}>
+               <View style={styles.bentoStreakHeader}>
+                 <View>
+                   <Text style={[styles.bentoLabel, { color: getMutedColor() }]}>Konsistensi (Streak)</Text>
+                   <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                     <AnimatedCounter value={hariKonsisten} style={[styles.bentoPointValue, { color: getTextColor() }]} />
+                     <Text style={[styles.bentoBoxSuffix, { color: getMutedColor(), fontSize: Typography.size.md }]}> / 7 Hari</Text>
+                   </View>
+                 </View>
+                 <View style={styles.bentoStreakBadge}>
+                   <MaterialCommunityIcons name="fire" size={16} color={Semantic.danger.main} style={{ marginRight: 4 }} />
+                   <Text style={styles.bentoStreakBadgeText}>Aktif</Text>
+                 </View>
+               </View>
+
+               {/* 7 Days UI representation */}
+               <View style={styles.sevenDaysContainer}>
+                  {[1,2,3,4,5,6,7].map((day) => {
+                    const isActive = day <= hariKonsisten;
+                    const isToday = day === hariKonsisten;
+                    return (
+                      <View key={day} style={[styles.dayCircle, isActive ? styles.dayCircleActive : { backgroundColor: isDark ? Colors.obsidian[800] : Colors.obsidian[100] }]}>
+                        {isActive ? (
+                          <FontAwesome name="check" size={12} color={Semantic.text.light} />
+                        ) : (
+                          <Text style={[styles.dayCircleText, { color: getMutedColor() }]}>{day}</Text>
+                        )}
+                      </View>
+                    );
+                  })}
+               </View>
+            </View>
+          </Animated.View>
+
+          <View style={{ height: Spacing.md }} />
+
+          {/* 4. DAMPAK EKOLOGIS (Bento Style) */}
+          <Animated.View entering={FadeInUp.delay(500).duration(400)}>
+             <View style={[styles.bentoCard, { backgroundColor: getCardBg() }]}>
+               <View style={styles.bentoIconRow}>
+                 <View style={[styles.bentoIconCircle, { backgroundColor: Colors.emerald[50] }]}>
+                    <FontAwesome name="tree" size={20} color={Semantic.primary.main} />
+                 </View>
+                 <View style={{ marginLeft: Spacing.sm }}>
+                    <Text style={[styles.bentoLabel, { color: getMutedColor() }]}>Dampak Ekologis Anda</Text>
+                    <Text style={[styles.bentoBoxValue, { color: getTextColor(), fontSize: Typography.size.lg }]}>{co2Saved} kg CO₂ Cegah</Text>
+                 </View>
+               </View>
+             </View>
+          </Animated.View>
+
         </Animated.View>
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -437,132 +423,179 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Semantic.background.secondary,
   },
-  headerContent: {
+  bgBlobRight: {
+    position: 'absolute',
+    top: -50,
+    right: -100,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    opacity: 0.8,
+  },
+  bgBlobLeft: {
+    position: 'absolute',
+    top: 200,
+    left: -150,
+    width: 250,
+    height: 250,
+    borderRadius: 125,
+    opacity: 0.6,
+  },
+  ecoTipBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.2)',
+  },
+  ecoTipText: {
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: 12,
+    marginLeft: Spacing.sm,
+    flex: 1,
+    lineHeight: 18,
+  },
+  stickyHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+  },
+  stickyHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.md,
+    paddingTop: Spacing.sm,
+  },
+  avatarMini: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Semantic.primary.main,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stickyGreeting: {
+    fontFamily: Typography.fontFamily.secondary,
+    fontSize: Typography.size.sm,
+  },
+  stickyRank: {
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: 11,
+    color: Semantic.primary.main,
+  },
+  normalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: Spacing.xl,
   },
   greetingText: {
     fontFamily: Typography.fontFamily.primary,
-    fontSize: Typography.size.xxl,
-    color: Semantic.text.light,
+    fontSize: Typography.size.xl,
+  },
+  badgeRankRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  badgeRankText: {
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: Typography.size.sm,
+    color: Semantic.warning.main,
+    marginLeft: 4,
   },
   notificationIcon: {
-    padding: Spacing.sm,
-    backgroundColor: Semantic.background.primary,
-    borderRadius: BorderRadius.full,
-    ...Shadows.md,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.sm,
   },
   badge: {
     position: "absolute",
-    top: 6,
-    right: 8,
-    width: 10,
-    height: 10,
+    top: 10,
+    right: 12,
+    width: 8,
+    height: 8,
     backgroundColor: Semantic.danger.main,
     borderRadius: BorderRadius.full,
-    borderWidth: 2,
-    borderColor: Semantic.background.primary,
   },
   mainContent: {
-    marginTop: -40,
     paddingHorizontal: Spacing.xl,
   },
-  pointCard: {
-    padding: Spacing.xl,
-    backgroundColor: Gradients.primary[1], // fallback
-  },
-  pointHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Spacing.md,
-  },
-  glassBadge: {
+  bentoCard: {
+    padding: Spacing.lg,
     borderRadius: BorderRadius.xl,
-    overflow: "hidden",
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: Components.glass.border,
+    ...Shadows.sm,
   },
-  levelText: {
+  pointHeaderBento: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  bentoLabel: {
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: Typography.size.sm,
+    marginBottom: 4,
+  },
+  bentoPointValue: {
+    fontFamily: Typography.fontFamily.primary,
+    fontSize: 32,
+    lineHeight: 38,
+  },
+  bentoPointSuffix: {
     fontFamily: Typography.fontFamily.secondary,
+    fontSize: Typography.size.md,
+    alignSelf: 'flex-end',
+    marginBottom: 6,
+    marginLeft: 4,
+  },
+  bentoTukarBtn: {
+    backgroundColor: Semantic.primary.main,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.full,
+  },
+  bentoTukarText: {
     color: Semantic.text.light,
+    fontFamily: Typography.fontFamily.secondary,
     fontSize: Typography.size.sm,
   },
-  pointContent: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginVertical: Spacing.md,
-  },
-  pointLabelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: -5,
-  },
-  smallCoinIcon: {
-    width: 16,
-    height: 16,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: Semantic.warning.main,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: Spacing.xs,
-  },
-  smallCoinText: {
-    fontFamily: Typography.fontFamily.interBold,
-    fontSize: Typography.size.xs,
-    color: Semantic.text.light,
-  },
-  pointLabel: {
-    fontFamily: Typography.fontFamily.inter,
-    color: Components.iconWrapper.success.bg,
-    fontSize: Typography.size.sm,
-  },
-  pointValue: {
-    fontFamily: Typography.fontFamily.interBold,
-    color: Semantic.text.light,
-    fontSize: Typography.size.hero,
-    textShadowColor: "rgba(0, 0, 0, 0.1)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  progressContainer: {
+  progressContainerBento: {
     marginTop: Spacing.md,
   },
-  progressBarBackground: {
-    height: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.25)",
+  bentoProgressBg: {
+    height: 6,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
     borderRadius: BorderRadius.full,
     overflow: "hidden",
   },
-  progressBarFill: {
+  bentoProgressFill: {
     height: "100%",
-    backgroundColor: Semantic.background.primary,
     borderRadius: BorderRadius.full,
   },
-  progressText: {
-    fontFamily: Typography.fontFamily.interMedium,
-    color: Components.card.border,
+  bentoProgressText: {
+    fontFamily: Typography.fontFamily.body,
     fontSize: 11,
     marginTop: Spacing.sm,
-    textAlign: "center",
   },
   expandedContent: {
-    marginTop: Spacing.xl,
+    marginTop: Spacing.md,
   },
   divider: {
     height: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
     marginBottom: Spacing.md,
   },
   expandedTitle: {
     fontFamily: Typography.fontFamily.secondary,
-    color: Semantic.text.light,
-    fontSize: Typography.size.base,
+    fontSize: Typography.size.sm,
     marginBottom: Spacing.md,
   },
   rankRow: {
@@ -573,142 +606,92 @@ const styles = StyleSheet.create({
   },
   rankName: {
     fontFamily: Typography.fontFamily.secondary,
-    color: Semantic.text.light,
     fontSize: Typography.size.sm,
   },
   rankReq: {
-    fontFamily: Typography.fontFamily.inter,
-    color: Components.iconWrapper.success.bg,
+    fontFamily: Typography.fontFamily.body,
     fontSize: 11,
     marginTop: 2,
   },
   benefitBadge: {
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
     paddingVertical: 4,
     paddingHorizontal: Spacing.sm,
     borderRadius: BorderRadius.sm,
   },
   benefitText: {
-    fontFamily: Typography.fontFamily.interBold,
-    color: Semantic.text.light,
+    fontFamily: Typography.fontFamily.secondary,
     fontSize: 11,
-  },
-  expandHintRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: Spacing.md,
-  },
-  expandHintText: {
-    fontFamily: Typography.fontFamily.interMedium,
-    color: "rgba(255, 255, 255, 0.7)",
-    fontSize: 11,
-    marginRight: 6,
   },
   statsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
   },
-  statBoxSmall: {
-    backgroundColor: Semantic.background.primary,
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.xl,
-    alignItems: "center",
-    ...Shadows.md,
-  },
-  iconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: BorderRadius.full,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: Spacing.sm,
-  },
-  statNumber: {
-    fontFamily: Typography.fontFamily.interBold,
-    fontSize: Typography.size.xl,
-    color: Semantic.text.primary,
-  },
-  statLabel: {
-    fontFamily: Typography.fontFamily.inter,
-    fontSize: Typography.size.sm,
-    color: Semantic.text.secondary,
-    marginTop: 2,
-  },
-  consistencyCard: {
-    backgroundColor: Semantic.background.primary,
+  bentoBoxSmall: {
     padding: Spacing.lg,
+    borderRadius: BorderRadius.xl,
+    ...Shadows.sm,
   },
-  consistencyHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-    marginBottom: Spacing.md,
+  bentoIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  consistencyValue: {
-    fontFamily: Typography.fontFamily.interBold,
-    fontSize: Typography.size.display,
-    color: Semantic.text.primary,
-  },
-  consistencyMax: {
-    fontSize: Typography.size.md,
-    color: Semantic.text.muted,
-    marginBottom: 4,
-  },
-  consistencyUnit: {
-    fontFamily: Typography.fontFamily.interMedium,
-    fontSize: Typography.size.base,
-    color: Semantic.warning.main,
-    marginBottom: 6,
-    marginLeft: Spacing.xs,
-  },
-  progressBarWrapper: {
-    position: "relative",
-    justifyContent: "center",
-    height: 50,
-    marginBottom: Spacing.sm,
-  },
-  consistencyBarBg: {
-    width: "100%",
-    height: 12,
-    backgroundColor: Colors.warning[100],
-    borderRadius: BorderRadius.full,
-    overflow: "hidden",
-  },
-  consistencyBarFillContainer: {
-    height: "100%",
-    borderRadius: BorderRadius.full,
-    overflow: "hidden",
-  },
-  fireIconContainer: {
-    position: "absolute",
-    transform: [{ translateX: -24 }],
+  bentoIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
   },
-  giantFire: {
-    textShadowColor: "rgba(239, 68, 68, 0.4)",
-    textShadowRadius: 12,
-  },
-  consistencyTitle: {
-    fontFamily: Typography.fontFamily.interMedium,
+  bentoBoxLabel: {
+    fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.sm,
-    color: Semantic.text.secondary,
-    textAlign: "center",
+    marginLeft: Spacing.sm,
   },
-  streakBadge: {
-    flexDirection: "row",
-    alignItems: "center",
+  bentoBoxValue: {
+    fontFamily: Typography.fontFamily.primary,
+    fontSize: 24,
+  },
+  bentoBoxSuffix: {
+    fontFamily: Typography.fontFamily.body,
+    fontSize: Typography.size.sm,
+    marginLeft: 4,
+  },
+  bentoStreakHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  bentoStreakBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: Colors.red[50],
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: BorderRadius.md,
-    marginBottom: 6,
+    borderRadius: BorderRadius.full,
   },
-  streakText: {
-    fontFamily: Typography.fontFamily.interBold,
-    fontSize: Typography.size.sm,
+  bentoStreakBadgeText: {
+    fontFamily: Typography.fontFamily.secondary,
+    fontSize: 11,
     color: Semantic.danger.main,
   },
+  sevenDaysContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: Spacing.lg,
+  },
+  dayCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dayCircleActive: {
+    backgroundColor: Semantic.primary.main,
+    ...Shadows.glow(Semantic.primary.main),
+  },
+  dayCircleText: {
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: 12,
+  }
 });

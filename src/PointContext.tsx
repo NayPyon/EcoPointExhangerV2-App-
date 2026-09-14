@@ -7,7 +7,7 @@ import React, {
   useState,
 } from "react";
 import { db } from "./firebaseConfig";
-import { CURRENT_USER } from "./constants/user-config";
+import { useAuth } from "./AuthContext";
 
 interface PointContextType {
   totalPoin: number;
@@ -26,6 +26,8 @@ const PointContext = createContext<PointContextType>({
 });
 
 export const PointProvider = ({ children }: { children: ReactNode }) => {
+  const { user } = useAuth();
+  
   const [totalPoin, setTotalPoin] = useState(0);
   const [totalPlastik, setTotalPlastik] = useState(0);
   const [totalLogam, setTotalLogam] = useState(0);
@@ -33,10 +35,19 @@ export const PointProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) {
+      setTotalPoin(0);
+      setTotalPlastik(0);
+      setTotalLogam(0);
+      setHariKonsisten(0);
+      setLoading(false);
+      return;
+    }
+
     // KITA BACA KOLEKSI "Riwayat" KHUSUS UNTUK USER AKTIF
     const q = query(
       collection(db, "Riwayat"),
-      where("user", "==", CURRENT_USER.id)
+      where("user", "==", user.uid)
     );
 
     const unsubscribe = onSnapshot(
@@ -47,15 +58,8 @@ export const PointProvider = ({ children }: { children: ReactNode }) => {
         let hitungLogam = 0;
         const tanggalUnik = new Set();
 
-        // LOG PELACAK (Cek terminal VS Code-mu nanti!)
-        console.log(
-          "✅ Terhubung ke Firebase! Jumlah dokumen ditemukan:",
-          snapshot.size,
-        );
-
         snapshot.forEach((doc) => {
           const data = doc.data();
-          console.log("📄 Isi Dokumen Terbaca:", data);
 
           if (data.poin) {
             if (data.tipe === "tukar_voucher") {
@@ -69,14 +73,12 @@ export const PointProvider = ({ children }: { children: ReactNode }) => {
 
           if (data.tanggal) {
             try {
-              const dateString = data.tanggal
-                .toDate()
-                .toISOString()
-                .split("T")[0];
-              tanggalUnik.add(dateString);
-            } catch (e) {
-              console.log("Format tanggal belum berupa Timestamp Firebase");
-            }
+              // Jika ini serverTimestamp yang baru dibuat lokal, toDate() mungkin belum ada.
+              if (data.tanggal.toDate) {
+                const dateString = data.tanggal.toDate().toISOString().split("T")[0];
+                tanggalUnik.add(dateString);
+              }
+            } catch (err) {}
           }
         });
 
@@ -87,20 +89,23 @@ export const PointProvider = ({ children }: { children: ReactNode }) => {
         setLoading(false);
       },
       (error) => {
-        console.error(
-          "❌ Gagal mendengarkan Firebase (Cek Internetmu!):",
-          error,
-        );
+        console.error("Gagal mendengarkan data Riwayat:", error);
         setLoading(false);
-      },
+      }
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   return (
     <PointContext.Provider
-      value={{ totalPoin, totalPlastik, totalLogam, hariKonsisten, loading }}
+      value={{
+        totalPoin,
+        totalPlastik,
+        totalLogam,
+        hariKonsisten,
+        loading,
+      }}
     >
       {children}
     </PointContext.Provider>

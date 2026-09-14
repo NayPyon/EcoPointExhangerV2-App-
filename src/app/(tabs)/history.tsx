@@ -1,14 +1,12 @@
 import {
   Colors,
-  Components,
   Semantic,
   Typography,
   Spacing,
   BorderRadius,
-  Shadows,
 } from "@/constants/theme";
-import { CURRENT_USER } from "@/constants/user-config";
-import { Feather, FontAwesome } from "@expo/vector-icons";
+import { useAuth } from "../../AuthContext";
+import { Feather, FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   collection,
   onSnapshot,
@@ -17,15 +15,16 @@ import {
   where,
   Timestamp,
 } from "firebase/firestore";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
-  FlatList,
+  SectionList,
   StyleSheet,
   Text,
   View,
-  ListRenderItemInfo,
+  useColorScheme,
+  ScrollView,
 } from "react-native";
-import Animated, { FadeInRight } from "react-native-reanimated";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { db } from "../../firebaseConfig";
 import { AnimatedPress } from "@/components/ui/animated-press";
@@ -42,24 +41,31 @@ interface RiwayatItem {
   nama_hadiah?: string;
 }
 
-import { useLocalSearchParams } from "expo-router";
-
-type FilterType = "Semua" | "Masuk" | "Keluar";
+const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+const MONTHS_LONG = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
 export default function HistoryScreen() {
-  const { ts } = useLocalSearchParams();
-  const animationKey = ts ? String(ts) : "default";
-  
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+
+  const getBgColor = () => isDark ? Semantic.background.dark : Semantic.background.primary;
+  const getTextColor = () => isDark ? Semantic.text.light : Semantic.text.primary;
+  const getMutedColor = () => isDark ? Colors.obsidian[400] : Semantic.text.secondary;
+  const getBorderColor = () => isDark ? Colors.obsidian[800] : Semantic.border.light;
+
   const [riwayatData, setRiwayatData] = useState<RiwayatItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [activeFilter, setActiveFilter] = useState<FilterType>("Semua");
+  
+  // Default to current month and year
+  const [activeMonth, setActiveMonth] = useState<number>(new Date().getMonth());
+  const [activeYear, setActiveYear] = useState<number>(new Date().getFullYear());
 
   useEffect(() => {
-    // Mengambil data riwayat milik Nayaka, disusun mengikut tarikh terbaru
     const q = query(
       collection(db, "Riwayat"),
-      where("user", "==", CURRENT_USER.id),
+      where("user", "==", user!.uid),
       orderBy("tanggal", "desc")
     );
 
@@ -75,158 +81,179 @@ export default function HistoryScreen() {
     return () => unsub();
   }, []);
 
-  const formatTanggal = (timestamp?: Timestamp): string => {
-    if (!timestamp) return "Baru sahaja";
-    const date = timestamp.toDate();
-    return date.toLocaleDateString("id-ID", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
+  const groupedTransactions = useMemo(() => {
+    const filtered = riwayatData.filter((item) => {
+      if (!item.tanggal) return false;
+      const date = item.tanggal.toDate();
+      return date.getMonth() === activeMonth && date.getFullYear() === activeYear;
     });
-  };
 
-  const filteredData = riwayatData.filter((item) => {
-    if (activeFilter === "Semua") return true;
-    if (activeFilter === "Masuk") return item.tipe !== "tukar_voucher";
-    if (activeFilter === "Keluar") return item.tipe === "tukar_voucher";
-    return true;
-  });
+    const groups: { [key: string]: RiwayatItem[] } = {};
+    filtered.forEach((item) => {
+      const date = item.tanggal.toDate();
+      // Format: "30 September 2024"
+      const dateStr = `${date.getDate()} ${MONTHS_LONG[date.getMonth()]} ${date.getFullYear()}`;
+      if (!groups[dateStr]) {
+        groups[dateStr] = [];
+      }
+      groups[dateStr].push(item);
+    });
 
-  const renderFilterChips = () => {
-    const filters: FilterType[] = ["Semua", "Masuk", "Keluar"];
+    // Convert to SectionList format
+    return Object.keys(groups).map((key) => ({
+      title: key,
+      data: groups[key],
+    }));
+  }, [riwayatData, activeMonth, activeYear]);
+
+  const scrollRef = React.useRef<ScrollView>(null);
+
+  useEffect(() => {
+    // Scroll automatically to the current active month on mount
+    setTimeout(() => {
+      if (scrollRef.current) {
+        // Approximate width of chip (60) + gap (8) = 68
+        scrollRef.current.scrollTo({ x: activeMonth * 68, animated: true });
+      }
+    }, 100);
+  }, []);
+
+  const renderMonthChips = () => {
     return (
-      <View style={styles.filterContainer}>
-        {filters.map((filter) => {
-          const isSelected = activeFilter === filter;
-          return (
-            <AnimatedPress
-              key={filter}
-              onPress={() => setActiveFilter(filter)}
-              style={[
-                styles.filterChip,
-                isSelected ? styles.filterChipActive : styles.filterChipInactive,
-              ]}
-            >
-              <Text
+      <View style={styles.monthScrollContainer}>
+        <ScrollView 
+          ref={scrollRef}
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          contentContainerStyle={styles.monthScrollContent}
+        >
+          {MONTHS_SHORT.map((month, index) => {
+            const isActive = activeMonth === index;
+            return (
+              <AnimatedPress
+                key={month}
+                onPress={() => setActiveMonth(index)}
                 style={[
-                  styles.filterText,
-                  isSelected ? styles.filterTextActive : styles.filterTextInactive,
+                  styles.monthChip,
+                  { backgroundColor: isActive ? Semantic.success.main : (isDark ? Colors.obsidian[900] : Semantic.background.tertiary) },
                 ]}
               >
-                {filter}
-              </Text>
-            </AnimatedPress>
-          );
-        })}
+                <Text
+                  style={[
+                    styles.monthText,
+                    { color: isActive ? '#FFFFFF' : getMutedColor() },
+                    isActive && { fontFamily: Typography.fontFamily.interBold }
+                  ]}
+                >
+                  {month}
+                </Text>
+              </AnimatedPress>
+            );
+          })}
+        </ScrollView>
       </View>
     );
   };
 
-  const renderItem = ({ item, index }: ListRenderItemInfo<RiwayatItem>) => {
-    const isKredit = item.tipe === "tukar_voucher"; // Keluar
-    const isPenyetoran = !isKredit; // Masuk
+  const renderItem = ({ item, index }: { item: RiwayatItem, index: number }) => {
+    const isKredit = item.tipe === "tukar_voucher"; // Keluar (-)
+    const isPenyetoran = !isKredit; // Masuk (+)
 
-    const accentColor = isKredit ? Semantic.danger.main : Semantic.success.main;
-    const bgColor = isKredit ? Semantic.danger.light : Semantic.success.light;
-    const iconColor = isKredit ? Semantic.danger.main : Semantic.success.main;
-    const iconBgColor = isKredit ? Colors.red[100] : Colors.green[100];
+    const amountColor = isKredit ? getTextColor() : Semantic.success.main;
+    const iconName = isKredit ? "ticket-percent-outline" : "recycle";
+    
+    const iconBgColor = isDark ? Colors.obsidian[800] : Semantic.background.tertiary;
+    const iconColor = isDark ? Colors.obsidian[300] : Colors.obsidian[400];
 
     return (
-      <Animated.View entering={FadeInRight.delay(index * 100).springify()}>
-        <AnimatedPress
-          style={[
-            styles.historyCard,
-            { borderLeftColor: accentColor, backgroundColor: bgColor },
-          ]}
-        >
-          <View
-            style={[
-              styles.iconContainer,
-              { backgroundColor: iconBgColor },
-            ]}
-          >
-            <Feather
-              name={isKredit ? "arrow-up-right" : "arrow-down-left"}
-              size={20}
+      <Animated.View entering={FadeInDown.delay(index * 50).duration(400)}>
+        <AnimatedPress style={[styles.transactionItem, { backgroundColor: getBgColor() }]}>
+          <View style={[styles.iconContainer, { backgroundColor: iconBgColor }]}>
+            <MaterialCommunityIcons
+              name={iconName}
+              size={24}
               color={iconColor}
             />
           </View>
 
           <View style={styles.detailsContainer}>
-            <Text style={styles.titleText}>
+            <Text style={[styles.titleText, { color: getTextColor() }]}>
               {isKredit ? "Penukaran Hadiah" : "Penyetoran Sampah"}
             </Text>
-            <Text style={styles.dateText}>{formatTanggal(item.tanggal)}</Text>
-
-            <Text style={styles.subText}>
+            <Text style={[styles.subText, { color: getMutedColor() }]} numberOfLines={1}>
               {isKredit
                 ? `Klaim ${item.nama_hadiah || "Voucher"}`
                 : `Berhasil menyetor ${item.plastik || 0} Plastik & ${item.logam || 0} Logam`}
             </Text>
           </View>
 
-          {/* --- BAGIAN POIN & LOGO YANG BARU --- */}
-          <View style={styles.pointsContainer}>
-            <Text
-              style={[
-                styles.pointsText,
-                { color: accentColor },
-              ]}
-            >
-              {isKredit ? "-" : "+"}
-              {item.poin}
-            </Text>
-
-            {/* Logo Koin "P" Identik dengan Beranda & Reward */}
-            <View style={styles.coinIcon}>
-              <Text style={styles.coinText}>P</Text>
-            </View>
-          </View>
+          <Text style={[styles.pointsText, { color: amountColor }]}>
+            {isKredit ? "-" : "+"}
+            {item.poin.toLocaleString('id-ID')} Poin
+          </Text>
         </AnimatedPress>
       </Animated.View>
     );
   };
 
+  const renderSectionHeader = ({ section: { title } }: { section: { title: string } }) => (
+    <View style={[styles.sectionHeaderContainer, { backgroundColor: getBgColor() }]}>
+      <Text style={[styles.sectionHeaderText, { color: getTextColor() }]}>{title}</Text>
+      <View style={[styles.sectionDivider, { backgroundColor: getBorderColor() }]} />
+    </View>
+  );
+
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.four }]}>
-        <Text style={styles.headerTitle}>Aktivitas</Text>
-        <Text style={styles.headerSubtitle}>
-          Riwayat penggunaan poin dan penyetoran
-        </Text>
-        {renderFilterChips()}
+    <View style={[styles.container, { backgroundColor: getBgColor() }]}>
+      
+      {/* Header Area */}
+      <View style={[styles.header, { paddingTop: insets.top + Spacing.lg, backgroundColor: getBgColor() }]}>
+        <View style={styles.headerTop}>
+          <Text style={[styles.headerTitle, { color: getTextColor() }]}>Semua transaksi</Text>
+          
+          <View style={[styles.yearPicker, { backgroundColor: isDark ? Colors.obsidian[800] : Semantic.background.tertiary }]}>
+             <AnimatedPress onPress={() => setActiveYear(y => y - 1)} style={styles.yearArrow}>
+                <Feather name="chevron-left" size={16} color={getTextColor()} />
+             </AnimatedPress>
+             <Text style={[styles.yearText, { color: getTextColor() }]}>{activeYear}</Text>
+             <AnimatedPress onPress={() => setActiveYear(y => y + 1)} style={styles.yearArrow}>
+                <Feather name="chevron-right" size={16} color={getTextColor()} />
+             </AnimatedPress>
+          </View>
+        </View>
+        {renderMonthChips()}
       </View>
 
+      {/* List Area */}
       {loading ? (
-        <View style={[styles.listContainer, { paddingBottom: insets.bottom + 130 }]}>
+        <View style={[styles.listContainer, { paddingBottom: insets.bottom + 100 }]}>
           {[1, 2, 3, 4].map((i) => (
-            <SkeletonListItem key={i} style={{ marginBottom: Spacing.three }} />
+            <SkeletonListItem key={i} style={{ marginBottom: Spacing.md }} />
           ))}
         </View>
-      ) : filteredData.length === 0 ? (
+      ) : groupedTransactions.length === 0 ? (
         <View style={styles.emptyState}>
-          <View style={styles.emptyIconContainer}>
+          <View style={[styles.emptyIconContainer, { backgroundColor: isDark ? Colors.obsidian[800] : Semantic.background.tertiary }]}>
             <FontAwesome
-              name="list-alt"
+              name="calendar-times-o"
               size={48}
-              color={Semantic.text.muted}
+              color={getMutedColor()}
             />
           </View>
-          <Text style={styles.emptyStateTitle}>Belum Ada Aktivitas</Text>
-          <Text style={styles.emptyStateText}>
-            Semua riwayat transaksi masuk dan keluar poinmu akan muncul di sini.
+          <Text style={[styles.emptyStateTitle, { color: getTextColor() }]}>Belum Ada Aktivitas</Text>
+          <Text style={[styles.emptyStateText, { color: getMutedColor() }]}>
+            Tidak ada transaksi pada bulan {MONTHS_LONG[activeMonth]} {activeYear}.
           </Text>
         </View>
       ) : (
-        <FlatList
-          key={`list-${animationKey}`}
-          data={filteredData}
+        <SectionList
+          sections={groupedTransactions}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          contentContainerStyle={[styles.listContainer, { paddingBottom: insets.bottom + 130 }]}
+          renderSectionHeader={renderSectionHeader}
+          contentContainerStyle={[styles.listContainer, { paddingBottom: insets.bottom + 100 }]}
           showsVerticalScrollIndicator={false}
+          stickySectionHeadersEnabled={true}
         />
       )}
     </View>
@@ -236,148 +263,127 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: Semantic.background.secondary 
   },
   header: {
-    backgroundColor: Semantic.background.primary,
-    paddingBottom: Spacing.four,
-    paddingHorizontal: Spacing.five,
-    borderBottomWidth: 1,
-    borderColor: Components.card.border,
-    ...Shadows.sm,
+    paddingBottom: Spacing.sm,
+    zIndex: 10,
+  },
+  headerTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   headerTitle: {
     fontFamily: Typography.fontFamily.primary,
-    fontSize: Typography.size.xxl,
-    color: Semantic.text.primary,
+    fontSize: Typography.size.lg,
   },
-  headerSubtitle: {
-    fontFamily: Typography.fontFamily.inter,
-    fontSize: Typography.size.base,
-    color: Semantic.text.secondary,
-    marginTop: Spacing.xs,
-  },
-  filterContainer: {
+  yearPicker: {
     flexDirection: "row",
-    marginTop: Spacing.four,
+    alignItems: "center",
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+  },
+  yearText: {
+    fontFamily: Typography.fontFamily.interMedium,
+    fontSize: Typography.size.sm,
+    marginHorizontal: Spacing.md,
+  },
+  yearArrow: {
+    padding: 4,
+  },
+  monthScrollContainer: {
+    paddingBottom: Spacing.sm,
+  },
+  monthScrollContent: {
+    paddingHorizontal: Spacing.xl,
     gap: Spacing.sm,
   },
-  filterChip: {
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.four,
+  monthChip: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: 10,
     borderRadius: BorderRadius.full,
-    borderWidth: 1,
+    minWidth: 60,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  filterChipActive: {
-    backgroundColor: Semantic.success.main,
-    borderColor: Semantic.success.main,
-  },
-  filterChipInactive: {
-    backgroundColor: Colors.neutral[100],
-    borderColor: Colors.neutral[200],
-  },
-  filterText: {
+  monthText: {
     fontFamily: Typography.fontFamily.interMedium,
     fontSize: Typography.size.sm,
   },
-  filterTextActive: {
-    color: Colors.neutral[0],
+  listContainer: {
+    paddingHorizontal: Spacing.xl,
   },
-  filterTextInactive: {
-    color: Semantic.text.secondary,
+  sectionHeaderContainer: {
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.xs,
   },
-  listContainer: { 
-    padding: Spacing.five,
-    paddingBottom: Spacing.xxxl,
+  sectionHeaderText: {
+    fontFamily: Typography.fontFamily.primary,
+    fontSize: Typography.size.base,
+    marginBottom: Spacing.sm,
   },
-  historyCard: {
+  sectionDivider: {
+    height: 1,
+    width: "100%",
+  },
+  transactionItem: {
     flexDirection: "row",
-    padding: Spacing.four,
-    borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.three,
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: Components.card.border,
-    borderLeftWidth: 4,
-    ...Shadows.sm,
+    paddingVertical: Spacing.lg,
   },
   iconContainer: {
     width: 44,
     height: 44,
-    borderRadius: BorderRadius.md,
+    borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: Spacing.four,
+    marginRight: Spacing.md,
   },
-  detailsContainer: { 
-    flex: 1 
+  detailsContainer: {
+    flex: 1,
+    paddingRight: Spacing.sm,
   },
   titleText: {
-    fontFamily: Typography.fontFamily.secondary,
-    fontSize: Typography.size.md,
-    color: Semantic.text.primary,
-  },
-  dateText: {
-    fontFamily: Typography.fontFamily.inter,
+    fontFamily: Typography.fontFamily.interMedium,
     fontSize: Typography.size.sm,
-    color: Semantic.text.muted,
-    marginTop: 2,
+    marginBottom: 4,
   },
   subText: {
     fontFamily: Typography.fontFamily.inter,
-    fontSize: Typography.size.sm,
-    color: Semantic.text.secondary,
-    marginTop: Spacing.xs,
-  },
-  pointsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    fontSize: 11,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   pointsText: {
     fontFamily: Typography.fontFamily.interBold,
-    fontSize: Typography.size.lg,
-    marginRight: Spacing.xs, 
-  },
-  coinIcon: {
-    width: 20,
-    height: 20,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Semantic.warning.main,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  coinText: {
-    fontFamily: Typography.fontFamily.interBold,
-    fontSize: Typography.size.xs,
-    color: Semantic.background.primary,
+    fontSize: Typography.size.sm,
   },
   emptyState: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: Spacing.xxxl,
+    padding: Spacing.xxxl,
   },
   emptyIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.neutral[100],
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: Spacing.four,
+    marginBottom: Spacing.xl,
   },
   emptyStateTitle: {
-    fontFamily: Typography.fontFamily.secondary,
-    fontSize: Typography.size.lg,
-    color: Semantic.text.primary,
+    fontFamily: Typography.fontFamily.primary,
+    fontSize: Typography.size.xl,
+    marginBottom: Spacing.sm,
   },
   emptyStateText: {
     fontFamily: Typography.fontFamily.inter,
-    fontSize: Typography.size.base,
-    color: Semantic.text.secondary,
+    fontSize: Typography.size.sm,
     textAlign: "center",
-    marginTop: Spacing.sm,
-    lineHeight: 22,
+    lineHeight: 20,
   },
 });

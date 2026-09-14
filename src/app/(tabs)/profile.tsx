@@ -1,378 +1,234 @@
-import {
-  Feather,
-  FontAwesome,
-  MaterialCommunityIcons,
-} from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import { doc, onSnapshot } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
-import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-import { AnimatedCounter } from "@/components/ui/animated-counter";
-import { AnimatedPress } from "@/components/ui/animated-press";
-import { GradientHeader } from "@/components/ui/gradient-header";
 import {
-  AnimConfig,
-  BorderRadius,
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  useColorScheme,
+  Platform,
+  Image,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
+
+import {
   Colors,
-  Components,
   Semantic,
-  Shadows,
   Spacing,
-  Typography
+  Typography,
+  BorderRadius,
+  Shadows,
 } from "@/constants/theme";
-import { CURRENT_USER } from "@/constants/user-config";
+import { AnimatedPress } from "@/components/ui/animated-press";
 
 import { db } from "../../firebaseConfig";
 import { usePoints } from "../../PointContext";
-
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, router } from "expo-router";
+import { useAuth } from "../../AuthContext";
 
 export default function ProfileScreen() {
+  const { user, userData } = useAuth();
   const { ts } = useLocalSearchParams();
   const animationKey = ts ? String(ts) : "default";
   const insets = useSafeAreaInsets();
-  const [userData, setUserData] = useState<any>({
-    total_plastik: 0,
-    total_logam: 0,
-    streak: 0,
-  });
+  
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+
+  const getBgColor = () => isDark ? Semantic.background.dark : Semantic.background.secondary;
+  const getCardBg = () => isDark ? Colors.obsidian[800] : Semantic.background.primary;
+  const getTextColor = () => isDark ? Semantic.text.light : Semantic.text.primary;
+  const getMutedColor = () => isDark ? Colors.obsidian[400] : Semantic.text.secondary;
+  const getBorderColor = () => isDark ? Colors.obsidian[800] : Semantic.border.light;
+
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const { totalPoin } = usePoints();
 
-  // MATA-MATA FIREBASE: Mendengarkan Brankas Utama
-  useEffect(() => {
-    const unsub = onSnapshot(doc(db, "Users", CURRENT_USER.id), (docSnap) => {
-      if (docSnap.exists()) {
-        setUserData(docSnap.data());
-      }
-    });
-    return () => unsub();
-  }, []);
-
   // --- RUMUS SULAP ECO-IMPACT ---
-  const p = userData.total_plastik || 0;
-  const l = userData.total_logam || 0;
+  const p = userData?.total_plastik || 0;
+  const l = userData?.total_logam || 0;
 
   // Emisi CO2 Terkurangi (kg)
   const co2Saved = p * 0.08 + l * 0.2;
   const totalItems = p + l;
-  const streak = userData.streak || 5; // Default demo streak jika tidak ada di DB
-
-  // Logika Gamifikasi: Cek Rank Saat Ini
-  const getLevelName = () => {
-    if (totalPoin >= 50000) return "Radiant Recycler ✨";
-    if (totalPoin >= 25000) return "Elderwood Guardian 🛡️";
-    if (totalPoin >= 10000) return "Sylvan Sapling 🌳";
-    if (totalPoin >= 2500) return "Verdant Sprout 🌿";
-    return "Pebble Seed 🌱";
-  };
+  const streak = userData?.streak || 5;
 
   const MENU_ITEMS = [
-    { id: "edit", icon: "user", label: "Edit Profil" },
-    { id: "history", icon: "clock", label: "Riwayat Penukaran" },
-    { id: "help", icon: "help-circle", label: "Pusat Bantuan" },
+    {
+      id: "edit",
+      icon: "user",
+      title: "Edit Profil",
+      onPress: () => router.push('/edit-profile'),
+    },
+    {
+      id: "history",
+      icon: "clock",
+      title: "Riwayat Penukaran",
+      onPress: () => router.push('/(tabs)/history'),
+    },
+    {
+      id: "help",
+      icon: "help-circle",
+      title: "Pusat Bantuan",
+      onPress: () => router.push('/help'),
+    },
+    {
+      id: "logout",
+      icon: "log-out",
+      title: "Keluar",
+      danger: true,
+      onPress: () => setShowLogoutModal(true),
+    },
   ];
-
   return (
-    <ScrollView
-      style={styles.container}
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}
-      bounces={false}
-    >
-      {/* HEADER PROFIL */}
-      <GradientHeader extraPaddingBottom={40}>
-        <Animated.View
-          key={`profile-header-${animationKey}`}
-          entering={FadeInDown.duration(AnimConfig.duration.normal)}
-          style={styles.headerContent}
-        >
-          <LinearGradient
-            colors={[Colors.teal[200], Semantic.success.main]}
-            style={styles.avatarRing}
-          >
-            <View style={styles.avatarInner}>
-              <FontAwesome
-                name="leaf"
-                size={48}
-                color={Semantic.success.main}
-              />
-            </View>
-          </LinearGradient>
-          <Text style={styles.userName}>{CURRENT_USER.displayName}</Text>
-          <View style={styles.badgeContainer}>
-            <Text style={styles.badgeText}>{getLevelName()}</Text>
+    <View style={[styles.container, { backgroundColor: getBgColor() }]} key={animationKey}>
+      {/* HEADER DECORATION */}
+      <View style={[styles.headerDecor, { backgroundColor: isDark ? Colors.obsidian[950] : Colors.emerald[600] }]} />
+
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: insets.top + Spacing.xl, paddingBottom: insets.bottom + Spacing.xxl },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* --- KARTU PROFIL --- */}
+        <Animated.View entering={FadeInDown.duration(500)} style={[styles.profileCard, { backgroundColor: getCardBg(), borderColor: getBorderColor(), borderWidth: isDark ? 1 : 0 }]}>
+          <View style={[styles.avatarContainer, { backgroundColor: isDark ? Colors.obsidian[700] : Colors.emerald[100], overflow: 'hidden' }]}>
+            {user?.photoURL ? (
+              <Image source={{ uri: user.photoURL }} style={{ width: '100%', height: '100%' }} />
+            ) : (
+              <Text style={styles.avatarInitial}>
+                {userData?.displayName?.[0]?.toUpperCase() || userData?.fullName?.[0]?.toUpperCase() || "N"}
+              </Text>
+            )}
+          </View>
+          <Text style={[styles.userName, { color: getTextColor() }]}>{(userData?.displayName || "Pengguna")}</Text>
+          <Text style={[styles.userEmail, { color: getMutedColor() }]}>{user?.email || "Email"}</Text>
+
+          <View style={styles.tierBadge}>
+            <MaterialCommunityIcons name="shield-star" size={16} color={Colors.amber[500]} />
+            <Text style={styles.tierText}>Eco Warrior</Text>
           </View>
         </Animated.View>
-      </GradientHeader>
 
-      <View style={styles.bodyContainer}>
-        {/* JUDUL BAGIAN DAMPAK */}
-        <Animated.View
-          key={`profile-title-${animationKey}`}
-          entering={FadeInUp.delay(100).duration(AnimConfig.duration.normal)}
-        >
-          <Text style={styles.sectionTitle}>Dampak Lingkunganmu</Text>
-          <Text style={styles.sectionSubtitle}>
-            Kontribusimu sangat berarti bagi bumi!
-          </Text>
+        {/* --- STATISTIK ECO-IMPACT --- */}
+        <Animated.View entering={FadeInUp.delay(200).duration(500)} style={styles.statsContainer}>
+          <View style={[styles.statBox, { backgroundColor: getCardBg(), borderColor: getBorderColor(), borderWidth: isDark ? 1 : 0 }]}>
+            <Feather name="wind" size={24} color={Semantic.success.main} />
+            <Text style={[styles.statValue, { color: getTextColor() }]}>{co2Saved.toFixed(1)}kg</Text>
+            <Text style={[styles.statLabel, { color: getMutedColor() }]}>CO2 Dicegah</Text>
+          </View>
+          <View style={[styles.statBox, { backgroundColor: getCardBg(), borderColor: getBorderColor(), borderWidth: isDark ? 1 : 0 }]}>
+            <Feather name="trash-2" size={24} color={Semantic.primary.main} />
+            <Text style={[styles.statValue, { color: getTextColor() }]}>{totalItems}</Text>
+            <Text style={[styles.statLabel, { color: getMutedColor() }]}>Item Didaur</Text>
+          </View>
+          <View style={[styles.statBox, { backgroundColor: getCardBg(), borderColor: getBorderColor(), borderWidth: isDark ? 1 : 0 }]}>
+            <Feather name="zap" size={24} color={Colors.amber[500]} />
+            <Text style={[styles.statValue, { color: getTextColor() }]}>{streak}</Text>
+            <Text style={[styles.statLabel, { color: getMutedColor() }]}>Hari Beruntun</Text>
+          </View>
         </Animated.View>
 
-        {/* KARTU DAMPAK LINGKUNGAN MINI */}
-        <View style={styles.statsRow}>
-          {/* Kartu 1: Karbon */}
-          <Animated.View
-            key={`profile-stat1-${animationKey}`}
-            entering={FadeInUp.delay(150).springify()}
-            style={styles.statCard}
-          >
-            <View
-              style={[
-                styles.statIconBox,
-                { backgroundColor: Components.iconWrapper.success.bg },
-              ]}
-            >
-              <MaterialCommunityIcons
-                name="molecule-co2"
-                size={28}
-                color={Semantic.success.main}
-              />
-            </View>
-            <AnimatedCounter value={co2Saved} style={styles.statValue} />
-            <Text style={styles.statLabel}>CO2 Hemat</Text>
-          </Animated.View>
+        {/* --- MENU NAVIGASI --- */}
+        <Animated.View entering={FadeInUp.delay(300).duration(500)} style={[styles.menuContainer, { backgroundColor: getCardBg(), borderColor: getBorderColor(), borderWidth: isDark ? 1 : 0 }]}>
+          {MENU_ITEMS.map((item, index) => (
+            <AnimatedPress key={item.id} style={[styles.menuItem, index !== MENU_ITEMS.length - 1 ? { borderBottomWidth: 1, borderBottomColor: getBorderColor() } : {}]} onPress={item.onPress}>
+              <View style={[styles.menuIconBox, { backgroundColor: item.danger ? Colors.red[50] : (isDark ? Colors.obsidian[900] : Colors.emerald[50]) }]}>
+                <Feather name={item.icon as any} size={20} color={item.danger ? Semantic.danger.main : Semantic.primary.main} />
+              </View>
+              <Text style={[styles.menuTitle, { color: item.danger ? Semantic.danger.main : getTextColor() }]}>{item.title}</Text>
+              <Feather name="chevron-right" size={20} color={getMutedColor()} />
+            </AnimatedPress>
+          ))}
+        </Animated.View>
 
-          {/* Kartu 2: Item */}
-          <Animated.View
-            key={`profile-stat2-${animationKey}`}
-            entering={FadeInUp.delay(200).springify()}
-            style={styles.statCard}
-          >
-            <View
-              style={[
-                styles.statIconBox,
-                { backgroundColor: Components.iconWrapper.primary.bg },
-              ]}
-            >
-              <MaterialCommunityIcons
-                name="recycle"
-                size={28}
-                color={Semantic.primary.main}
-              />
-            </View>
-            <AnimatedCounter value={totalItems} style={styles.statValue} />
-            <Text style={styles.statLabel}>Total Item</Text>
-          </Animated.View>
+        {/* --- FOOTER APP VERSION --- */}
+        <Animated.View entering={FadeInUp.delay(400).duration(500)} style={styles.footerContainer}>
+          <Text style={styles.versionText}>EcoPoint Exchanger v2.0.0</Text>
+          <Text style={styles.madeWithText}>Dibuat oleh Tim EcoPoint</Text>
+        </Animated.View>
+      </ScrollView>
 
-          {/* Kartu 3: Api/Streak */}
-          <Animated.View
-            key={`profile-stat3-${animationKey}`}
-            entering={FadeInUp.delay(250).springify()}
-            style={styles.statCard}
-          >
-            <View
-              style={[
-                styles.statIconBox,
-                { backgroundColor: Components.iconWrapper.warning.bg },
-              ]}
-            >
-              <MaterialCommunityIcons
-                name="fire"
-                size={28}
-                color={Semantic.warning.main}
-              />
+      {/* MODAL LOGOUT */}
+      {showLogoutModal && (
+        <View style={StyleSheet.absoluteFill}>
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.4)' }]} />
+          <Animated.View entering={FadeInDown.duration(300)} style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { backgroundColor: getCardBg() }]}>
+              <View style={[styles.modalIconBox, { backgroundColor: Colors.red[50] }]}>
+                <Feather name="log-out" size={32} color={Semantic.danger.main} />
+              </View>
+              <Text style={[styles.modalTitle, { color: getTextColor() }]}>Keluar dari Akun?</Text>
+              <Text style={[styles.modalDesc, { color: getMutedColor() }]}>
+                Sesi kamu akan diakhiri. Pastikan kamu mengingat kata sandi sebelum keluar.
+              </Text>
+              
+              <View style={styles.modalActions}>
+                <AnimatedPress 
+                  style={[styles.modalBtnCancel, { backgroundColor: isDark ? Colors.obsidian[700] : Colors.neutral[100] }]} 
+                  onPress={() => setShowLogoutModal(false)}
+                >
+                  <Text style={[styles.modalBtnCancelText, { color: getTextColor() }]}>Batal</Text>
+                </AnimatedPress>
+                
+                <AnimatedPress 
+                  style={[styles.modalBtnConfirm, { backgroundColor: Semantic.danger.main }]}
+                  onPress={async () => {
+                    setShowLogoutModal(false);
+                    try {
+                      const { auth } = require('../../firebaseConfig');
+                      await auth.signOut();
+                      router.replace('/(auth)/login');
+                    } catch (e) {
+                      console.error(e);
+                    }
+                  }}
+                >
+                  <Text style={styles.modalBtnConfirmText}>Ya, Keluar</Text>
+                </AnimatedPress>
+              </View>
             </View>
-            <AnimatedCounter value={streak} style={styles.statValue} />
-            <Text style={styles.statLabel}>Hari Beruntun</Text>
           </Animated.View>
         </View>
-
-        {/* TOMBOL PENGATURAN & BANTUAN */}
-        <Animated.View
-          key={`profile-menu-${animationKey}`}
-          entering={FadeInUp.delay(350).springify()}
-        >
-          <View style={styles.menuCard}>
-            {MENU_ITEMS.map((item, index) => (
-              <React.Fragment key={item.id}>
-                <AnimatedPress style={styles.menuItem}>
-                  <View style={styles.menuIconWrapper}>
-                    <Feather
-                      name={item.icon as any}
-                      size={20}
-                      color={Semantic.primary.main}
-                    />
-                  </View>
-                  <Text style={styles.menuText}>{item.label}</Text>
-                  <Feather
-                    name="chevron-right"
-                    size={20}
-                    color={Semantic.text.muted}
-                  />
-                </AnimatedPress>
-                {index < MENU_ITEMS.length - 1 && (
-                  <View style={styles.menuDivider} />
-                )}
-              </React.Fragment>
-            ))}
-          </View>
-        </Animated.View>
-
-        {/* FOOTER */}
-        <Animated.View
-          entering={FadeInUp.delay(450).springify()}
-          style={styles.footer}
-        >
-          <Text style={styles.versionText}>EcoPoint App v0.2.0</Text>
-        </Animated.View>
-      </View>
-    </ScrollView>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Semantic.background.secondary,
-  },
-  headerContent: {
-    alignItems: "center",
-    paddingTop: Spacing.xl,
-  },
-  avatarRing: {
-    width: 108,
-    height: 108,
-    borderRadius: BorderRadius.full,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: Spacing.lg,
-    padding: 4,
-  },
-  avatarInner: {
-    width: "100%",
-    height: "100%",
-    backgroundColor: Colors.neutral[0],
-    borderRadius: BorderRadius.full,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  userName: {
-    fontFamily: Typography.fontFamily.primary,
-    fontSize: Typography.size.xl,
-    color: Colors.neutral[0],
-    marginBottom: Spacing.xs,
-  },
-  badgeContainer: {
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.4)",
-  },
-  badgeText: {
-    fontFamily: Typography.fontFamily.secondary,
-    fontSize: Typography.size.sm,
-    color: Colors.neutral[0],
-  },
-  bodyContainer: {
-    paddingHorizontal: Spacing.lg,
-    marginTop: Spacing.lg,
-  },
-  sectionTitle: {
-    fontFamily: Typography.fontFamily.primary,
-    fontSize: Typography.size.lg,
-    color: Semantic.text.primary,
-  },
-  sectionSubtitle: {
-    fontFamily: Typography.fontFamily.inter,
-    fontSize: Typography.size.base,
-    color: Semantic.text.secondary,
-    marginTop: Spacing.half,
-    marginBottom: Spacing.lg,
-  },
-  statsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: Spacing.xxl,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: Semantic.background.primary,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    alignItems: "center",
-    marginHorizontal: Spacing.xs,
-    ...Shadows.sm,
-  },
-  statIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: BorderRadius.full,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: Spacing.sm,
-  },
-  statValue: {
-    fontFamily: Typography.fontFamily.interBold,
-    fontSize: Typography.size.lg,
-    color: Semantic.text.primary,
-  },
-  statLabel: {
-    fontFamily: Typography.fontFamily.inter,
-    fontSize: Typography.size.xs,
-    color: Semantic.text.secondary,
-    marginTop: Spacing.half,
-    textAlign: "center",
-  },
-  menuCard: {
-    backgroundColor: Semantic.background.primary,
-    borderRadius: BorderRadius.xl,
-    ...Shadows.sm,
-    overflow: "hidden",
-  },
-  menuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.lg,
-  },
-  menuIconWrapper: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Semantic.primary.light,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: Spacing.md,
-  },
-  menuText: {
-    fontFamily: Typography.fontFamily.interMedium,
-    flex: 1,
-    fontSize: Typography.size.base,
-    color: Semantic.text.primary,
-  },
-  menuDivider: {
-    height: 1,
-    backgroundColor: Semantic.border.light,
-    marginLeft: 76,
-  },
-  footer: {
-    marginTop: Spacing.xxxl,
-    alignItems: "center",
-  },
-  versionText: {
-    fontFamily: Typography.fontFamily.interMedium,
-    color: Semantic.text.muted,
-    fontSize: Typography.size.base,
-    marginBottom: Spacing.xs,
-  },
-  madeWithText: {
-    fontFamily: Typography.fontFamily.inter,
-    color: Semantic.text.secondary,
-    fontSize: Typography.size.sm,
-  },
+  container: { flex: 1 },
+  headerDecor: { position: "absolute", top: 0, left: 0, right: 0, height: 200, borderBottomLeftRadius: 40, borderBottomRightRadius: 40 },
+  scrollContent: { paddingHorizontal: Spacing.xl },
+  profileCard: { borderRadius: BorderRadius.xl, padding: Spacing.xl, alignItems: "center", marginBottom: Spacing.xl, ...Shadows.md },
+  avatarContainer: { width: 80, height: 80, borderRadius: 40, justifyContent: "center", alignItems: "center", marginBottom: Spacing.md, borderWidth: 4, borderColor: "#FFFFFF" },
+  avatarInitial: { fontFamily: Typography.fontFamily.primary, fontSize: 32, color: Semantic.primary.main },
+  userName: { fontFamily: Typography.fontFamily.primary, fontSize: 20, marginBottom: 4 },
+  userEmail: { fontFamily: Typography.fontFamily.inter, fontSize: 14, marginBottom: Spacing.md },
+  tierBadge: { flexDirection: "row", alignItems: "center", backgroundColor: Colors.amber[50], paddingHorizontal: Spacing.md, paddingVertical: 6, borderRadius: BorderRadius.full },
+  tierText: { fontFamily: Typography.fontFamily.medium, fontSize: 12, color: Colors.amber[700], marginLeft: 4 },
+  statsContainer: { flexDirection: "row", justifyContent: "space-between", marginBottom: Spacing.xl },
+  statBox: { flex: 1, borderRadius: BorderRadius.lg, padding: Spacing.md, alignItems: "center", marginHorizontal: 4, ...Shadows.sm },
+  statValue: { fontFamily: Typography.fontFamily.primary, fontSize: 18, marginTop: Spacing.sm, marginBottom: 2 },
+  statLabel: { fontFamily: Typography.fontFamily.inter, fontSize: 10, textAlign: "center" },
+  menuContainer: { borderRadius: BorderRadius.xl, overflow: "hidden", marginBottom: Spacing.xxl, ...Shadows.sm },
+  menuItem: { flexDirection: "row", alignItems: "center", padding: Spacing.lg },
+  menuIconBox: { width: 40, height: 40, borderRadius: BorderRadius.md, justifyContent: "center", alignItems: "center", marginRight: Spacing.md },
+  menuTitle: { flex: 1, fontFamily: Typography.fontFamily.medium, fontSize: 16 },
+  footerContainer: { alignItems: "center", paddingBottom: 100 },
+  versionText: { fontFamily: Typography.fontFamily.medium, color: Semantic.text.muted, fontSize: Typography.size.sm, marginBottom: 4 },
+  madeWithText: { fontFamily: Typography.fontFamily.inter, color: Semantic.text.muted, fontSize: Typography.size.xs },
+  modalOverlay: { flex: 1, justifyContent: "center", alignItems: "center", padding: Spacing.xl },
+  modalContent: { width: "100%", borderRadius: BorderRadius.xl, padding: Spacing.xl, alignItems: "center", ...Shadows.lg },
+  modalIconBox: { width: 64, height: 64, borderRadius: 32, justifyContent: "center", alignItems: "center", marginBottom: Spacing.lg },
+  modalTitle: { fontFamily: Typography.fontFamily.primary, fontSize: 20, marginBottom: Spacing.sm },
+  modalDesc: { fontFamily: Typography.fontFamily.inter, fontSize: 14, textAlign: "center", marginBottom: Spacing.xl, lineHeight: 20 },
+  modalActions: { flexDirection: "row", gap: Spacing.md, width: "100%" },
+  modalBtnCancel: { flex: 1, paddingVertical: 14, borderRadius: BorderRadius.md, alignItems: "center" },
+  modalBtnCancelText: { fontFamily: Typography.fontFamily.medium, fontSize: 14 },
+  modalBtnConfirm: { flex: 1, paddingVertical: 14, borderRadius: BorderRadius.md, alignItems: "center" },
+  modalBtnConfirmText: { fontFamily: Typography.fontFamily.medium, fontSize: 14, color: "#FFF" },
 });
