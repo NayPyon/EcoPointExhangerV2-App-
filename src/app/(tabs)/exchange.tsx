@@ -194,6 +194,44 @@ export default function ExchangeScreen() {
     );
   };
 
+  // ─── DEV ONLY: Bypass hardware untuk testing ─────────────────────────────
+  const bypassSesi = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const newToken = generateNewToken();
+    setShowQR(true);
+    try {
+      await setDoc(
+        doc(db, "Sesi_Aktif", user!.uid),
+        {
+          kode_sesi: newToken,
+          waktu_dibuat: serverTimestamp(),
+          status: "pintu_terbuka",
+          botol_plastik: 0,
+          botol_logam: 0,
+          sampah_reject: 0,
+        },
+        { merge: true },
+      );
+    } catch (error) {
+      console.error("Gagal bypass sesi:", error);
+    }
+  };
+
+  const tambahItem = async (tipe: "botol_plastik" | "botol_logam" | "sampah_reject") => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const nilai = tipe === "botol_plastik"
+      ? { botol_plastik: jumlahPlastik + 1 }
+      : tipe === "botol_logam"
+        ? { botol_logam: jumlahLogam + 1 }
+        : { sampah_reject: jumlahReject + 1 };
+    try {
+      await setDoc(doc(db, "Sesi_Aktif", user!.uid), nilai, { merge: true });
+    } catch (error) {
+      console.error("Gagal tambah item:", error);
+    }
+  };
+  // ─────────────────────────────────────────────────────────────────────────
+
   const akhiriSesi = async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setShowCelebration(true);
@@ -570,6 +608,82 @@ export default function ExchangeScreen() {
               </Animated.View>
             </LinearGradient>
           </AnimatedPress>
+
+          {/* ── DEV BYPASS BUTTON ─────────────────────────── */}
+          {__DEV__ && (
+            <Animated.View
+              entering={FadeInDown.duration(500).delay(200)}
+              style={{ width: "100%", marginTop: Spacing.lg }}
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginBottom: Spacing.sm,
+                  gap: 6,
+                }}
+              >
+                <View
+                  style={{
+                    flex: 1,
+                    height: 1,
+                    backgroundColor: "rgba(245,158,11,0.3)",
+                  }}
+                />
+                <Text
+                  style={{
+                    fontFamily: Typography.fontFamily.medium,
+                    fontSize: 11,
+                    color: Semantic.warning.main,
+                    letterSpacing: 1,
+                  }}
+                >
+                  🛠 DEV MODE
+                </Text>
+                <View
+                  style={{
+                    flex: 1,
+                    height: 1,
+                    backgroundColor: "rgba(245,158,11,0.3)",
+                  }}
+                />
+              </View>
+              <AnimatedPress
+                style={{
+                  width: "100%",
+                  paddingVertical: Spacing.md,
+                  borderRadius: BorderRadius.full,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexDirection: "row",
+                  borderWidth: 1.5,
+                  borderColor: Semantic.warning.main,
+                  borderStyle: "dashed",
+                  gap: 8,
+                  backgroundColor: isDark
+                    ? "rgba(245,158,11,0.1)"
+                    : "rgba(245,158,11,0.06)",
+                }}
+                onPress={bypassSesi}
+              >
+                <MaterialCommunityIcons
+                  name="lightning-bolt"
+                  size={18}
+                  color={Semantic.warning.main}
+                />
+                <Text
+                  style={{
+                    fontFamily: Typography.fontFamily.secondary,
+                    fontSize: Typography.size.base,
+                    color: Semantic.warning.main,
+                  }}
+                >
+                  Bypass Mesin (Dev)
+                </Text>
+              </AnimatedPress>
+            </Animated.View>
+          )}
+          {/* ─────────────────────────────────────────────── */}
         </Animated.View>
       )}
 
@@ -855,6 +969,135 @@ export default function ExchangeScreen() {
               />
               <Text style={styles.btnPrimaryText}>Tutup Pintu & Selesai</Text>
             </AnimatedPress>
+
+            {/* ── DEV: Tambah Item Manual ────────────────────── */}
+            {__DEV__ && (
+              <Animated.View
+                entering={FadeInDown.duration(400).delay(150)}
+                style={{ width: "100%", marginTop: Spacing.xl }}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginBottom: Spacing.sm,
+                    gap: 6,
+                  }}
+                >
+                  <View
+                    style={{
+                      flex: 1,
+                      height: 1,
+                      backgroundColor: "rgba(245,158,11,0.3)",
+                    }}
+                  />
+                  <Text
+                    style={{
+                      fontFamily: Typography.fontFamily.medium,
+                      fontSize: 11,
+                      color: Semantic.warning.main,
+                      letterSpacing: 1,
+                    }}
+                  >
+                    🛠 SIMULASI ITEM
+                  </Text>
+                  <View
+                    style={{
+                      flex: 1,
+                      height: 1,
+                      backgroundColor: "rgba(245,158,11,0.3)",
+                    }}
+                  />
+                </View>
+                <View style={{ flexDirection: "row", gap: Spacing.sm }}>
+                  <AnimatedPress
+                    style={{
+                      flex: 1,
+                      paddingVertical: Spacing.md,
+                      borderRadius: BorderRadius.lg,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderWidth: 1.5,
+                      borderStyle: "dashed",
+                      borderColor: Semantic.primary.main,
+                      backgroundColor: isDark
+                        ? "rgba(16,185,129,0.1)"
+                        : "rgba(16,185,129,0.06)",
+                      gap: 4,
+                    }}
+                    onPress={() => tambahItem("botol_plastik")}
+                  >
+                    <Text style={{ fontSize: 20 }}>🧴</Text>
+                    <Text
+                      style={{
+                        fontFamily: Typography.fontFamily.secondary,
+                        fontSize: 12,
+                        color: Semantic.primary.main,
+                      }}
+                    >
+                      +Plastik
+                    </Text>
+                  </AnimatedPress>
+                  <AnimatedPress
+                    style={{
+                      flex: 1,
+                      paddingVertical: Spacing.md,
+                      borderRadius: BorderRadius.lg,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderWidth: 1.5,
+                      borderStyle: "dashed",
+                      borderColor: Semantic.warning.main,
+                      backgroundColor: isDark
+                        ? "rgba(245,158,11,0.1)"
+                        : "rgba(245,158,11,0.06)",
+                      gap: 4,
+                    }}
+                    onPress={() => tambahItem("botol_logam")}
+                  >
+                    <Text style={{ fontSize: 20 }}>🥫</Text>
+                    <Text
+                      style={{
+                        fontFamily: Typography.fontFamily.secondary,
+                        fontSize: 12,
+                        color: Semantic.warning.main,
+                      }}
+                    >
+                      +Logam
+                    </Text>
+                  </AnimatedPress>
+                  <AnimatedPress
+                    style={{
+                      flex: 1,
+                      paddingVertical: Spacing.md,
+                      borderRadius: BorderRadius.lg,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderWidth: 1.5,
+                      borderStyle: "dashed",
+                      borderColor: Semantic.danger.main,
+                      backgroundColor: isDark
+                        ? "rgba(239,68,68,0.1)"
+                        : "rgba(239,68,68,0.06)",
+                      gap: 4,
+                    }}
+                    onPress={() => tambahItem("sampah_reject")}
+                  >
+                    <Text style={{ fontSize: 20 }}>🗑️</Text>
+                    <Text
+                      style={{
+                        fontFamily: Typography.fontFamily.secondary,
+                        fontSize: 12,
+                        color: Semantic.danger.main,
+                      }}
+                    >
+                      +Reject
+                    </Text>
+                  </AnimatedPress>
+                </View>
+              </Animated.View>
+            )}
+            {/* ─────────────────────────────────────────────── */}
           </View>
         </Animated.View>
       )}
