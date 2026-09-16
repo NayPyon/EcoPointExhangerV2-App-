@@ -86,12 +86,18 @@ export default function RewardScreen() {
           const kategori = d.kategori || "Umum";
           if (!grouped[kategori]) grouped[kategori] = [];
           
+          let imageUrl = d.gambar_url;
+          // Kalau url gambar adalah URL kado lama (terlanjur tersimpan di Firestore), kita paksa ganti ke gambar daun hijau
+          if (!imageUrl || imageUrl.includes("1549465220")) {
+            imageUrl = "https://images.unsplash.com/photo-1497436072909-60f360e1d4b1?w=600&q=80";
+          }
+
           grouped[kategori].push({
             id: doc.id,
             title: d.nama,
             points: d.poin_dibutuhkan,
             stock: d.stok,
-            image: d.gambar_url || "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=600&q=80",
+            image: imageUrl,
           });
         }
       });
@@ -225,7 +231,10 @@ export default function RewardScreen() {
               },
             ]}
           >
-            <Image source={{ uri: item.image }} style={styles.cardImage} />
+            <Image 
+              source={{ uri: item.image || "https://images.unsplash.com/photo-1497436072909-60f360e1d4b1?w=600&q=80" }} 
+              style={styles.cardImage} 
+            />
             <View style={styles.floatingStock}>
               <View
                 style={[

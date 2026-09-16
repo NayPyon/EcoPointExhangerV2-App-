@@ -4,17 +4,30 @@ import {
   Semantic,
   Shadows,
   Spacing,
-  Typography
+  Typography,
 } from "@/constants/theme";
 import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
+import {
+  collection,
+  doc,
+  getAggregateFromServer,
+  getCountFromServer,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  sum,
+  updateDoc,
+  where
+} from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
   Pressable,
   StyleSheet,
   Text,
   View,
-  useColorScheme
+  useColorScheme,
 } from "react-native";
 import Animated, {
   Extrapolate,
@@ -28,12 +41,11 @@ import Animated, {
   useSharedValue,
   withRepeat,
   withSequence,
-  withTiming
+  withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../AuthContext";
 import { db } from "../../firebaseConfig";
-import { collection, query, orderBy, limit, getDocs, getCountFromServer, where, getAggregateFromServer, sum, doc, onSnapshot } from "firebase/firestore";
 
 // Context
 import { usePoints } from "../../PointContext";
@@ -46,11 +58,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 
 const GAMIFICATION_TIERS = [
-  { name: "Radiant Recycler ✨", req: "50.000+ pts", benefit: "+20% Poin" },
-  { name: "Elderwood Guardian 🛡️", req: "25.000 pts", benefit: "+15% Poin" },
-  { name: "Sylvan Sapling 🌳", req: "10.000 pts", benefit: "+10% Poin" },
-  { name: "Verdant Sprout 🌿", req: "2.500 pts", benefit: "+5% Poin" },
-  { name: "Pebble Seed 🌱", req: "0 pts", benefit: "Normal (1x)" },
+  { name: "✨ Radiant Recycler", req: "50.000+ pts", benefit: "+20% Poin" },
+  { name: "🛡️ Elderwood Guardian", req: "25.000 pts", benefit: "+15% Poin" },
+  { name: "🌳 Sylvan Sapling", req: "10.000 pts", benefit: "+10% Poin" },
+  { name: "🌿 Verdant Sprout", req: "2.500 pts", benefit: "+5% Poin" },
+  { name: "🌱 Pebble Seed", req: "0 pts", benefit: "Normal (1x)" },
 ];
 
 export default function HomeScreen() {
@@ -62,9 +74,118 @@ export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const { totalPoin, totalPlastik, totalLogam, hariKonsisten, loading } =
-    usePoints();
+  const {
+    totalPoin,
+    totalPlastik,
+    totalLogam,
+    hariKonsisten,
+    misiMingguanProgress,
+    loading,
+  } = usePoints();
   const [isExpanded, setIsExpanded] = useState(false);
+
+  const getStartOfWeekMonday7AM = () => {
+    const current = new Date();
+    const day = current.getDay();
+    const hours = current.getHours();
+    let daysToSubtract =
+      day === 0 ? 6 : day === 1 ? (hours < 7 ? 7 : 0) : day - 1;
+    const monday = new Date(current);
+    monday.setDate(monday.getDate() - daysToSubtract);
+    monday.setHours(7, 0, 0, 0);
+    return monday.getTime();
+  };
+
+  const startOfWeek = getStartOfWeekMonday7AM();
+  const lastClaimed = userData?.last_misi_claimed
+    ? userData.last_misi_claimed.toMillis
+      ? userData.last_misi_claimed.toMillis()
+      : userData.last_misi_claimed
+    : 0;
+  const isMissionClaimed = lastClaimed >= startOfWeek;
+
+  const [cooldownText, setCooldownText] = useState("");
+
+  // --- WEEKLY MISSION COOLDOWN TIMER ---
+  useEffect(() => {
+    if (!isMissionClaimed) return;
+
+    const targetTime = startOfWeek + 7 * 24 * 60 * 60 * 1000;
+
+    const updateTimer = () => {
+      const now = new Date().getTime();
+      const diff = targetTime - now;
+
+      if (diff <= 0) {
+        setCooldownText("00:00:00");
+        return;
+      }
+
+      const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const s = Math.floor((diff % (1000 * 60)) / 1000);
+
+      if (d > 0) {
+        setCooldownText(`${d}h ${h}j ${m}m`);
+      } else {
+        setCooldownText(
+          `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`,
+        );
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [isMissionClaimed, startOfWeek]);
+
+  // --- WEEKLY MISSION CLAIM ---
+  useEffect(() => {
+    const claimMission = async () => {
+      if (!user || !userData) return;
+      if (misiMingguanProgress >= 20 && !isMissionClaimed) {
+        try {
+          const { generateChronologicalId } = require("../../firebaseConfig");
+          const { setDoc, Timestamp } = require("firebase/firestore");
+
+          // 1. Update user document
+          await updateDoc(doc(db, "Users", user.uid), {
+            poin: (userData.poin || 0) + 500,
+            last_misi_claimed: Timestamp.now(),
+          });
+
+          // 2. Add to Riwayat
+          const riwayatId = generateChronologicalId(Date.now());
+          await setDoc(doc(db, "Users", user.uid, "Riwayat", riwayatId), {
+            judul: "Hadiah Misi Mingguan",
+            tipe: "misi_mingguan",
+            poin: 500,
+            plastik: 0,
+            logam: 0,
+            tanggal: Timestamp.now(),
+          });
+
+          // 3. Add to Notifications
+          const notifId = generateChronologicalId(Date.now() + 1);
+          await setDoc(doc(db, "Users", user.uid, "Notifications", notifId), {
+            title: "Misi Mingguan Selesai! 🎉",
+            message:
+              "Selamat! Kamu telah menyelesaikan misi kumpulkan 20 Botol Plastik minggu ini dan mendapatkan +500 Poin.",
+            desc: "Selamat! Kamu telah menyelesaikan misi kumpulkan 20 Botol Plastik minggu ini dan mendapatkan +500 Poin.",
+            time: Timestamp.now(),
+            icon: "bullseye",
+            color_type: "success",
+            isRead: false,
+            type: "mission",
+          });
+        } catch (e) {
+          console.error("Failed to claim mission", e);
+        }
+      }
+    };
+    claimMission();
+  }, [misiMingguanProgress, isMissionClaimed, user, userData]);
 
   // --- LEADERBOARD & GLOBAL STATS STATE ---
   const [topUsers, setTopUsers] = useState<any[]>([]);
@@ -77,16 +198,19 @@ export default function HomeScreen() {
     const fetchStats = async () => {
       try {
         const usersRef = collection(db, "Users");
-        
+
         // 1. Fetch Top Users (Ambil 5, filter admin agar tidak masuk leaderboard, lalu ambil 3)
         const topQ = query(usersRef, orderBy("poin", "desc"), limit(5));
         const topSnap = await getDocs(topQ);
         const topData = topSnap.docs
           .map((doc) => ({ id: doc.id, ...doc.data() }))
           // Sembunyikan jika role adalah admin
-          .filter((u: any) => u.role !== "admin" && u.Role !== "Admin" && u.Role !== "admin")
+          .filter(
+            (u: any) =>
+              u.role !== "admin" && u.Role !== "Admin" && u.Role !== "admin",
+          )
           .slice(0, 3); // Ambil persis 3 teratas
-        
+
         setTopUsers(topData);
 
         // 2. Fetch User Rank (Count users who have more points)
@@ -98,12 +222,12 @@ export default function HomeScreen() {
 
         // 3. Fetch Global Aggregates (Dipisah agar tidak error butuh Composite Index di Firebase)
         const sumPlastikSnap = await getAggregateFromServer(usersRef, {
-          total: sum('total_plastik'),
+          total: sum("total_plastik"),
         });
         const sumLogamSnap = await getAggregateFromServer(usersRef, {
-          total: sum('total_logam'),
+          total: sum("total_logam"),
         });
-        
+
         setGlobalPlastik(sumPlastikSnap.data().total || 1);
         setGlobalLogam(sumLogamSnap.data().total || 1);
       } catch (err) {
@@ -112,12 +236,11 @@ export default function HomeScreen() {
         setStatsLoading(false);
       }
     };
-    
+
     if (userData) {
       fetchStats();
     }
   }, [userData]);
-
 
   const getLevelName = () => {
     if (totalPoin >= 50000) return "Radiant Recycler ✨";
@@ -528,7 +651,10 @@ export default function HomeScreen() {
                   }}
                 >
                   {totalPlastik > 0
-                    ? ((totalPlastik / Math.max(globalPlastik, 1)) * 100).toFixed(2)
+                    ? (
+                        (totalPlastik / Math.max(globalPlastik, 1)) *
+                        100
+                      ).toFixed(2)
                     : 0}
                   % kontribusi global
                 </Text>
@@ -637,19 +763,23 @@ export default function HomeScreen() {
                     style={{
                       fontFamily: Typography.fontFamily.primary,
                       fontSize: 16,
-                      color: Semantic.primary.main,
+                      color: isMissionClaimed
+                        ? getMutedColor()
+                        : Semantic.primary.main,
                     }}
                   >
-                    {totalPlastik}/20
+                    {Math.min(misiMingguanProgress, 20)}/20
                   </Text>
                   <Text
                     style={{
                       fontFamily: Typography.fontFamily.medium,
                       fontSize: 11,
-                      color: getMutedColor(),
+                      color: isMissionClaimed
+                        ? getMutedColor()
+                        : Semantic.primary.main,
                     }}
                   >
-                    +500 Pts
+                    {isMissionClaimed ? `Reset: ${cooldownText}` : "+500 Pts"}
                   </Text>
                 </View>
               </View>
@@ -762,43 +892,121 @@ export default function HomeScreen() {
                   />
                 </View>
                 <View style={{ marginLeft: Spacing.sm }}>
-                  <Text style={[styles.bentoBoxValue, { color: getTextColor(), fontSize: Typography.size.lg }]}>
-                    Top Recyclers 🏆
+                  <Text
+                    style={[
+                      styles.bentoBoxValue,
+                      { color: getTextColor(), fontSize: Typography.size.lg },
+                    ]}
+                  >
+                    Top Recyclers
                   </Text>
                 </View>
               </View>
 
               {statsLoading ? (
-                <Text style={{ color: getMutedColor(), textAlign: "center" }}>Memuat peringkat...</Text>
+                <Text style={{ color: getMutedColor(), textAlign: "center" }}>
+                  Memuat peringkat...
+                </Text>
               ) : (
                 <View>
                   {topUsers.map((u, i) => (
-                    <View key={u.id} style={{ flexDirection: "row", alignItems: "center", marginBottom: Spacing.sm, paddingVertical: Spacing.xs, borderBottomWidth: 1, borderBottomColor: isDark ? Colors.obsidian[800] : Colors.obsidian[50] }}>
-                      <Text style={{ fontFamily: Typography.fontFamily.primary, fontSize: 16, width: 30, color: i === 0 ? Colors.amber[500] : i === 1 ? Colors.obsidian[400] : i === 2 ? "#cd7f32" : getMutedColor() }}>
+                    <View
+                      key={u.id}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        marginBottom: Spacing.sm,
+                        paddingVertical: Spacing.xs,
+                        borderBottomWidth: 1,
+                        borderBottomColor: isDark
+                          ? Colors.obsidian[800]
+                          : Colors.obsidian[50],
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontFamily: Typography.fontFamily.primary,
+                          fontSize: 16,
+                          width: 30,
+                          color:
+                            i === 0
+                              ? Colors.amber[500]
+                              : i === 1
+                                ? Colors.obsidian[400]
+                                : i === 2
+                                  ? "#cd7f32"
+                                  : getMutedColor(),
+                        }}
+                      >
                         #{i + 1}
                       </Text>
                       <View style={{ flex: 1 }}>
-                        <Text style={{ fontFamily: Typography.fontFamily.medium, fontSize: 14, color: getTextColor() }} numberOfLines={1}>
+                        <Text
+                          style={{
+                            fontFamily: Typography.fontFamily.medium,
+                            fontSize: 14,
+                            color: getTextColor(),
+                          }}
+                          numberOfLines={1}
+                        >
                           {u.displayName || "Pengguna"}
                         </Text>
                       </View>
-                      <Text style={{ fontFamily: Typography.fontFamily.primary, fontSize: 14, color: Semantic.primary.main }}>
+                      <Text
+                        style={{
+                          fontFamily: Typography.fontFamily.primary,
+                          fontSize: 14,
+                          color: Semantic.primary.main,
+                        }}
+                      >
                         {u.poin || 0} Pts
                       </Text>
                     </View>
                   ))}
 
                   {/* Current User Rank Position */}
-                  <View style={{ flexDirection: "row", alignItems: "center", marginTop: Spacing.sm, paddingTop: Spacing.xs, backgroundColor: isDark ? Colors.obsidian[900] : Colors.emerald[50], padding: Spacing.sm, borderRadius: BorderRadius.md }}>
-                    <Text style={{ fontFamily: Typography.fontFamily.primary, fontSize: 16, width: 30, color: getTextColor() }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      marginTop: Spacing.sm,
+                      paddingTop: Spacing.xs,
+                      backgroundColor: isDark
+                        ? Colors.obsidian[900]
+                        : Colors.emerald[50],
+                      padding: Spacing.sm,
+                      borderRadius: BorderRadius.md,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: Typography.fontFamily.primary,
+                        fontSize: 16,
+                        width: 30,
+                        color: getTextColor(),
+                      }}
+                    >
                       #{userRank > 0 ? userRank : "..."}
                     </Text>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontFamily: Typography.fontFamily.medium, fontSize: 14, color: getTextColor() }} numberOfLines={1}>
+                      <Text
+                        style={{
+                          fontFamily: Typography.fontFamily.medium,
+                          fontSize: 14,
+                          color: getTextColor(),
+                        }}
+                        numberOfLines={1}
+                      >
                         Anda ({firstName})
                       </Text>
                     </View>
-                    <Text style={{ fontFamily: Typography.fontFamily.primary, fontSize: 14, color: Semantic.primary.main }}>
+                    <Text
+                      style={{
+                        fontFamily: Typography.fontFamily.primary,
+                        fontSize: 14,
+                        color: Semantic.primary.main,
+                      }}
+                    >
                       {totalPoin} Pts
                     </Text>
                   </View>

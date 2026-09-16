@@ -38,11 +38,12 @@ interface RiwayatItem {
   id: string;
   user: string;
   tanggal: Timestamp;
-  tipe: "penyetoran" | "tukar_voucher" | string;
+  tipe: "penyetoran" | "tukar_voucher" | "misi_mingguan" | string;
   poin: number;
   plastik?: number;
   logam?: number;
   nama_hadiah?: string;
+  judul?: string;
 }
 
 const MONTHS_SHORT = [
@@ -206,15 +207,25 @@ export default function HistoryScreen() {
     index: number;
   }) => {
     const isKredit = item.tipe === "tukar_voucher"; // Keluar (-)
-    const isPenyetoran = !isKredit; // Masuk (+)
+    const isMisi = item.tipe === "misi_mingguan"; // Hadiah Misi
+    const isPenyetoran = !isKredit && !isMisi; // Masuk (+) dari sampah
 
     const amountColor = isKredit ? getTextColor() : Semantic.success.main;
-    const iconName = isKredit ? "ticket-percent-outline" : "recycle";
+    const iconName = isKredit ? "ticket-percent-outline" : (isMisi ? "target" : "recycle");
 
-    const iconBgColor = isDark
-      ? Colors.obsidian[800]
-      : Semantic.background.tertiary;
-    const iconColor = isDark ? Colors.obsidian[300] : Colors.obsidian[400];
+    let iconBgColor = isDark ? Colors.obsidian[800] : Semantic.background.tertiary;
+    let iconColor = isDark ? Colors.obsidian[300] : Colors.obsidian[400];
+
+    if (isPenyetoran) {
+      iconBgColor = isDark ? "rgba(16, 185, 129, 0.2)" : Colors.emerald[50];
+      iconColor = Colors.emerald[500];
+    } else if (isMisi) {
+      iconBgColor = isDark ? "rgba(20, 184, 166, 0.2)" : Colors.teal[50];
+      iconColor = Colors.teal[500];
+    } else if (isKredit) {
+      iconBgColor = isDark ? "rgba(245, 158, 11, 0.2)" : Colors.amber[50];
+      iconColor = Colors.amber[500];
+    }
 
     return (
       <Animated.View entering={FadeInDown.delay(index * 50).duration(400)}>
@@ -233,15 +244,17 @@ export default function HistoryScreen() {
 
           <View style={styles.detailsContainer}>
             <Text style={[styles.titleText, { color: getTextColor() }]}>
-              {isKredit ? "Penukaran Hadiah" : "Penyetoran Sampah"}
+              {item.judul || (isKredit ? "Penukaran Hadiah" : "Penyetoran Sampah")}
             </Text>
             <Text
               style={[styles.subText, { color: getMutedColor() }]}
               numberOfLines={1}
             >
-              {isKredit
-                ? `Klaim ${item.nama_hadiah || "Voucher"}`
-                : `Berhasil menyetor ${item.plastik || 0} Plastik & ${item.logam || 0} Logam`}
+              {isMisi
+                ? "Pencapaian Misi 20 Botol Plastik"
+                : (isKredit
+                    ? `Klaim ${item.nama_hadiah || "Voucher"}`
+                    : `Berhasil menyetor ${item.plastik || 0} Plastik & ${item.logam || 0} Logam`)}
             </Text>
           </View>
 

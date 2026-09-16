@@ -50,7 +50,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ExchangeScreen() {
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -323,7 +323,20 @@ export default function ExchangeScreen() {
 
   const poinPlastik = jumlahPlastik * 100;
   const poinLogam = jumlahLogam * 300;
-  const totalSemuaPoin = poinPlastik + poinLogam;
+  
+  const getBonusMultiplier = (pts: number) => {
+    if (pts >= 50000) return 1.20;
+    if (pts >= 25000) return 1.15;
+    if (pts >= 10000) return 1.10;
+    if (pts >= 2500) return 1.05;
+    return 1.0;
+  };
+  
+  const basePoin = poinPlastik + poinLogam;
+  const multiplier = getBonusMultiplier(userData?.poin || 0);
+  const totalSemuaPoin = Math.floor(basePoin * multiplier);
+  const isBonusActive = multiplier > 1.0;
+
   const totalSemuaSampah = jumlahPlastik + jumlahLogam + jumlahReject;
 
   return (
@@ -433,11 +446,12 @@ export default function ExchangeScreen() {
           entering={FadeInDown.duration(400)}
           style={styles.contentWrapper}
         >
-          <View
+          <AnimatedPress
             style={[
               styles.bentoCard,
               { backgroundColor: getCardBg(), marginBottom: Spacing.xl },
             ]}
+            onPress={() => router.push('/map')}
           >
             <View style={styles.statusHeaderRow}>
               <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
@@ -560,7 +574,7 @@ export default function ExchangeScreen() {
                 <Text style={styles.routeButtonText}>Rute</Text>
               </AnimatedPress>
             </View>
-          </View>
+          </AnimatedPress>
 
           <AnimatedPress
             style={[styles.ctaWrapper, !isMesinAktif ? { opacity: 0.6 } : {}]}
@@ -624,7 +638,7 @@ export default function ExchangeScreen() {
           </AnimatedPress>
 
           {/* ── DEV BYPASS BUTTON ─────────────────────────── */}
-          {__DEV__ && (
+          {(userData?.role === "admin" || userData?.Role === "admin") && (
             <Animated.View
               entering={FadeInDown.duration(500).delay(200)}
               style={{ width: "100%", marginTop: Spacing.lg }}
@@ -960,10 +974,30 @@ export default function ExchangeScreen() {
             >
               <View>
                 <Text style={styles.totalLabelWhite}>Total Poin</Text>
-                <AnimatedCounter
-                  value={totalSemuaPoin}
-                  style={styles.totalValueYellow}
-                />
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "flex-end",
+                    gap: 6,
+                  }}
+                >
+                  <AnimatedCounter
+                    value={totalSemuaPoin}
+                    style={styles.totalValueYellow}
+                  />
+                  {isBonusActive && (
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        color: Semantic.warning.main,
+                        marginBottom: 8,
+                        fontWeight: "bold",
+                      }}
+                    >
+                      (+{Math.round((multiplier - 1) * 100)}% Bonus)
+                    </Text>
+                  )}
+                </View>
               </View>
               <View style={{ alignItems: "flex-end" }}>
                 <Text style={styles.totalLabelWhite}>Item Diterima</Text>

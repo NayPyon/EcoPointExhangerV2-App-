@@ -6,7 +6,11 @@ import {
   StyleSheet,
   Text,
   useColorScheme,
-  View
+  View,
+  Alert,
+  Modal,
+  TouchableOpacity,
+  Pressable
 } from "react-native";
 import Animated, { FadeInDown, FadeInUp, useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing, withSequence } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -25,6 +29,9 @@ import {
 import { router, useLocalSearchParams } from "expo-router";
 import { useAuth } from "../../AuthContext";
 import { usePoints } from "../../PointContext";
+import * as ImagePicker from "expo-image-picker";
+import { updateDoc, doc } from "firebase/firestore";
+import { db } from "../../firebaseConfig";
 
 export default function ProfileScreen() {
   const { user, userData } = useAuth();
@@ -162,6 +169,59 @@ export default function ProfileScreen() {
       onPress: () => setShowLogoutModal(true),
     },
   ];
+
+  const [updatingProfile, setUpdatingProfile] = useState(false);
+
+  const [showAvatarMenu, setShowAvatarMenu] = useState(false);
+
+  const handleAvatarPress = () => {
+    if (userData?.photoURL || user?.photoURL) {
+      setShowAvatarMenu(true);
+    } else {
+      openImagePicker();
+    }
+  };
+
+  const hapusFoto = async () => {
+    setShowAvatarMenu(false);
+    setUpdatingProfile(true);
+    try {
+      await updateDoc(doc(db, "Users", user!.uid), {
+        photoURL: ""
+      });
+    } catch (error) {
+      console.error("Gagal menghapus foto:", error);
+    } finally {
+      setUpdatingProfile(false);
+    }
+  };
+
+  const openImagePicker = async () => {
+    setShowAvatarMenu(false);
+    try {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        quality: 0.3,
+        base64: true,
+        aspect: [1, 1], // Kotak untuk foto profil
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setUpdatingProfile(true);
+        const base64Uri = `data:image/jpeg;base64,${result.assets[0].base64}`;
+        
+        // Simpan langsung ke Firestore
+        await updateDoc(doc(db, "Users", user!.uid), {
+          photoURL: base64Uri
+        });
+      }
+    } catch (error) {
+      console.error("Gagal mengganti foto profil:", error);
+    } finally {
+      setUpdatingProfile(false);
+    }
+  };
   return (
     <View
       style={[styles.container, { backgroundColor: getBgColor() }]}
@@ -239,30 +299,40 @@ export default function ProfileScreen() {
             animatedBorderStyle,
           ]}
         >
-          <View
-            style={[
-              styles.avatarContainer,
-              {
-                backgroundColor: isDark
-                  ? Colors.obsidian[700]
-                  : Colors.emerald[100],
-                overflow: "hidden",
-              },
-            ]}
-          >
-            {user?.photoURL ? (
-              <Image
-                source={{ uri: user.photoURL }}
-                style={{ width: "100%", height: "100%" }}
-              />
-            ) : (
-              <Text style={styles.avatarInitial}>
-                {userData?.displayName?.[0]?.toUpperCase() ||
-                  userData?.fullName?.[0]?.toUpperCase() ||
-                  "N"}
-              </Text>
-            )}
-          </View>
+          <AnimatedPress onPress={handleAvatarPress}>
+            <View
+              style={[
+                styles.avatarContainer,
+                {
+                  backgroundColor: isDark
+                    ? Colors.obsidian[700]
+                    : Colors.emerald[100],
+                  overflow: "hidden",
+                },
+              ]}
+            >
+              {(userData?.photoURL || user?.photoURL) ? (
+                <Image
+                  source={{ uri: userData?.photoURL || user?.photoURL }}
+                  style={{ width: "100%", height: "100%" }}
+                />
+              ) : (
+                <MaterialCommunityIcons 
+                  name="leaf" 
+                  size={45} 
+                  color={isDark ? Colors.emerald[400] : Colors.emerald[600]} 
+                />
+              )}
+              {updatingProfile && (
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" }]}>
+                   <MaterialCommunityIcons name="loading" size={24} color="white" />
+                </View>
+              )}
+            </View>
+            <View style={styles.editAvatarBadge}>
+              <Feather name="edit-2" size={12} color="white" />
+            </View>
+          </AnimatedPress>
           <Text style={[styles.userName, { color: getTextColor() }]}>
             {userData?.displayName || "Pengguna"}
           </Text>
@@ -413,7 +483,12 @@ export default function ProfileScreen() {
       </ScrollView>
 
       {/* MODAL LOGOUT */}
-      {showLogoutModal && (
+      <Modal
+        visible={showLogoutModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowLogoutModal(false)}
+      >
         <View style={StyleSheet.absoluteFill}>
           <View
             style={[
@@ -494,7 +569,70 @@ export default function ProfileScreen() {
             </View>
           </Animated.View>
         </View>
-      )}
+      </Modal>
+
+      {/* --- AVATAR MENU MODAL --- */}
+      <Modal
+        visible={showAvatarMenu}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowAvatarMenu(false)}
+      >
+        <View style={StyleSheet.absoluteFill}>
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                backgroundColor: isDark ? "rgba(0,0,0,0.8)" : "rgba(0,0,0,0.4)",
+              },
+            ]}
+          />
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setShowAvatarMenu(false)}
+          />
+          <Animated.View
+            entering={FadeInDown.duration(300)}
+            style={styles.modalOverlay}
+            pointerEvents="box-none"
+          >
+            <View
+              style={[styles.modalContent, { backgroundColor: getCardBg(), padding: 20 }]}
+            >
+              <Text style={[styles.modalTitle, { textAlign: "center", color: getTextColor(), marginBottom: 20 }]}>
+                Opsi Foto Profil
+              </Text>
+              
+              <AnimatedPress
+                style={[styles.modalBtnCancel, { flex: 0, width: "100%", backgroundColor: isDark ? Colors.obsidian[700] : Colors.emerald[50], marginBottom: 12, borderWidth: 1, borderColor: Colors.emerald[200] }]}
+                onPress={openImagePicker}
+              >
+                <Text style={[styles.modalBtnCancelText, { color: Colors.emerald[600] }]}>
+                  Ganti Foto Baru
+                </Text>
+              </AnimatedPress>
+              
+              <AnimatedPress
+                style={[styles.modalBtnConfirm, { flex: 0, width: "100%", backgroundColor: Colors.red[50], marginBottom: 12 }]}
+                onPress={hapusFoto}
+              >
+                <Text style={[styles.modalBtnConfirmText, { color: Semantic.danger.main }]}>
+                  Hapus Foto
+                </Text>
+              </AnimatedPress>
+              
+              <AnimatedPress
+                style={[styles.modalBtnCancel, { flex: 0, width: "100%", backgroundColor: isDark ? Colors.obsidian[800] : Colors.neutral[100] }]}
+                onPress={() => setShowAvatarMenu(false)}
+              >
+                <Text style={[styles.modalBtnCancelText, { color: getTextColor() }]}>
+                  Batal
+                </Text>
+              </AnimatedPress>
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -532,6 +670,20 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fontFamily.primary,
     fontSize: 32,
     color: Semantic.primary.main,
+  },
+  editAvatarBadge: {
+    position: "absolute",
+    bottom: 15,
+    right: 0,
+    backgroundColor: Colors.emerald[500],
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "white",
+    ...Shadows.sm,
   },
   userName: {
     fontFamily: Typography.fontFamily.primary,

@@ -15,6 +15,7 @@ interface PointContextType {
   totalPlastik: number;
   totalLogam: number;
   hariKonsisten: number;
+  misiMingguanProgress: number;
   loading: boolean;
 }
 
@@ -23,6 +24,7 @@ const PointContext = createContext<PointContextType>({
   totalPlastik: 0,
   totalLogam: 0,
   hariKonsisten: 0,
+  misiMingguanProgress: 0,
   loading: true,
 });
 
@@ -33,6 +35,7 @@ export const PointProvider = ({ children }: { children: ReactNode }) => {
   const [totalPlastik, setTotalPlastik] = useState(0);
   const [totalLogam, setTotalLogam] = useState(0);
   const [hariKonsisten, setHariKonsisten] = useState(0);
+  const [misiMingguanProgress, setMisiMingguanProgress] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,6 +44,7 @@ export const PointProvider = ({ children }: { children: ReactNode }) => {
       setTotalPlastik(0);
       setTotalLogam(0);
       setHariKonsisten(0);
+      setMisiMingguanProgress(0);
       setLoading(false);
       return;
     }
@@ -86,13 +90,31 @@ export const PointProvider = ({ children }: { children: ReactNode }) => {
     // KITA BACA KOLEKSI "Riwayat" DARI SUBCOLLECTION USER
     const q = query(collection(db, "Users", user.uid, "Riwayat"));
 
+    const getStartOfWeekMonday7AM = () => {
+      const current = new Date();
+      const day = current.getDay(); // 0: Sunday, 1: Monday...
+      const hours = current.getHours();
+      
+      let daysToSubtract = 0;
+      if (day === 0) daysToSubtract = 6;
+      else if (day === 1) daysToSubtract = hours < 7 ? 7 : 0;
+      else daysToSubtract = day - 1;
+      
+      const monday = new Date(current);
+      monday.setDate(monday.getDate() - daysToSubtract);
+      monday.setHours(7, 0, 0, 0);
+      return monday;
+    };
+
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
         let hitungPoin = 0;
         let hitungPlastik = 0;
         let hitungLogam = 0;
-        const tanggalUnik = new Set();
+        let mingguanPlastik = 0;
+        const tanggalUnik = new Set<string>();
+        const startOfWeek = getStartOfWeekMonday7AM();
 
         snapshot.forEach((doc) => {
           const data = doc.data();
@@ -109,22 +131,59 @@ export const PointProvider = ({ children }: { children: ReactNode }) => {
 
           if (data.tanggal) {
             try {
-              // Jika ini serverTimestamp yang baru dibuat lokal, toDate() mungkin belum ada.
               if (data.tanggal.toDate) {
-                const dateString = data.tanggal
-                  .toDate()
-                  .toISOString()
-                  .split("T")[0];
-                tanggalUnik.add(dateString);
+                const d = data.tanggal.toDate();
+                
+                // Misi mingguan (plastik minggu ini sejak senin 7 pagi)
+                if (d >= startOfWeek && data.tipe !== "tukar_voucher" && data.plastik) {
+                  mingguanPlastik += data.plastik;
+                }
+
+                // Hanya hitung streak jika user setor sampah (bukan tukar voucher)
+                if (data.tipe !== "tukar_voucher") {
+                  const dateString = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
+                  tanggalUnik.add(dateString);
+                }
               }
             } catch (err) {}
           }
         });
 
+        // KALKULASI STREAK BERUNTUN
+        const sortedDates = Array.from(tanggalUnik).sort().reverse();
+        let currentStreak = 0;
+        
+        if (sortedDates.length > 0) {
+          const today = new Date();
+          const todayStr = today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, '0') + "-" + String(today.getDate()).padStart(2, '0');
+          
+          const yesterday = new Date();
+          yesterday.setDate(today.getDate() - 1);
+          const yesterdayStr = yesterday.getFullYear() + "-" + String(yesterday.getMonth() + 1).padStart(2, '0') + "-" + String(yesterday.getDate()).padStart(2, '0');
+          
+          // Streak valid jika terakhir aktivitas hari ini atau kemarin
+          if (sortedDates[0] === todayStr || sortedDates[0] === yesterdayStr) {
+            currentStreak = 1;
+            let checkDate = new Date(sortedDates[0]);
+            
+            for (let i = 1; i < sortedDates.length; i++) {
+              checkDate.setDate(checkDate.getDate() - 1);
+              const expectedStr = checkDate.getFullYear() + "-" + String(checkDate.getMonth() + 1).padStart(2, '0') + "-" + String(checkDate.getDate()).padStart(2, '0');
+              
+              if (sortedDates[i] === expectedStr) {
+                currentStreak++;
+              } else {
+                break;
+              }
+            }
+          }
+        }
+
         setTotalPoin(hitungPoin);
         setTotalPlastik(hitungPlastik);
         setTotalLogam(hitungLogam);
-        setHariKonsisten(tanggalUnik.size);
+        setHariKonsisten(currentStreak);
+        setMisiMingguanProgress(mingguanPlastik);
         setLoading(false);
       },
       (error) => {
@@ -162,6 +221,7 @@ export const PointProvider = ({ children }: { children: ReactNode }) => {
         totalPlastik,
         totalLogam,
         hariKonsisten,
+        misiMingguanProgress,
         loading,
       }}
     >
