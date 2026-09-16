@@ -1,8 +1,8 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { useState } from "react";
+import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, setDoc, onSnapshot } from "firebase/firestore";
+import { useState, useEffect } from "react";
 import {
   Image,
   Modal,
@@ -21,7 +21,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../AuthContext";
-import { db } from "../../firebaseConfig";
+import { db, generateChronologicalId } from "../../firebaseConfig";
 
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { AnimatedPress } from "@/components/ui/animated-press";
@@ -73,58 +73,38 @@ export default function RewardScreen() {
   const modalY = useSharedValue(300);
   const checkScale = useSharedValue(0.5);
 
-  const REWARD_CATEGORIES = [
-    {
-      title: "Makanan & Minuman",
-      data: [
-        {
-          id: "1",
-          title: "Diskon Rp 20.000 Momoyo Ice Cream",
-          points: 15000,
-          stock: 45,
-          image:
-            "https://images.unsplash.com/photo-1563805042-7684c8a9e9cb?w=600&q=80",
-        },
-        {
-          id: "2",
-          title: "Voucher Burger King Rp 50.000",
-          points: 35000,
-          stock: 12,
-          image:
-            "https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=600&q=80",
-        },
-        {
-          id: "3",
-          title: "Potongan Rp 30.000 Wingstop",
-          points: 25000,
-          stock: 8,
-          image:
-            "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=600&q=80",
-        },
-      ],
-    },
-    {
-      title: "E-Wallet & Hiburan",
-      data: [
-        {
-          id: "4",
-          title: "Saldo GoPay Rp 25.000",
-          points: 25000,
-          stock: 100,
-          image:
-            "https://images.unsplash.com/photo-1614680376573-df3480f0c6ff?w=600&q=80",
-        },
-        {
-          id: "5",
-          title: "Valorant Points (VP) 1125",
-          points: 55000,
-          stock: 3,
-          image:
-            "https://images.unsplash.com/photo-1662514101150-f865f128c946?w=600&q=80",
-        },
-      ],
-    },
-  ];
+  const [rewardCategories, setRewardCategories] = useState<{title: string, data: RewardItem[]}[]>([]);
+
+  // Fetch Vouchers from Firestore
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "Vouchers"), (snap) => {
+      const grouped: { [key: string]: RewardItem[] } = {};
+      
+      snap.forEach((doc) => {
+        const d = doc.data();
+        if (d.aktif) {
+          const kategori = d.kategori || "Umum";
+          if (!grouped[kategori]) grouped[kategori] = [];
+          
+          grouped[kategori].push({
+            id: doc.id,
+            title: d.nama,
+            points: d.poin_dibutuhkan,
+            stock: d.stok,
+            image: d.gambar_url || "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=600&q=80",
+          });
+        }
+      });
+
+      const categoriesArray = Object.keys(grouped).map(key => ({
+        title: key,
+        data: grouped[key]
+      }));
+
+      setRewardCategories(categoriesArray);
+    });
+    return () => unsub();
+  }, []);
 
   const backdropOpacity = useSharedValue(0);
 
@@ -156,7 +136,8 @@ export default function RewardScreen() {
     if (!selectedReward) return;
 
     try {
-      await addDoc(collection(db, "Riwayat"), {
+      const riwayatId = generateChronologicalId();
+      await setDoc(doc(db, "Users", user!.uid, "Riwayat", riwayatId), {
         user: user!.uid,
         tipe: "tukar_voucher",
         nama_hadiah: selectedReward.title,
@@ -164,7 +145,8 @@ export default function RewardScreen() {
         tanggal: serverTimestamp(),
       });
 
-      await addDoc(collection(db, "Notifications"), {
+      const notifId = generateChronologicalId();
+      await setDoc(doc(db, "Users", user!.uid, "Notifications", notifId), {
         user: user!.uid,
         title: "Klaim Hadiah Sukses",
         desc: `Voucher ${selectedReward.title} senilai ${selectedReward.points} poin sudah ditambahkan ke dompetmu.`,
@@ -173,6 +155,16 @@ export default function RewardScreen() {
         color_type: "success",
         unread: true,
         time: serverTimestamp(),
+      });
+
+      // KURANGI poin di collection Users
+      await updateDoc(doc(db, "Users", user!.uid), {
+        poin: increment(-selectedReward.points),
+      });
+
+      // KURANGI stok di collection Vouchers
+      await updateDoc(doc(db, "Vouchers", selectedReward.id), {
+        stok: increment(-1),
       });
 
       setModalType("sukses");
@@ -579,7 +571,7 @@ export default function RewardScreen() {
       </View>
 
       <SectionList
-        sections={REWARD_CATEGORIES}
+        sections={rewardCategories}
         keyExtractor={(item) => item.id}
         renderItem={renderRewardItem}
         renderSectionHeader={renderSectionHeader}

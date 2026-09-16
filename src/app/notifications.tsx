@@ -75,8 +75,7 @@ export default function NotificationsScreen() {
 
     try {
       const q = query(
-        collection(db, "Notifications"),
-        where("user", "==", user.uid),
+        collection(db, "Users", user.uid, "Notifications"),
         orderBy("time", "desc"),
       );
 
@@ -142,7 +141,7 @@ export default function NotificationsScreen() {
   const handlePress = async (item: NotificationItem) => {
     if (item.unread) {
       try {
-        await updateDoc(doc(db, "Notifications", item.id), { unread: false });
+        await updateDoc(doc(db, "Users", user!.uid, "Notifications", item.id), { unread: false });
       } catch (e) {
         console.error(e);
       }

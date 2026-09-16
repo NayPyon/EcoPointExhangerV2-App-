@@ -100,8 +100,7 @@ export default function HistoryScreen() {
 
   useEffect(() => {
     const q = query(
-      collection(db, "Riwayat"),
-      where("user", "==", user!.uid),
+      collection(db, "Users", user!.uid, "Riwayat"),
       orderBy("tanggal", "desc"),
     );
 

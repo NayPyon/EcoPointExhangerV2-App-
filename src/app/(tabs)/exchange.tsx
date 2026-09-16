@@ -20,6 +20,8 @@ import {
   onSnapshot,
   serverTimestamp,
   setDoc,
+  updateDoc,
+  increment,
 } from "firebase/firestore";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -31,7 +33,7 @@ import {
   useColorScheme,
 } from "react-native";
 import QRCode from "react-native-qrcode-svg";
-import { db } from "../../firebaseConfig";
+import { db, generateChronologicalId } from "../../firebaseConfig";
 
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
@@ -119,17 +121,20 @@ export default function ExchangeScreen() {
   );
 
   useEffect(() => {
-    const unsubMesin = onSnapshot(doc(db, "RVM", "status_mesin"), (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setIsMesinAktif(data.status === "aktif");
-      }
+    const unsubMesin = onSnapshot(collection(db, "RVM"), (snap) => {
+      let adaAktif = false;
+      snap.forEach((doc) => {
+        if (doc.data().status_mesin === "aktif") {
+          adaAktif = true;
+        }
+      });
+      setIsMesinAktif(adaAktif);
     });
     return () => unsubMesin();
   }, []);
 
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, "Sesi_Aktif", user!.uid), (docSnap) => {
+    const unsub = onSnapshot(doc(db, "Users", user!.uid, "Sesi_Mesin", "sekarang"), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         if (data.status) setStatusSesi(data.status);
@@ -154,7 +159,7 @@ export default function ExchangeScreen() {
     const newToken = generateNewToken();
     try {
       await setDoc(
-        doc(db, "Sesi_Aktif", user!.uid),
+        doc(db, "Users", user!.uid, "Sesi_Mesin", "sekarang"),
         { kode_sesi: newToken },
         { merge: true },
       );
@@ -169,7 +174,7 @@ export default function ExchangeScreen() {
     setShowQR(true);
     try {
       await setDoc(
-        doc(db, "Sesi_Aktif", user!.uid),
+        doc(db, "Users", user!.uid, "Sesi_Mesin", "sekarang"),
         {
           kode_sesi: newToken,
           waktu_dibuat: serverTimestamp(),
@@ -188,7 +193,7 @@ export default function ExchangeScreen() {
   const batalkanSesi = async () => {
     setShowQR(false);
     await setDoc(
-      doc(db, "Sesi_Aktif", user!.uid),
+      doc(db, "Users", user!.uid, "Sesi_Mesin", "sekarang"),
       { status: "idle" },
       { merge: true },
     );
@@ -201,7 +206,7 @@ export default function ExchangeScreen() {
     setShowQR(true);
     try {
       await setDoc(
-        doc(db, "Sesi_Aktif", user!.uid),
+        doc(db, "Users", user!.uid, "Sesi_Mesin", "sekarang"),
         {
           kode_sesi: newToken,
           waktu_dibuat: serverTimestamp(),
@@ -225,7 +230,7 @@ export default function ExchangeScreen() {
         ? { botol_logam: jumlahLogam + 1 }
         : { sampah_reject: jumlahReject + 1 };
     try {
-      await setDoc(doc(db, "Sesi_Aktif", user!.uid), nilai, { merge: true });
+      await setDoc(doc(db, "Users", user!.uid, "Sesi_Mesin", "sekarang"), nilai, { merge: true });
     } catch (error) {
       console.error("Gagal tambah item:", error);
     }
@@ -240,7 +245,8 @@ export default function ExchangeScreen() {
 
     if (totalSemuaPoin > 0) {
       try {
-        await addDoc(collection(db, "Riwayat"), {
+        const riwayatId = generateChronologicalId();
+        await setDoc(doc(db, "Users", user!.uid, "Riwayat", riwayatId), {
           user: user!.uid,
           tipe: "penyetoran",
           plastik: jumlahPlastik,
@@ -249,7 +255,8 @@ export default function ExchangeScreen() {
           tanggal: serverTimestamp(),
         });
 
-        await addDoc(collection(db, "Notifications"), {
+        const notifId = generateChronologicalId();
+        await setDoc(doc(db, "Users", user!.uid, "Notifications", notifId), {
           user: user!.uid,
           title: "Penyetoran Berhasil",
           desc: `Berhasil menyetor ${jumlahPlastik} plastik & ${jumlahLogam} logam. Kamu mendapatkan +${totalSemuaPoin} Poin.`,
@@ -259,13 +266,20 @@ export default function ExchangeScreen() {
           unread: true,
           time: serverTimestamp(),
         });
+
+        // UPDATE data di Users collection
+        await updateDoc(doc(db, "Users", user!.uid), {
+          poin: increment(totalSemuaPoin),
+          total_plastik: increment(jumlahPlastik),
+          total_logam: increment(jumlahLogam),
+        });
       } catch (e) {
         console.error(e);
       }
     }
 
     await setDoc(
-      doc(db, "Sesi_Aktif", user!.uid),
+      doc(db, "Users", user!.uid, "Sesi_Mesin", "sekarang"),
       { status: "selesai" },
       { merge: true },
     );
@@ -288,7 +302,7 @@ export default function ExchangeScreen() {
             "ECO-" + Math.floor(10000000 + Math.random() * 90000000);
           setQrToken(randomCode);
           setDoc(
-            doc(db, "Sesi_Aktif", user!.uid),
+            doc(db, "Users", user!.uid, "Sesi_Mesin", "sekarang"),
             { kode_sesi: randomCode },
             { merge: true },
           );
@@ -713,7 +727,7 @@ export default function ExchangeScreen() {
               ]}
             >
               <QRCode
-                value={qrToken}
+                value={`${user!.uid}|${qrToken}`}
                 size={220}
                 color="#000000"
                 backgroundColor="#FFFFFF"

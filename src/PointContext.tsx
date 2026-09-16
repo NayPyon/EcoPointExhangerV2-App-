@@ -1,4 +1,5 @@
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { collection, onSnapshot, query, where, doc, updateDoc, getDocs, setDoc, deleteDoc } from "firebase/firestore";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   createContext,
   ReactNode,
@@ -7,7 +8,7 @@ import {
   useState,
 } from "react";
 import { useAuth } from "./AuthContext";
-import { db } from "./firebaseConfig";
+import { db, generateChronologicalId } from "./firebaseConfig";
 
 interface PointContextType {
   totalPoin: number;
@@ -26,7 +27,7 @@ const PointContext = createContext<PointContextType>({
 });
 
 export const PointProvider = ({ children }: { children: ReactNode }) => {
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
 
   const [totalPoin, setTotalPoin] = useState(0);
   const [totalPlastik, setTotalPlastik] = useState(0);
@@ -44,8 +45,46 @@ export const PointProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    // KITA BACA KOLEKSI "Riwayat" KHUSUS UNTUK USER AKTIF
-    const q = query(collection(db, "Riwayat"), where("user", "==", user.uid));
+    // MIGRATION SCRIPT (Untuk mengubah ID dokumen lama menjadi format ID waktu urut)
+    const runMigration = async () => {
+      const migrated = await AsyncStorage.getItem("migrated_chrono_ids");
+      if (migrated === "true") return;
+
+      console.log("MIGRATING DATA TO CHRONOLOGICAL IDS...");
+      
+      // 1. Migrasi Riwayat
+      const riwayatQ = query(collection(db, "Users", user.uid, "Riwayat"));
+      const riwayatSnap = await getDocs(riwayatQ);
+      for (const docSnap of riwayatSnap.docs) {
+        if (!docSnap.id.match(/^\d{14,15}-/)) {
+          const data = docSnap.data();
+          const timestamp = data.tanggal?.toMillis ? data.tanggal.toMillis() : Date.now();
+          const newId = generateChronologicalId(timestamp);
+          await setDoc(doc(db, "Users", user.uid, "Riwayat", newId), data);
+          await deleteDoc(doc(db, "Users", user.uid, "Riwayat", docSnap.id));
+        }
+      }
+
+      // 2. Migrasi Notifications
+      const notifQ = query(collection(db, "Users", user.uid, "Notifications"));
+      const notifSnap = await getDocs(notifQ);
+      for (const docSnap of notifSnap.docs) {
+        if (!docSnap.id.match(/^\d{14,15}-/)) {
+          const data = docSnap.data();
+          const timestamp = data.time?.toMillis ? data.time.toMillis() : Date.now();
+          const newId = generateChronologicalId(timestamp);
+          await setDoc(doc(db, "Users", user.uid, "Notifications", newId), data);
+          await deleteDoc(doc(db, "Users", user.uid, "Notifications", docSnap.id));
+        }
+      }
+
+      await AsyncStorage.setItem("migrated_chrono_ids", "true");
+      console.log("CHRONO MIGRATION COMPLETE!");
+    };
+    runMigration();
+
+    // KITA BACA KOLEKSI "Riwayat" DARI SUBCOLLECTION USER
+    const q = query(collection(db, "Users", user.uid, "Riwayat"));
 
     const unsubscribe = onSnapshot(
       q,
@@ -96,6 +135,25 @@ export const PointProvider = ({ children }: { children: ReactNode }) => {
 
     return () => unsubscribe();
   }, [user]);
+
+  // Sinkronisasi otomatis ke profil user (koleksi Users) jika ada data historis yang belum masuk
+  useEffect(() => {
+    if (!user || !userData || loading) return;
+
+    if (
+      userData.poin !== totalPoin ||
+      userData.total_plastik !== totalPlastik ||
+      userData.total_logam !== totalLogam ||
+      userData.streak !== hariKonsisten
+    ) {
+      updateDoc(doc(db, "Users", user.uid), {
+        poin: totalPoin,
+        total_plastik: totalPlastik,
+        total_logam: totalLogam,
+        streak: hariKonsisten,
+      }).catch((e) => console.error("Gagal sinkronisasi data profil:", e));
+    }
+  }, [totalPoin, totalPlastik, totalLogam, hariKonsisten, userData, user, loading]);
 
   return (
     <PointContext.Provider

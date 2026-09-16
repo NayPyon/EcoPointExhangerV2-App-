@@ -125,7 +125,8 @@ export default function RegisterScreen() {
         createdAt: serverTimestamp(),
       });
 
-      // Redirect akan ditangani otomatis oleh _layout.tsx ketika user berubah!
+      // Redirect ke halaman utama (tabs) setelah berhasil daftar
+      router.replace("/(tabs)");
     } catch (err: any) {
       if (err.code === "auth/email-already-in-use") {
         setError("Email sudah digunakan");

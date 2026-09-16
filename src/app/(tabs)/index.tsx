@@ -32,6 +32,8 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../AuthContext";
+import { db } from "../../firebaseConfig";
+import { collection, query, orderBy, limit, getDocs, getCountFromServer, where, getAggregateFromServer, sum, doc, onSnapshot } from "firebase/firestore";
 
 // Context
 import { usePoints } from "../../PointContext";
@@ -52,7 +54,7 @@ const GAMIFICATION_TIERS = [
 ];
 
 export default function HomeScreen() {
-  const { userData } = useAuth();
+  const { user, userData } = useAuth();
   const { ts } = useLocalSearchParams();
   const animationKey = ts ? String(ts) : "default";
 
@@ -63,6 +65,59 @@ export default function HomeScreen() {
   const { totalPoin, totalPlastik, totalLogam, hariKonsisten, loading } =
     usePoints();
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // --- LEADERBOARD & GLOBAL STATS STATE ---
+  const [topUsers, setTopUsers] = useState<any[]>([]);
+  const [userRank, setUserRank] = useState<number>(0);
+  const [globalPlastik, setGlobalPlastik] = useState(1); // default 1 to avoid div by zero
+  const [globalLogam, setGlobalLogam] = useState(1);
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const usersRef = collection(db, "Users");
+        
+        // 1. Fetch Top Users (Ambil 5, filter admin agar tidak masuk leaderboard, lalu ambil 3)
+        const topQ = query(usersRef, orderBy("poin", "desc"), limit(5));
+        const topSnap = await getDocs(topQ);
+        const topData = topSnap.docs
+          .map((doc) => ({ id: doc.id, ...doc.data() }))
+          // Sembunyikan jika role adalah admin
+          .filter((u: any) => u.role !== "admin" && u.Role !== "Admin" && u.Role !== "admin")
+          .slice(0, 3); // Ambil persis 3 teratas
+        
+        setTopUsers(topData);
+
+        // 2. Fetch User Rank (Count users who have more points)
+        if (userData?.poin !== undefined) {
+          const rankQ = query(usersRef, where("poin", ">", userData.poin));
+          const rankSnap = await getCountFromServer(rankQ);
+          setUserRank(rankSnap.data().count + 1);
+        }
+
+        // 3. Fetch Global Aggregates (Dipisah agar tidak error butuh Composite Index di Firebase)
+        const sumPlastikSnap = await getAggregateFromServer(usersRef, {
+          total: sum('total_plastik'),
+        });
+        const sumLogamSnap = await getAggregateFromServer(usersRef, {
+          total: sum('total_logam'),
+        });
+        
+        setGlobalPlastik(sumPlastikSnap.data().total || 1);
+        setGlobalLogam(sumLogamSnap.data().total || 1);
+      } catch (err) {
+        console.error("Error fetching stats:", err);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+    
+    if (userData) {
+      fetchStats();
+    }
+  }, [userData]);
+
 
   const getLevelName = () => {
     if (totalPoin >= 50000) return "Radiant Recycler ✨";
@@ -473,9 +528,9 @@ export default function HomeScreen() {
                   }}
                 >
                   {totalPlastik > 0
-                    ? ((totalPlastik / (totalPlastik + 15420)) * 100).toFixed(2)
+                    ? ((totalPlastik / Math.max(globalPlastik, 1)) * 100).toFixed(2)
                     : 0}
-                  % dari total area
+                  % kontribusi global
                 </Text>
               </AnimatedPress>
             </Animated.View>
@@ -538,9 +593,9 @@ export default function HomeScreen() {
                   }}
                 >
                   {totalLogam > 0
-                    ? ((totalLogam / (totalLogam + 8350)) * 100).toFixed(2)
+                    ? ((totalLogam / Math.max(globalLogam, 1)) * 100).toFixed(2)
                     : 0}
-                  % dari total area
+                  % kontribusi global
                 </Text>
               </AnimatedPress>
             </Animated.View>
@@ -690,36 +745,65 @@ export default function HomeScreen() {
 
           <View style={{ height: Spacing.md }} />
 
-          {/* 4. DAMPAK EKOLOGIS (Bento Style) */}
+          {/* 4. LEADERBOARD (Top Recyclers) */}
           <Animated.View entering={FadeInUp.delay(500).duration(400)}>
             <View style={[styles.bentoCard, { backgroundColor: getCardBg() }]}>
-              <View style={styles.bentoIconRow}>
+              <View style={[styles.bentoIconRow, { marginBottom: Spacing.md }]}>
                 <View
                   style={[
                     styles.bentoIconCircle,
-                    { backgroundColor: Colors.emerald[50] },
+                    { backgroundColor: Colors.amber[50] },
                   ]}
                 >
                   <FontAwesome
-                    name="tree"
+                    name="trophy"
                     size={20}
-                    color={Semantic.primary.main}
+                    color={Colors.amber[500]}
                   />
                 </View>
                 <View style={{ marginLeft: Spacing.sm }}>
-                  <Text style={[styles.bentoLabel, { color: getMutedColor() }]}>
-                    Dampak Ekologis Anda
-                  </Text>
-                  <Text
-                    style={[
-                      styles.bentoBoxValue,
-                      { color: getTextColor(), fontSize: Typography.size.lg },
-                    ]}
-                  >
-                    {co2Saved} kg CO₂ Cegah
+                  <Text style={[styles.bentoBoxValue, { color: getTextColor(), fontSize: Typography.size.lg }]}>
+                    Top Recyclers 🏆
                   </Text>
                 </View>
               </View>
+
+              {statsLoading ? (
+                <Text style={{ color: getMutedColor(), textAlign: "center" }}>Memuat peringkat...</Text>
+              ) : (
+                <View>
+                  {topUsers.map((u, i) => (
+                    <View key={u.id} style={{ flexDirection: "row", alignItems: "center", marginBottom: Spacing.sm, paddingVertical: Spacing.xs, borderBottomWidth: 1, borderBottomColor: isDark ? Colors.obsidian[800] : Colors.obsidian[50] }}>
+                      <Text style={{ fontFamily: Typography.fontFamily.primary, fontSize: 16, width: 30, color: i === 0 ? Colors.amber[500] : i === 1 ? Colors.obsidian[400] : i === 2 ? "#cd7f32" : getMutedColor() }}>
+                        #{i + 1}
+                      </Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontFamily: Typography.fontFamily.medium, fontSize: 14, color: getTextColor() }} numberOfLines={1}>
+                          {u.displayName || "Pengguna"}
+                        </Text>
+                      </View>
+                      <Text style={{ fontFamily: Typography.fontFamily.primary, fontSize: 14, color: Semantic.primary.main }}>
+                        {u.poin || 0} Pts
+                      </Text>
+                    </View>
+                  ))}
+
+                  {/* Current User Rank Position */}
+                  <View style={{ flexDirection: "row", alignItems: "center", marginTop: Spacing.sm, paddingTop: Spacing.xs, backgroundColor: isDark ? Colors.obsidian[900] : Colors.emerald[50], padding: Spacing.sm, borderRadius: BorderRadius.md }}>
+                    <Text style={{ fontFamily: Typography.fontFamily.primary, fontSize: 16, width: 30, color: getTextColor() }}>
+                      #{userRank > 0 ? userRank : "..."}
+                    </Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontFamily: Typography.fontFamily.medium, fontSize: 14, color: getTextColor() }} numberOfLines={1}>
+                        Anda ({firstName})
+                      </Text>
+                    </View>
+                    <Text style={{ fontFamily: Typography.fontFamily.primary, fontSize: 14, color: Semantic.primary.main }}>
+                      {totalPoin} Pts
+                    </Text>
+                  </View>
+                </View>
+              )}
             </View>
           </Animated.View>
         </Animated.View>

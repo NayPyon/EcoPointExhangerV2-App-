@@ -31,3 +31,11 @@ if (!getApps().length) {
 export { app, auth };
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+
+// Helper function to generate a chronological ID for Firestore
+// It sorts from newest to oldest by default in Firebase Console
+export const generateChronologicalId = (timestampMs: number = Date.now()) => {
+  const invertedTime = 999999999999999 - timestampMs; // 15 digits
+  const randomStr = Math.random().toString(36).substring(2, 8);
+  return `${invertedTime}-${randomStr}`;
+};

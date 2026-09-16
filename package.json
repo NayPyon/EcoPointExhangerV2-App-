@@ -13,6 +13,7 @@
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/material-top-tabs": "^7.6.15",
     "expo": "57",
+    "expo-blob": "^57.0.2",
     "expo-blur": "~57.0.2",
     "expo-constants": "~57.0.17",
     "expo-device": "~57.0.1",

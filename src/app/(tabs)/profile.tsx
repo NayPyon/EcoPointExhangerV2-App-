@@ -1,5 +1,5 @@
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Image,
   ScrollView,
@@ -8,8 +8,9 @@ import {
   useColorScheme,
   View
 } from "react-native";
-import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeInUp, useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing, withSequence } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { AnimatedPress } from "@/components/ui/animated-press";
 import {
@@ -47,16 +48,71 @@ export default function ProfileScreen() {
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const { totalPoin } = usePoints();
+  const { totalPoin, totalPlastik, totalLogam, hariKonsisten } = usePoints();
 
   // --- RUMUS SULAP ECO-IMPACT ---
-  const p = userData?.total_plastik || 0;
-  const l = userData?.total_logam || 0;
+  const p = totalPlastik || 0;
+  const l = totalLogam || 0;
 
-  // Emisi CO2 Terkurangi (kg)
-  const co2Saved = p * 0.08 + l * 0.2;
+  // Emisi CO2 Terkurangi (kg) - Disinkronkan dengan index.tsx
+  const co2Saved = p * 0.05 + l * 0.1;
   const totalItems = p + l;
-  const streak = userData?.streak || 5;
+  const streak = hariKonsisten || 0;
+
+  const getLevelName = () => {
+    if (totalPoin >= 50000) return "Radiant Recycler ✨";
+    if (totalPoin >= 25000) return "Elderwood Guardian 🛡️";
+    if (totalPoin >= 10000) return "Sylvan Sapling 🌳";
+    if (totalPoin >= 2500) return "Verdant Sprout 🌿";
+    return "Pebble Seed 🌱";
+  };
+
+  const blob1X = useSharedValue(0);
+  const blob2X = useSharedValue(0);
+
+  useEffect(() => {
+    blob1X.value = withRepeat(
+      withTiming(60, { duration: 4000, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true,
+    );
+    blob2X.value = withRepeat(
+      withTiming(-60, { duration: 5000, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true,
+    );
+  }, [blob1X, blob2X]);
+
+  const animatedBlob1 = useAnimatedStyle(() => ({
+    transform: [{ translateX: blob1X.value }, { scale: 1.5 }],
+  }));
+  const animatedBlob2 = useAnimatedStyle(() => ({
+    transform: [{ translateX: blob2X.value }, { scale: 1.5 }],
+  }));
+
+  // Border pulsing animation for the profile card
+  const borderPulse = useSharedValue(0);
+  useEffect(() => {
+    borderPulse.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0, { duration: 1500, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    );
+  }, [borderPulse]);
+
+  const animatedBorderStyle = useAnimatedStyle(() => {
+    return {
+      borderColor: isDark 
+        ? `rgba(16, 185, 129, ${0.2 + borderPulse.value * 0.4})` // emerald glow in dark mode
+        : `rgba(16, 185, 129, ${0.4 + borderPulse.value * 0.4})`, // emerald glow in light mode
+      shadowOpacity: 0.1 + borderPulse.value * 0.15,
+      shadowRadius: 10 + borderPulse.value * 10,
+      elevation: 5 + borderPulse.value * 5,
+    };
+  });
 
   const MENU_ITEMS = [
     {
@@ -72,11 +128,32 @@ export default function ProfileScreen() {
       onPress: () => router.push("/(tabs)/history"),
     },
     {
+      id: "theme",
+      icon: "moon",
+      title: "Ubah Tema (Terang/Gelap)",
+      onPress: () => {
+        const { Appearance } = require('react-native');
+        const current = Appearance.getColorScheme();
+        Appearance.setColorScheme(current === 'dark' ? 'light' : 'dark');
+      },
+    },
+    {
       id: "help",
       icon: "help-circle",
       title: "Pusat Bantuan",
       onPress: () => router.push("/help"),
     },
+    // TOMBOL RAHASIA ADMIN
+    ...(userData?.role === "admin" || userData?.Role === "admin"
+      ? [
+          {
+            id: "admin_panel",
+            icon: "shield",
+            title: "Panel Admin (RVM & Voucher)",
+            onPress: () => router.push("/admin-panel"), // Halaman ini akan kita buat nanti
+          },
+        ]
+      : []),
     {
       id: "logout",
       icon: "log-out",
@@ -90,7 +167,7 @@ export default function ProfileScreen() {
       style={[styles.container, { backgroundColor: getBgColor() }]}
       key={animationKey}
     >
-      {/* HEADER DECORATION */}
+      {/* HEADER DECORATION (AURORA) */}
       <View
         style={[
           styles.headerDecor,
@@ -98,9 +175,47 @@ export default function ProfileScreen() {
             backgroundColor: isDark
               ? Colors.obsidian[950]
               : Colors.emerald[600],
+            overflow: "hidden",
           },
         ]}
-      />
+      >
+        <Animated.View
+          style={[StyleSheet.absoluteFill, { opacity: 0.9 }, animatedBlob1]}
+        >
+          <LinearGradient
+            colors={[
+              isDark ? "rgba(16, 185, 129, 0.4)" : "rgba(52, 211, 153, 0.5)",
+              "transparent",
+            ]}
+            style={{
+              position: "absolute",
+              width: 250,
+              height: 250,
+              top: -50,
+              left: -50,
+              borderRadius: 125,
+            }}
+          />
+        </Animated.View>
+        <Animated.View
+          style={[StyleSheet.absoluteFill, { opacity: 0.9 }, animatedBlob2]}
+        >
+          <LinearGradient
+            colors={[
+              isDark ? "rgba(245, 158, 11, 0.3)" : "rgba(245, 158, 11, 0.4)",
+              "transparent",
+            ]}
+            style={{
+              position: "absolute",
+              width: 200,
+              height: 200,
+              bottom: -50,
+              right: -50,
+              borderRadius: 100,
+            }}
+          />
+        </Animated.View>
+      </View>
 
       <ScrollView
         contentContainerStyle={[
@@ -119,9 +234,9 @@ export default function ProfileScreen() {
             styles.profileCard,
             {
               backgroundColor: getCardBg(),
-              borderColor: getBorderColor(),
-              borderWidth: isDark ? 1 : 0,
+              borderWidth: 2,
             },
+            animatedBorderStyle,
           ]}
         >
           <View
@@ -161,7 +276,7 @@ export default function ProfileScreen() {
               size={16}
               color={Colors.amber[500]}
             />
-            <Text style={styles.tierText}>Eco Warrior</Text>
+            <Text style={styles.tierText}>{getLevelName()}</Text>
           </View>
         </Animated.View>
 
@@ -182,7 +297,7 @@ export default function ProfileScreen() {
           >
             <Feather name="wind" size={24} color={Semantic.success.main} />
             <Text style={[styles.statValue, { color: getTextColor() }]}>
-              {co2Saved.toFixed(1)}kg
+              {co2Saved.toFixed(2)}kg
             </Text>
             <Text style={[styles.statLabel, { color: getMutedColor() }]}>
               CO2 Dicegah
@@ -554,3 +669,4 @@ const styles = StyleSheet.create({
     color: "#FFF",
   },
 });
+
