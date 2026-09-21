@@ -15,6 +15,7 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -163,6 +164,7 @@ export default function LoginScreen() {
       <ScrollView
         contentContainerStyle={{
           flexGrow: 1,
+          justifyContent: "center",
           paddingTop: insets.top + 40,
           paddingBottom: insets.bottom + 40,
           paddingHorizontal: Spacing.xl,
@@ -173,16 +175,13 @@ export default function LoginScreen() {
           entering={FadeInDown.duration(500)}
           style={{ alignItems: "center", marginBottom: 40 }}
         >
-          <View
-            style={[
-              styles.logoContainer,
-              { backgroundColor: Colors.emerald[500] },
-            ]}
-          >
-            <Feather name="wind" size={40} color="#FFF" />
-          </View>
+          <Image 
+            source={require('../../../assets/images/valo-logo-text.png')} 
+            style={{ width: 160, height: 60, marginBottom: Spacing.md }} 
+            resizeMode="contain" 
+          />
           <Text style={[styles.title, { color: getTextColor() }]}>
-            Masuk ke EcoPoint
+            Masuk ke VALO
           </Text>
           <Text style={[styles.subtitle, { color: getMutedColor() }]}>
             Tukar sampah jadikan berkah

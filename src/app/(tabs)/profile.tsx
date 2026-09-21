@@ -55,7 +55,7 @@ export default function ProfileScreen() {
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const { totalPoin, totalPlastik, totalLogam, hariKonsisten } = usePoints();
+  const { totalEssence, totalGold, totalPlastik, totalLogam, hariKonsisten } = usePoints();
 
   // --- RUMUS SULAP ECO-IMPACT ---
   const p = totalPlastik || 0;
@@ -67,10 +67,10 @@ export default function ProfileScreen() {
   const streak = hariKonsisten || 0;
 
   const getLevelName = () => {
-    if (totalPoin >= 50000) return "Radiant Recycler ✨";
-    if (totalPoin >= 25000) return "Elderwood Guardian 🛡️";
-    if (totalPoin >= 10000) return "Sylvan Sapling 🌳";
-    if (totalPoin >= 2500) return "Verdant Sprout 🌿";
+    if (totalEssence >= 50000) return "Radiant Recycler ✨";
+    if (totalEssence >= 25000) return "Elderwood Guardian 🛡️";
+    if (totalEssence >= 10000) return "Sylvan Sapling 🌳";
+    if (totalEssence >= 2500) return "Verdant Sprout 🌿";
     return "Pebble Seed 🌱";
   };
 
@@ -342,9 +342,9 @@ export default function ProfileScreen() {
 
           <View style={styles.tierBadge}>
             <MaterialCommunityIcons
-              name="shield-star"
+              name="water"
               size={16}
-              color={Colors.amber[500]}
+              color={Colors.teal[500]}
             />
             <Text style={styles.tierText}>{getLevelName()}</Text>
           </View>

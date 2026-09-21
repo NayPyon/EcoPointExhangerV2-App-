@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, FontAwesome5 } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, setDoc, onSnapshot } from "firebase/firestore";
@@ -42,6 +42,7 @@ export interface RewardItem {
   points: number;
   stock: number;
   image: string;
+  urutan?: number;
 }
 
 export default function RewardScreen() {
@@ -50,7 +51,7 @@ export default function RewardScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const { totalPoin } = usePoints();
+  const { totalGold } = usePoints();
 
   const getBgColor = () =>
     isDark ? Semantic.background.dark : Semantic.background.secondary;
@@ -98,14 +99,26 @@ export default function RewardScreen() {
             points: d.poin_dibutuhkan,
             stock: d.stok,
             image: imageUrl,
+            urutan: d.urutan || 0,
           });
         }
       });
 
-      const categoriesArray = Object.keys(grouped).map(key => ({
-        title: key,
-        data: grouped[key]
-      }));
+      const categoriesArray = Object.keys(grouped).map(key => {
+        // Sort items inside category by urutan ascending
+        const sortedData = grouped[key].sort((a, b) => (a.urutan || 0) - (b.urutan || 0));
+        return {
+          title: key,
+          data: sortedData
+        };
+      });
+
+      // Sort categories by the urutan of their first item
+      categoriesArray.sort((a, b) => {
+        const minA = a.data[0]?.urutan || 0;
+        const minB = b.data[0]?.urutan || 0;
+        return minA - minB;
+      });
 
       setRewardCategories(categoriesArray);
     });
@@ -116,7 +129,7 @@ export default function RewardScreen() {
 
   const handleRedeem = (item: RewardItem) => {
     setSelectedReward(item);
-    if (totalPoin >= item.points) {
+    if (totalGold >= item.points) {
       setModalType("konfirmasi");
     } else {
       setModalType("gagal");
@@ -133,7 +146,7 @@ export default function RewardScreen() {
     backdropOpacity.value = withTiming(1, { duration: 250 });
     modalY.value = withTiming(0, { duration: 250 });
 
-    if (totalPoin >= item.points) {
+    if (totalGold >= item.points) {
       checkScale.value = withTiming(1, { duration: 250 });
     }
   };
@@ -155,7 +168,7 @@ export default function RewardScreen() {
       await setDoc(doc(db, "Users", user!.uid, "Notifications", notifId), {
         user: user!.uid,
         title: "Klaim Hadiah Sukses",
-        desc: `Voucher ${selectedReward.title} senilai ${selectedReward.points} poin sudah ditambahkan ke dompetmu.`,
+        desc: `Voucher ${selectedReward.title} senilai ${selectedReward.points} Gold sudah ditambahkan ke dompetmu.`,
         type: "klaim",
         icon: "gift",
         color_type: "success",
@@ -213,7 +226,7 @@ export default function RewardScreen() {
     item: RewardItem;
     index: number;
   }) => {
-    const isPoinCukup = totalPoin >= item.points;
+    const isPoinCukup = totalGold >= item.points;
 
     return (
       <Animated.View entering={FadeInUp.delay(index * 100).duration(400)}>
@@ -255,12 +268,7 @@ export default function RewardScreen() {
             </Text>
             <View style={styles.cardFooter}>
               <View style={styles.pointsRow}>
-                <LinearGradient
-                  colors={[Semantic.warning.light, Semantic.warning.main]}
-                  style={styles.coinIconLarge}
-                >
-                  <Text style={styles.coinTextLarge}>P</Text>
-                </LinearGradient>
+                <FontAwesome5 name="coins" size={18} color={Semantic.warning.main} style={{ marginRight: 6 }} />
                 <Text
                   style={[
                     styles.pointText,
@@ -308,7 +316,7 @@ export default function RewardScreen() {
                   <Text
                     style={[styles.statusBadgeText, { color: getMutedColor() }]}
                   >
-                    Poin Kurang
+                    Gold Kurang
                   </Text>
                 </View>
               )}
@@ -400,7 +408,7 @@ export default function RewardScreen() {
                         { color: Semantic.secondary.main },
                       ]}
                     >
-                      {selectedReward?.points.toLocaleString("id-ID")} Poin
+                      {selectedReward?.points.toLocaleString("id-ID")} Gold
                     </Text>{" "}
                     dengan {selectedReward?.title}?
                   </Text>
@@ -495,7 +503,7 @@ export default function RewardScreen() {
                     />
                   </View>
                   <Text style={[styles.modalTitle, { color: getTextColor() }]}>
-                    Poin Belum Cukup
+                    Gold Belum Cukup
                   </Text>
                   <Text
                     style={[styles.modalMessage, { color: getMutedColor() }]}
@@ -503,11 +511,11 @@ export default function RewardScreen() {
                     Kamu butuh{" "}
                     <Text style={styles.modalHighlightDanger}>
                       {selectedReward
-                        ? (selectedReward.points - totalPoin).toLocaleString(
+                        ? (selectedReward.points - totalGold).toLocaleString(
                             "id-ID",
                           )
                         : 0}{" "}
-                      poin lagi
+                      Gold lagi
                     </Text>{" "}
                     untuk menukarkan {selectedReward?.title}.
                   </Text>
@@ -564,13 +572,11 @@ export default function RewardScreen() {
           style={[styles.headerGradientCard, Shadows.lg]}
         >
           <View style={styles.headerLeft}>
-            <Text style={styles.headerLabel}>Total Poinmu</Text>
+            <Text style={styles.headerLabel}>Total Goldmu</Text>
             <View style={styles.headerPointsRow}>
-              <View style={styles.coinIcon}>
-                <Text style={styles.coinText}>P</Text>
-              </View>
+              <FontAwesome5 name="coins" size={20} color={Semantic.warning.main} style={{ marginRight: 8 }} />
               <AnimatedCounter
-                value={totalPoin}
+                value={totalGold}
                 style={styles.headerValue}
                 locale="id-ID"
               />

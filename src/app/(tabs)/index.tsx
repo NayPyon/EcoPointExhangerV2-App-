@@ -58,11 +58,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 
 const GAMIFICATION_TIERS = [
-  { name: "✨ Radiant Recycler", req: "50.000+ pts", benefit: "+20% Poin" },
-  { name: "🛡️ Elderwood Guardian", req: "25.000 pts", benefit: "+15% Poin" },
-  { name: "🌳 Sylvan Sapling", req: "10.000 pts", benefit: "+10% Poin" },
-  { name: "🌿 Verdant Sprout", req: "2.500 pts", benefit: "+5% Poin" },
-  { name: "🌱 Pebble Seed", req: "0 pts", benefit: "Normal (1x)" },
+  { name: "✨ Radiant Recycler", req: "50.000+ Essence", benefit: "+20% Gold" },
+  { name: "🛡️ Elderwood Guardian", req: "25.000 Essence", benefit: "+15% Gold" },
+  { name: "🌳 Sylvan Sapling", req: "10.000 Essence", benefit: "+10% Gold" },
+  { name: "🌿 Verdant Sprout", req: "2.500 Essence", benefit: "+5% Gold" },
+  { name: "🌱 Pebble Seed", req: "0 Essence", benefit: "Normal (1x)" },
 ];
 
 export default function HomeScreen() {
@@ -75,12 +75,14 @@ export default function HomeScreen() {
   const isDark = colorScheme === "dark";
 
   const {
-    totalPoin,
+    totalGold,
+    totalEssence,
     totalPlastik,
     totalLogam,
     hariKonsisten,
-    misiMingguanProgress,
+    weeklyMissions,
     loading,
+    claimMission,
   } = usePoints();
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -97,21 +99,12 @@ export default function HomeScreen() {
   };
 
   const startOfWeek = getStartOfWeekMonday7AM();
-  const lastClaimed = userData?.last_misi_claimed
-    ? userData.last_misi_claimed.toMillis
-      ? userData.last_misi_claimed.toMillis()
-      : userData.last_misi_claimed
-    : 0;
-  const isMissionClaimed = lastClaimed >= startOfWeek;
+  
 
-  const [cooldownText, setCooldownText] = useState("");
+    const [cooldownText, setCooldownText] = useState("");
 
-  // --- WEEKLY MISSION COOLDOWN TIMER ---
   useEffect(() => {
-    if (!isMissionClaimed) return;
-
     const targetTime = startOfWeek + 7 * 24 * 60 * 60 * 1000;
-
     const updateTimer = () => {
       const now = new Date().getTime();
       const diff = targetTime - now;
@@ -138,54 +131,7 @@ export default function HomeScreen() {
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [isMissionClaimed, startOfWeek]);
-
-  // --- WEEKLY MISSION CLAIM ---
-  useEffect(() => {
-    const claimMission = async () => {
-      if (!user || !userData) return;
-      if (misiMingguanProgress >= 20 && !isMissionClaimed) {
-        try {
-          const { generateChronologicalId } = require("../../firebaseConfig");
-          const { setDoc, Timestamp } = require("firebase/firestore");
-
-          // 1. Update user document
-          await updateDoc(doc(db, "Users", user.uid), {
-            poin: (userData.poin || 0) + 500,
-            last_misi_claimed: Timestamp.now(),
-          });
-
-          // 2. Add to Riwayat
-          const riwayatId = generateChronologicalId(Date.now());
-          await setDoc(doc(db, "Users", user.uid, "Riwayat", riwayatId), {
-            judul: "Hadiah Misi Mingguan",
-            tipe: "misi_mingguan",
-            poin: 500,
-            plastik: 0,
-            logam: 0,
-            tanggal: Timestamp.now(),
-          });
-
-          // 3. Add to Notifications
-          const notifId = generateChronologicalId(Date.now() + 1);
-          await setDoc(doc(db, "Users", user.uid, "Notifications", notifId), {
-            title: "Misi Mingguan Selesai! 🎉",
-            message:
-              "Selamat! Kamu telah menyelesaikan misi kumpulkan 20 Botol Plastik minggu ini dan mendapatkan +500 Poin.",
-            desc: "Selamat! Kamu telah menyelesaikan misi kumpulkan 20 Botol Plastik minggu ini dan mendapatkan +500 Poin.",
-            time: Timestamp.now(),
-            icon: "bullseye",
-            color_type: "success",
-            isRead: false,
-            type: "mission",
-          });
-        } catch (e) {
-          console.error("Failed to claim mission", e);
-        }
-      }
-    };
-    claimMission();
-  }, [misiMingguanProgress, isMissionClaimed, user, userData]);
+  }, [startOfWeek]);
 
   // --- LEADERBOARD & GLOBAL STATS STATE ---
   const [topUsers, setTopUsers] = useState<any[]>([]);
@@ -243,24 +189,24 @@ export default function HomeScreen() {
   }, [userData]);
 
   const getLevelName = () => {
-    if (totalPoin >= 50000) return "Radiant Recycler ✨";
-    if (totalPoin >= 25000) return "Elderwood Guardian 🛡️";
-    if (totalPoin >= 10000) return "Sylvan Sapling 🌳";
-    if (totalPoin >= 2500) return "Verdant Sprout 🌿";
+    if (totalEssence >= 50000) return "Radiant Recycler ✨";
+    if (totalEssence >= 25000) return "Elderwood Guardian 🛡️";
+    if (totalEssence >= 10000) return "Sylvan Sapling 🌳";
+    if (totalEssence >= 2500) return "Verdant Sprout 🌿";
     return "Pebble Seed 🌱";
   };
 
   const getTargetPoints = () => {
-    if (totalPoin >= 50000) return totalPoin;
-    if (totalPoin >= 25000) return 50000;
-    if (totalPoin >= 10000) return 25000;
-    if (totalPoin >= 2500) return 10000;
+    if (totalEssence >= 50000) return totalEssence;
+    if (totalEssence >= 25000) return 50000;
+    if (totalEssence >= 10000) return 25000;
+    if (totalEssence >= 2500) return 10000;
     return 2500;
   };
 
   const targetPoints = getTargetPoints();
   const progressPercentage =
-    totalPoin >= 50000 ? 100 : Math.min((totalPoin / targetPoints) * 100, 100);
+    totalEssence >= 50000 ? 100 : Math.min((totalEssence / targetPoints) * 100, 100);
 
   const handleBellPress = () => {
     router.push("/notifications");
@@ -420,7 +366,15 @@ export default function HomeScreen() {
               <Text style={[styles.stickyGreeting, { color: getTextColor() }]}>
                 {timeGreeting}, {firstName}!
               </Text>
-              <Text style={styles.stickyRank}>{getLevelName()}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={styles.stickyRank}>{getLevelName()}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 6 }}>
+                  <MaterialCommunityIcons name="water" size={12} color={Colors.teal[500]} style={{ marginRight: 2 }} />
+                  <Text style={{ fontFamily: Typography.fontFamily.bold, fontSize: 11, color: Colors.teal[500] }}>
+                    {totalEssence.toLocaleString('id-ID')}
+                  </Text>
+                </View>
+              </View>
             </View>
           </View>
         </View>
@@ -447,8 +401,16 @@ export default function HomeScreen() {
             <Text style={[styles.greetingText, { color: getTextColor() }]}>
               {timeGreeting}, {firstName}
             </Text>
-            <View style={styles.badgeRankRow}>
-              <Text style={styles.badgeRankText}>{getLevelName()}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+              <View style={styles.badgeRankRow}>
+                <Text style={styles.badgeRankText}>{getLevelName()}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? Colors.obsidian[800] : Colors.teal[50], paddingHorizontal: 10, paddingVertical: 4, borderRadius: 16, marginLeft: 8 }}>
+                <MaterialCommunityIcons name="water" size={14} color={Colors.teal[500]} style={{ marginRight: 4 }} />
+                <Text style={{ fontFamily: Typography.fontFamily.bold, fontSize: 13, color: Colors.teal[500] }}>
+                  {totalEssence.toLocaleString('id-ID')}
+                </Text>
+              </View>
             </View>
           </View>
           <AnimatedPress
@@ -472,13 +434,13 @@ export default function HomeScreen() {
               <View style={styles.pointHeaderBento}>
                 <View>
                   <Text style={[styles.bentoLabel, { color: getMutedColor() }]}>
-                    Total Poin Tersedia
+                    Total Gold Tersedia
                   </Text>
                   <View
                     style={{ flexDirection: "row", alignItems: "baseline" }}
                   >
                     <AnimatedCounter
-                      value={totalPoin}
+                      value={totalGold}
                       style={[
                         styles.bentoPointValue,
                         { color: getTextColor(), fontSize: 44, lineHeight: 52 },
@@ -491,7 +453,7 @@ export default function HomeScreen() {
                       ]}
                     >
                       {" "}
-                      Pts
+                      Gold
                     </Text>
                   </View>
                 </View>
@@ -517,13 +479,19 @@ export default function HomeScreen() {
                     />
                   </Animated.View>
                 </View>
-                <Text
-                  style={[styles.bentoProgressText, { color: getMutedColor() }]}
-                >
-                  {totalPoin >= 50000
-                    ? "Rank Maksimal Tercapai!"
-                    : `${targetPoints - totalPoin} Pts lagi ke rank berikutnya`}
-                </Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                  <Text style={[styles.bentoProgressText, { color: getMutedColor() }]}>
+                    {totalEssence >= 50000
+                      ? "Rank Maksimal Tercapai!"
+                      : `${targetPoints - totalEssence} Essence lagi ke rank berikutnya`}
+                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <MaterialCommunityIcons name="water" size={16} color={Colors.teal[500]} />
+                    <Text style={{ fontFamily: Typography.fontFamily.medium, color: Colors.teal[500], fontSize: 12, marginLeft: 2 }}>
+                      {totalEssence} / {targetPoints}
+                    </Text>
+                  </View>
+                </View>
               </View>
 
               {isExpanded && (
@@ -729,61 +697,89 @@ export default function HomeScreen() {
 
           <View style={{ height: Spacing.md }} />
 
-          {/* 1.5 MISI MINGGUAN (Menggantikan RVM) */}
+          {/* 1.5 MISI MINGGUAN */}
           <Animated.View entering={FadeInUp.delay(150).duration(400)}>
-            <AnimatedPress
-              style={[
-                styles.bentoCard,
-                { backgroundColor: getCardBg(), paddingVertical: Spacing.md },
-              ]}
-            >
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <View
-                  style={[
-                    styles.bentoIconCircle,
-                    { backgroundColor: Colors.teal[50] },
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name="target"
-                    size={24}
-                    color={Colors.teal[500]}
-                  />
-                </View>
-                <View style={{ marginLeft: Spacing.sm, flex: 1 }}>
-                  <Text style={[styles.bentoLabel, { color: getMutedColor() }]}>
-                    Misi Mingguan
-                  </Text>
-                  <Text style={[styles.rankName, { color: getTextColor() }]}>
-                    Kumpulkan 20 Botol
-                  </Text>
-                </View>
-                <View style={{ alignItems: "flex-end" }}>
-                  <Text
-                    style={{
-                      fontFamily: Typography.fontFamily.primary,
-                      fontSize: 16,
-                      color: isMissionClaimed
-                        ? getMutedColor()
-                        : Semantic.primary.main,
-                    }}
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginBottom: Spacing.sm }}>
+              <Text style={[styles.greetingText, { color: getTextColor(), fontSize: 16 }]}>Misi Mingguan</Text>
+              <Text style={{ fontFamily: Typography.fontFamily.inter, fontSize: 12, color: getMutedColor() }}>Reset: {cooldownText}</Text>
+            </View>
+            <View style={{ flexDirection: "row", gap: Spacing.md }}>
+              {weeklyMissions.map((mission, index) => {
+                const isClaimable = mission.progress >= mission.target && !mission.isClaimed;
+                return (
+                  <View
+                    key={mission.id}
+                    style={[
+                      styles.bentoCard,
+                      { backgroundColor: getCardBg(), paddingVertical: Spacing.md, flex: 1, paddingHorizontal: Spacing.md },
+                    ]}
                   >
-                    {Math.min(misiMingguanProgress, 20)}/20
-                  </Text>
-                  <Text
-                    style={{
-                      fontFamily: Typography.fontFamily.medium,
-                      fontSize: 11,
-                      color: isMissionClaimed
-                        ? getMutedColor()
-                        : Semantic.primary.main,
-                    }}
-                  >
-                    {isMissionClaimed ? `Reset: ${cooldownText}` : "+500 Pts"}
-                  </Text>
-                </View>
-              </View>
-            </AnimatedPress>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <View
+                        style={[
+                          styles.bentoIconCircle,
+                          { backgroundColor: Colors.teal[50] },
+                        ]}
+                      >
+                        <MaterialCommunityIcons
+                          name="target"
+                          size={20}
+                          color={Colors.teal[500]}
+                        />
+                      </View>
+                      <View style={{ alignItems: "flex-end" }}>
+                        <Text
+                          style={{
+                            fontFamily: Typography.fontFamily.primary,
+                            fontSize: 14,
+                            color: mission.isClaimed
+                              ? getMutedColor()
+                              : Semantic.primary.main,
+                          }}
+                        >
+                          {mission.progress}/{mission.target}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <Text style={[styles.rankName, { color: getTextColor(), fontSize: 13, marginTop: Spacing.sm, height: 40 }]} numberOfLines={2}>
+                      {mission.title}
+                    </Text>
+
+                    <Text
+                      style={{
+                        fontFamily: Typography.fontFamily.medium,
+                        fontSize: 11,
+                        color: mission.isClaimed
+                          ? getMutedColor()
+                          : Semantic.warning.main,
+                        marginBottom: Spacing.sm,
+                      }}
+                    >
+                      +{mission.reward} Gold & Essence
+                    </Text>
+
+                    <AnimatedPress
+                      onPress={() => isClaimable ? claimMission(mission.id) : null}
+                      style={{
+                        backgroundColor: mission.isClaimed ? Colors.neutral[200] : (isClaimable ? Semantic.primary.main : Colors.neutral[100]),
+                        paddingVertical: 8,
+                        borderRadius: BorderRadius.md,
+                        alignItems: "center"
+                      }}
+                    >
+                      <Text style={{
+                        fontFamily: Typography.fontFamily.medium,
+                        fontSize: 12,
+                        color: mission.isClaimed ? Colors.neutral[500] : (isClaimable ? "#FFF" : Colors.neutral[400])
+                      }}>
+                        {mission.isClaimed ? "Terklaim" : (isClaimable ? "Klaim" : "Belum")}
+                      </Text>
+                    </AnimatedPress>
+                  </View>
+                );
+              })}
+            </View>
           </Animated.View>
 
           <View style={{ height: Spacing.md }} />
@@ -959,7 +955,7 @@ export default function HomeScreen() {
                           color: Semantic.primary.main,
                         }}
                       >
-                        {u.poin || 0} Pts
+                        {u.poin || 0} Essence
                       </Text>
                     </View>
                   ))}
@@ -1007,7 +1003,7 @@ export default function HomeScreen() {
                         color: Semantic.primary.main,
                       }}
                     >
-                      {totalPoin} Pts
+                      {totalGold} Essence
                     </Text>
                   </View>
                 </View>

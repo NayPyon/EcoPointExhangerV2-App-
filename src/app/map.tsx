@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Dimensions, useColorScheme, TouchableOpacity, ActivityIndicator } from "react-native";
 import { WebView } from "react-native-webview";
+import { VALO_LOGO_BASE64 } from "../constants/logoBase64";
 import * as Location from "expo-location";
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "../firebaseConfig";
@@ -104,6 +105,17 @@ export default function MapScreen() {
           background: ${isDark ? "#2a2a2a" : "#ffffff"};
         }
         .leaflet-container a { color: ${isDark ? "#10b981" : "#059669"}; }
+        .rvm-tooltip {
+          background-color: ${isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)'};
+          border: none;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+          color: ${isDark ? '#fff' : '#000'};
+          font-weight: bold;
+          font-size: 11px;
+          border-radius: 4px;
+          padding: 2px 6px;
+        }
+        .rvm-tooltip::before { display: none; }
       </style>
     </head>
     <body>
@@ -127,22 +139,33 @@ export default function MapScreen() {
         ` : ""}
 
         var rvms = ${JSON.stringify(rvms)};
+        
+        var valoIcon = L.icon({
+          iconUrl: '${VALO_LOGO_BASE64}',
+          iconSize: [36, 36],
+          iconAnchor: [18, 18],
+          popupAnchor: [0, -18]
+        });
+
         rvms.forEach(function(rvm) {
           var color = rvm.status_mesin === 'aktif' ? '#10b981' : '#ef4444';
-          var circle = L.circleMarker([rvm.latitude, rvm.longitude], {
-            color: color,
-            fillColor: color,
-            fillOpacity: 0.8,
-            radius: 12,
-            weight: 2
+          var marker = L.marker([rvm.latitude, rvm.longitude], {
+            icon: valoIcon
           }).addTo(map);
 
-          var popupContent = "<b>" + rvm.lokasi + "</b><br/>" +
+          var popupContent = "<b>VALO - " + rvm.lokasi + "</b><br/>" +
+                             "<span style='font-size:12px;color:#666;'>" + (rvm.alamat ? rvm.alamat + "<br/>" : "") + "</span>" +
                              "<span style='color:" + color + "; font-weight:bold'>" + rvm.status_mesin.toUpperCase() + "</span><br/>" +
                              "Plastik: " + rvm.kapasitas_plastik + "%<br/>" +
                              "Logam: " + rvm.kapasitas_logam + "%";
                              
-          circle.bindPopup(popupContent, {className: 'custom-popup'});
+          marker.bindPopup(popupContent, {className: 'custom-popup'});
+          marker.bindTooltip("VALO - " + rvm.lokasi, {
+            permanent: true,
+            direction: 'right',
+            offset: [15, 0],
+            className: 'rvm-tooltip'
+          });
         });
       </script>
     </body>

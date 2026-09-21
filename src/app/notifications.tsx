@@ -195,7 +195,6 @@ export default function NotificationsScreen() {
             </View>
             <Text
               style={[styles.desc, { color: getMutedColor() }]}
-              numberOfLines={2}
             >
               {item.desc}
             </Text>

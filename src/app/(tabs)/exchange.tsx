@@ -7,33 +7,42 @@ import {
   Semantic,
   Shadows,
   Spacing,
-  Typography
+  Typography,
 } from "@/constants/theme";
+import * as Location from "expo-location";
 import { useAuth } from "../../AuthContext";
 
-import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
+import {
+  Feather,
+  FontAwesome,
+  MaterialCommunityIcons,
+} from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import {
-  addDoc,
   collection,
   doc,
+  increment,
   onSnapshot,
   serverTimestamp,
   setDoc,
   updateDoc,
-  increment,
 } from "firebase/firestore";
 import { useEffect, useRef, useState } from "react";
 import {
+  Image,
   Linking,
   Modal,
+  ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
+  Pressable,
   View,
   useColorScheme,
 } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { db, generateChronologicalId } from "../../firebaseConfig";
+import { usePoints } from "../../PointContext";
 
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
@@ -45,12 +54,13 @@ import Animated, {
   useSharedValue,
   withRepeat,
   withSequence,
-  withTiming
+  withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ExchangeScreen() {
   const { user, userData } = useAuth();
+  const { totalEssence } = usePoints();
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -68,6 +78,133 @@ export default function ExchangeScreen() {
 
   const [showCelebration, setShowCelebration] = useState(false);
   const [isMesinAktif, setIsMesinAktif] = useState(true);
+
+  // User location & distance
+  const [userLocation, setUserLocation] =
+    useState<Location.LocationObject | null>(null);
+  const [distanceKm, setDistanceKm] = useState<string>("Menghitung...");
+
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          if (isMounted) setDistanceKm("Izin Ditolak");
+          return;
+        }
+
+        // Coba pakai lokasi terakhir (biasanya instan)
+        let location = await Location.getLastKnownPositionAsync({
+          maxAge: 60000, // 1 menit
+        });
+
+        if (location && isMounted) {
+          setUserLocation(location);
+        }
+
+        // Fetch lokasi akurat jika belum dapat atau ingin update
+        let currentLoc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        if (isMounted) setUserLocation(currentLoc);
+      } catch (e) {
+        console.warn("Gagal ambil lokasi:", e);
+        if (isMounted && distanceKm === "Menghitung...") {
+          setDistanceKm("Gagal (Nyalakan GPS)");
+        }
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const calculateDistance = (
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number,
+  ) => {
+    const R = 6371; // Radius of the earth in km
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in km
+  };
+
+  const [selectedRVMId, setSelectedRVMId] = useState<string | null>(null);
+  const [showOtherRVMs, setShowOtherRVMs] = useState(false);
+
+  useEffect(() => {
+    if (userLocation && allRVMs.length > 0) {
+      let activeToSet: any = null;
+      let minActiveDist = Infinity;
+
+      // Calculate distances for all RVMs
+      const rvmsWithDist = allRVMs.map((rvm) => {
+        let dist = Infinity;
+        if (
+          typeof rvm.latitude === "number" &&
+          typeof rvm.longitude === "number"
+        ) {
+          dist = calculateDistance(
+            userLocation.coords.latitude,
+            userLocation.coords.longitude,
+            rvm.latitude,
+            rvm.longitude,
+          );
+        }
+        return { ...rvm, calculatedDist: dist };
+      });
+
+      if (selectedRVMId) {
+        const found = rvmsWithDist.find((r) => r.id === selectedRVMId);
+        if (found) {
+          activeToSet = found;
+          minActiveDist = found.calculatedDist;
+        }
+      }
+
+      if (!activeToSet) {
+        // Auto-select closest
+        activeToSet = rvmsWithDist.reduce(
+          (prev, curr) =>
+            prev.calculatedDist < curr.calculatedDist ? prev : curr,
+          rvmsWithDist[0],
+        );
+        minActiveDist = activeToSet.calculatedDist;
+      }
+
+      setActiveRVM(activeToSet);
+      if (minActiveDist !== Infinity) {
+        setDistanceKm(minActiveDist.toFixed(1) + " km");
+      } else {
+        setDistanceKm("Lokasi RVM tidak valid");
+      }
+    } else if (!userLocation && allRVMs.length > 0) {
+      const target = selectedRVMId
+        ? allRVMs.find((r) => r.id === selectedRVMId) || allRVMs[0]
+        : allRVMs[0];
+      setActiveRVM(target);
+      if (
+        distanceKm !== "Izin Ditolak" &&
+        distanceKm !== "Gagal" &&
+        distanceKm !== "Gagal (Nyalakan GPS)"
+      ) {
+        setDistanceKm("Menghitung...");
+      }
+    } else if (allRVMs.length === 0) {
+      setActiveRVM(null);
+      setDistanceKm("Tidak Ada RVM Aktif");
+    }
+  }, [userLocation, allRVMs, selectedRVMId]);
 
   const getBgColor = () =>
     isDark ? Semantic.background.dark : Semantic.background.secondary;
@@ -120,31 +257,39 @@ export default function ExchangeScreen() {
     }).current,
   );
 
+  const [activeRVM, setActiveRVM] = useState<any>(null);
+  const [allRVMs, setAllRVMs] = useState<any[]>([]);
+
   useEffect(() => {
     const unsubMesin = onSnapshot(collection(db, "RVM"), (snap) => {
-      let adaAktif = false;
+      let activeList: any[] = [];
       snap.forEach((doc) => {
-        if (doc.data().status_mesin === "aktif") {
-          adaAktif = true;
+        const data = doc.data();
+        if (data.status_mesin === "aktif") {
+          activeList.push({ id: doc.id, ...data });
         }
       });
-      setIsMesinAktif(adaAktif);
+      setIsMesinAktif(activeList.length > 0);
+      setAllRVMs(activeList);
     });
     return () => unsubMesin();
   }, []);
 
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, "Users", user!.uid, "Sesi_Mesin", "sekarang"), (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        if (data.status) setStatusSesi(data.status);
-        if (data.botol_plastik !== undefined)
-          setJumlahPlastik(data.botol_plastik);
-        if (data.botol_logam !== undefined) setJumlahLogam(data.botol_logam);
-        if (data.sampah_reject !== undefined)
-          setJumlahReject(data.sampah_reject);
-      }
-    });
+    const unsub = onSnapshot(
+      doc(db, "Users", user!.uid, "Sesi_Mesin", "sekarang"),
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.status) setStatusSesi(data.status);
+          if (data.botol_plastik !== undefined)
+            setJumlahPlastik(data.botol_plastik);
+          if (data.botol_logam !== undefined) setJumlahLogam(data.botol_logam);
+          if (data.sampah_reject !== undefined)
+            setJumlahReject(data.sampah_reject);
+        }
+      },
+    );
     return () => unsub();
   }, []);
 
@@ -222,15 +367,22 @@ export default function ExchangeScreen() {
     }
   };
 
-  const tambahItem = async (tipe: "botol_plastik" | "botol_logam" | "sampah_reject") => {
+  const tambahItem = async (
+    tipe: "botol_plastik" | "botol_logam" | "sampah_reject",
+  ) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const nilai = tipe === "botol_plastik"
-      ? { botol_plastik: jumlahPlastik + 1 }
-      : tipe === "botol_logam"
-        ? { botol_logam: jumlahLogam + 1 }
-        : { sampah_reject: jumlahReject + 1 };
+    const nilai =
+      tipe === "botol_plastik"
+        ? { botol_plastik: jumlahPlastik + 1 }
+        : tipe === "botol_logam"
+          ? { botol_logam: jumlahLogam + 1 }
+          : { sampah_reject: jumlahReject + 1 };
     try {
-      await setDoc(doc(db, "Users", user!.uid, "Sesi_Mesin", "sekarang"), nilai, { merge: true });
+      await setDoc(
+        doc(db, "Users", user!.uid, "Sesi_Mesin", "sekarang"),
+        nilai,
+        { merge: true },
+      );
     } catch (error) {
       console.error("Gagal tambah item:", error);
     }
@@ -252,6 +404,7 @@ export default function ExchangeScreen() {
           plastik: jumlahPlastik,
           logam: jumlahLogam,
           poin: totalSemuaPoin,
+          essence: basePoin,
           tanggal: serverTimestamp(),
         });
 
@@ -259,7 +412,7 @@ export default function ExchangeScreen() {
         await setDoc(doc(db, "Users", user!.uid, "Notifications", notifId), {
           user: user!.uid,
           title: "Penyetoran Berhasil",
-          desc: `Berhasil menyetor ${jumlahPlastik} plastik & ${jumlahLogam} logam. Kamu mendapatkan +${totalSemuaPoin} Poin.`,
+          desc: `Berhasil menyetor ${jumlahPlastik} plastik & ${jumlahLogam} logam. Kamu mendapatkan +${totalSemuaPoin} Gold & +${basePoin} Essence.`,
           type: "penyetoran",
           icon: "recycle",
           color_type: "primary",
@@ -323,15 +476,15 @@ export default function ExchangeScreen() {
 
   const poinPlastik = jumlahPlastik * 100;
   const poinLogam = jumlahLogam * 300;
-  
+
   const getBonusMultiplier = (pts: number) => {
-    if (pts >= 50000) return 1.20;
+    if (pts >= 50000) return 1.2;
     if (pts >= 25000) return 1.15;
-    if (pts >= 10000) return 1.10;
+    if (pts >= 10000) return 1.1;
     if (pts >= 2500) return 1.05;
     return 1.0;
   };
-  
+
   const basePoin = poinPlastik + poinLogam;
   const multiplier = getBonusMultiplier(userData?.poin || 0);
   const totalSemuaPoin = Math.floor(basePoin * multiplier);
@@ -379,6 +532,7 @@ export default function ExchangeScreen() {
       </View>
 
       <Modal visible={showCelebration} transparent={true} animationType="fade">
+        {/* Celebration Modal Content (Keep it as is) */}
         <BlurView
           intensity={isDark ? 50 : 80}
           tint={isDark ? "dark" : "light"}
@@ -436,6 +590,153 @@ export default function ExchangeScreen() {
         </BlurView>
       </Modal>
 
+      {/* MODAL PILIH CABANG RVM */}
+      <Modal visible={showOtherRVMs} transparent={true} animationType="slide">
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            justifyContent: "flex-end",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: getCardBg(),
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              padding: Spacing.xl,
+              maxHeight: "80%",
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: Spacing.lg,
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: Typography.fontFamily.bold,
+                  fontSize: 18,
+                  color: getTextColor(),
+                }}
+              >
+                Pilih Cabang RVM
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowOtherRVMs(false)}
+                style={{
+                  padding: 8,
+                  backgroundColor: isDark
+                    ? Colors.obsidian[700]
+                    : Colors.neutral[100],
+                  borderRadius: 20,
+                }}
+              >
+                <Feather name="x" size={20} color={getTextColor()} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {allRVMs
+                .filter((r) => r.id !== activeRVM?.id)
+                .map((rvm) => {
+                  let distStr = "Menghitung...";
+                  if (
+                    userLocation &&
+                    typeof rvm.latitude === "number" &&
+                    typeof rvm.longitude === "number"
+                  ) {
+                    const dist = calculateDistance(
+                      userLocation.coords.latitude,
+                      userLocation.coords.longitude,
+                      rvm.latitude,
+                      rvm.longitude,
+                    );
+                    distStr = dist.toFixed(1) + " km";
+                  }
+
+                  return (
+                    <TouchableOpacity
+                      key={rvm.id}
+                      style={{
+                        flexDirection: "row",
+                        padding: Spacing.md,
+                        backgroundColor: isDark
+                          ? Colors.obsidian[900]
+                          : Colors.neutral[50],
+                        borderRadius: 16,
+                        marginBottom: Spacing.md,
+                        borderWidth: 1,
+                        borderColor: isDark
+                          ? Colors.obsidian[700]
+                          : Colors.neutral[200],
+                      }}
+                      onPress={() => {
+                        setSelectedRVMId(rvm.id);
+                        setShowOtherRVMs(false);
+                      }}
+                    >
+                      <View style={{ alignItems: "center", justifyContent: "center" }}>
+                        <Image 
+                          source={require('../../../assets/images/valo-logo-cropped.png')}
+                          style={{ width: 40, height: 40 }}
+                          resizeMode="contain"
+                        />
+                      </View>
+                      <View
+                        style={{
+                          marginLeft: Spacing.md,
+                          flex: 1,
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontFamily: Typography.fontFamily.bold,
+                            color: getTextColor(),
+                            fontSize: 15,
+                          }}
+                        >
+                          VALO - {rvm.lokasi}
+                        </Text>
+                        <Text
+                          style={{
+                            fontFamily: Typography.fontFamily.inter,
+                            color: getMutedColor(),
+                            fontSize: 12,
+                            marginTop: 2,
+                          }}
+                        >
+                          {rvm.alamat || `Lokasi: ${rvm.lokasi}`}
+                        </Text>
+                      </View>
+                      <View
+                        style={{
+                          justifyContent: "center",
+                          alignItems: "flex-end",
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontFamily: Typography.fontFamily.medium,
+                            color: Semantic.primary.main,
+                            fontSize: 13,
+                          }}
+                        >
+                          {distStr}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       <Text style={[styles.headerTitle, { color: getTextColor() }]}>
         Tukar Sampah
       </Text>
@@ -446,46 +747,52 @@ export default function ExchangeScreen() {
           entering={FadeInDown.duration(400)}
           style={styles.contentWrapper}
         >
-          <AnimatedPress
+          <View
             style={[
               styles.bentoCard,
-              { backgroundColor: getCardBg(), marginBottom: Spacing.xl },
+              { backgroundColor: getCardBg(), marginBottom: Spacing.xl, padding: 0 },
             ]}
-            onPress={() => router.push('/map')}
           >
-            <View style={styles.statusHeaderRow}>
+            <AnimatedPress
+              onPress={() => router.push("/map")}
+              style={{ padding: Spacing.lg }}
+            >
+              <View style={styles.statusHeaderRow}>
               <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
-                <View
-                  style={[
-                    styles.iconCircle,
-                    {
-                      backgroundColor: isMesinAktif
-                        ? Colors.emerald[50]
-                        : Colors.red[50],
-                    },
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name="recycle-variant"
-                    size={24}
-                    color={
-                      isMesinAktif
-                        ? Semantic.success.main
-                        : Semantic.danger.main
-                    }
+                <View style={{ alignItems: "center", justifyContent: "center" }}>
+                  <Image 
+                    source={require('../../../assets/images/valo-logo-cropped.png')}
+                    style={{ width: 44, height: 44 }}
+                    resizeMode="contain"
                   />
                 </View>
                 <View style={{ marginLeft: Spacing.md, flex: 1 }}>
-                  <Text style={[styles.bentoLabel, { color: getMutedColor() }]}>
-                    RVM Terdekat
-                  </Text>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginBottom: 2,
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.bentoLabel,
+                        { color: getMutedColor(), marginBottom: 0 },
+                      ]}
+                    >
+                      RVM Terdekat
+                    </Text>
+                  </View>
                   <Text
                     style={[
                       styles.statusTitle,
                       { color: getTextColor(), marginBottom: 4 },
                     ]}
                   >
-                    EcoRVM - Margonda
+                    {activeRVM
+                      ? `VALO - ${activeRVM.lokasi}`
+                      : "VALO - Tidak Tersedia"}
                   </Text>
                   <Text
                     style={{
@@ -495,7 +802,10 @@ export default function ExchangeScreen() {
                       lineHeight: 18,
                     }}
                   >
-                    Jl. Margonda Raya No.1, Depok
+                    {activeRVM
+                      ? activeRVM.alamat ||
+                        `Lokasi RVM aktif: ${activeRVM.lokasi}`
+                      : "Tidak ada RVM yang sedang aktif"}
                   </Text>
                 </View>
               </View>
@@ -550,19 +860,23 @@ export default function ExchangeScreen() {
                     marginLeft: 4,
                   }}
                 >
-                  1.2 km
+                  {distanceKm}
                 </Text>
               </View>
 
               <AnimatedPress
                 style={styles.routeButton}
                 onPress={() => {
-                  // Coordinate placeholder for RVM Margonda
-                  const lat = -6.373111;
-                  const lng = 106.83446;
-                  Linking.openURL(
-                    `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
-                  );
+                  if (activeRVM?.latitude && activeRVM?.longitude) {
+                    Linking.openURL(
+                      `https://www.google.com/maps/dir/?api=1&destination=${activeRVM.latitude},${activeRVM.longitude}`,
+                    );
+                  } else {
+                    Alert.alert(
+                      "Lokasi Tidak Ditemukan",
+                      "RVM saat ini belum memiliki koordinat yang valid.",
+                    );
+                  }
                 }}
               >
                 <FontAwesome
@@ -574,7 +888,43 @@ export default function ExchangeScreen() {
                 <Text style={styles.routeButtonText}>Rute</Text>
               </AnimatedPress>
             </View>
-          </AnimatedPress>
+            </AnimatedPress>
+
+            {allRVMs.length > 1 && (
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => {
+                  setShowOtherRVMs(true);
+                }}
+                style={{
+                  borderTopWidth: 1,
+                  borderTopColor: isDark
+                    ? Colors.obsidian[700]
+                    : Colors.neutral[200],
+                  padding: Spacing.md,
+                  marginHorizontal: Spacing.md,
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: Typography.fontFamily.medium,
+                    fontSize: 13,
+                    color: Semantic.primary.main,
+                  }}
+                >
+                  Lihat {allRVMs.length - 1} Cabang RVM Lainnya
+                </Text>
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={16}
+                  color={Semantic.primary.main}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
 
           <AnimatedPress
             style={[styles.ctaWrapper, !isMesinAktif ? { opacity: 0.6 } : {}]}
@@ -601,7 +951,7 @@ export default function ExchangeScreen() {
                     !isMesinAktif && { color: getTextColor() },
                   ]}
                 >
-                  Buka Pintu RVM
+                  Mulai Scan QR
                 </Text>
                 <Text
                   style={[

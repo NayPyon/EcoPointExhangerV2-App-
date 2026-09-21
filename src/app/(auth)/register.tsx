@@ -16,6 +16,7 @@ import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -192,6 +193,7 @@ export default function RegisterScreen() {
       <ScrollView
         contentContainerStyle={{
           flexGrow: 1,
+          justifyContent: "center",
           paddingTop: insets.top + 40,
           paddingBottom: insets.bottom + 40,
           paddingHorizontal: Spacing.xl,
@@ -202,14 +204,11 @@ export default function RegisterScreen() {
           entering={FadeInDown.duration(500)}
           style={{ alignItems: "center", marginBottom: 40 }}
         >
-          <View
-            style={[
-              styles.logoContainer,
-              { backgroundColor: Colors.emerald[500] },
-            ]}
-          >
-            <Feather name="user-plus" size={32} color="#FFF" />
-          </View>
+          <Image 
+            source={require('../../../assets/images/valo-logo-text.png')} 
+            style={{ width: 160, height: 60, marginBottom: Spacing.md }} 
+            resizeMode="contain" 
+          />
           <Text style={[styles.title, { color: getTextColor() }]}>
             Daftar Akun Baru
           </Text>

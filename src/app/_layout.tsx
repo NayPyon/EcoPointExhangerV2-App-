@@ -1,4 +1,4 @@
-﻿import {
+import {
   PlusJakartaSans_400Regular,
   PlusJakartaSans_500Medium,
   PlusJakartaSans_600SemiBold,
@@ -9,11 +9,12 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useColorScheme, View } from "react-native";
 import "react-native-gesture-handler";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Semantic } from "../constants/theme";
+import { AnimatedSplash } from "../components/AnimatedSplash";
 
 // 1. IMPORT POINT PROVIDER DARI LUAR FOLDER APP
 import { AuthProvider } from "../AuthContext";
@@ -24,6 +25,7 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  const [appReady, setAppReady] = useState(false);
 
   const [loaded, error] = useFonts({
     PlusJakartaSans_400Regular,
@@ -44,20 +46,23 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: isDark
-            ? Semantic.background.dark
-            : Semantic.background.primary,
-        }}
-      >
-        <AuthProvider>
-          <PointProvider>
-            <BottomSheetModalProvider>
-              <StatusBar style="auto" />
-              <Stack
-                screenOptions={{
+      {!appReady ? (
+        <AnimatedSplash onFinish={() => setAppReady(true)} />
+      ) : (
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: isDark
+              ? Semantic.background.dark
+              : Semantic.background.primary,
+          }}
+        >
+          <AuthProvider>
+            <PointProvider>
+              <BottomSheetModalProvider>
+                <StatusBar style="auto" />
+                <Stack
+                  screenOptions={{
                   headerShown: false,
                   contentStyle: {
                     backgroundColor: isDark
@@ -72,7 +77,8 @@ export default function RootLayout() {
             </BottomSheetModalProvider>
           </PointProvider>
         </AuthProvider>
-      </View>
+        </View>
+      )}
     </GestureHandlerRootView>
   );
 }

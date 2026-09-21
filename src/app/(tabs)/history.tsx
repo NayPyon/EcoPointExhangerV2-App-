@@ -10,6 +10,7 @@ import {
 import {
   Feather,
   FontAwesome,
+  FontAwesome5,
   MaterialCommunityIcons,
 } from "@expo/vector-icons";
 import {
@@ -28,6 +29,7 @@ import {
   Text,
   View,
   useColorScheme,
+  Image,
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -40,6 +42,7 @@ interface RiwayatItem {
   tanggal: Timestamp;
   tipe: "penyetoran" | "tukar_voucher" | "misi_mingguan" | string;
   poin: number;
+  essence?: number;
   plastik?: number;
   logam?: number;
   nama_hadiah?: string;
@@ -207,7 +210,7 @@ export default function HistoryScreen() {
     index: number;
   }) => {
     const isKredit = item.tipe === "tukar_voucher"; // Keluar (-)
-    const isMisi = item.tipe === "misi_mingguan"; // Hadiah Misi
+    const isMisi = item.tipe === "misi_mingguan" || (item.judul && item.judul.toLowerCase().includes("misi")); // Hadiah Misi
     const isPenyetoran = !isKredit && !isMisi; // Masuk (+) dari sampah
 
     const amountColor = isKredit ? getTextColor() : Semantic.success.main;
@@ -248,20 +251,45 @@ export default function HistoryScreen() {
             </Text>
             <Text
               style={[styles.subText, { color: getMutedColor() }]}
-              numberOfLines={1}
             >
               {isMisi
-                ? "Pencapaian Misi 20 Botol Plastik"
+                ? "Bonus Poin dari Pencapaian Misi"
                 : (isKredit
                     ? `Klaim ${item.nama_hadiah || "Voucher"}`
                     : `Berhasil menyetor ${item.plastik || 0} Plastik & ${item.logam || 0} Logam`)}
             </Text>
           </View>
 
-          <Text style={[styles.pointsText, { color: amountColor }]}>
-            {isKredit ? "-" : "+"}
-            {item.poin.toLocaleString("id-ID")} Poin
-          </Text>
+          <View style={{ alignItems: "flex-end", justifyContent: 'center' }}>
+            {/* Gold */}
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <FontAwesome5 
+                name="coins" 
+                size={11} 
+                color={isKredit ? getTextColor() : Semantic.warning.main} 
+                style={{ marginRight: 5 }} 
+              />
+              <Text style={[styles.pointsText, { color: isKredit ? getTextColor() : Semantic.warning.main }]}>
+                {isKredit ? "-" : "+"}
+                {item.poin.toLocaleString("id-ID")} Gold
+              </Text>
+            </View>
+
+            {/* Essence */}
+            {!isKredit && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                <MaterialCommunityIcons 
+                  name="water" 
+                  size={12} 
+                  color={Colors.teal[500]} 
+                  style={{ marginRight: 4 }} 
+                />
+                <Text style={[styles.pointsText, { color: Colors.teal[500] }]}>
+                  +{(item.essence !== undefined ? item.essence : item.poin).toLocaleString("id-ID")} Essence
+                </Text>
+              </View>
+            )}
+          </View>
         </AnimatedPress>
       </Animated.View>
     );
@@ -480,6 +508,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     textTransform: "uppercase",
     letterSpacing: 0.5,
+    lineHeight: 16,
   },
   pointsText: {
     fontFamily: Typography.fontFamily.interBold,

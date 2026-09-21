@@ -8,6 +8,8 @@ import { db } from "../firebaseConfig";
 import { collection, onSnapshot, doc, updateDoc, setDoc, deleteDoc, addDoc, getDocs, writeBatch, Timestamp } from "firebase/firestore";
 import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { TouchableOpacity as GHTouchableOpacity } from "react-native-gesture-handler";
+import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
 
 // ==========================================
 // HELPER: GLOBAL NOTIFICATION
@@ -71,11 +73,13 @@ const VoucherTab = () => {
 
   // Modal State
   const [modalVisible, setModalVisible] = useState(false);
-  const [newVoucher, setNewVoucher] = useState({ id: "", nama: "", poin: "", stok: "", kategori: "Makanan & Minuman", gambar_url: "" });
+  const [newVoucher, setNewVoucher] = useState({ id: "", nama: "", poin: "", stok: "", kategori: "Makanan & Minuman", gambar_url: "", urutan: "" });
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "Vouchers"), (snap) => {
       const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // Sort by urutan (ascending)
+      data.sort((a: any, b: any) => (a.urutan || 0) - (b.urutan || 0));
       setVouchers(data);
       setLoading(false);
     });
@@ -117,7 +121,8 @@ const VoucherTab = () => {
           poin_dibutuhkan: parseInt(newVoucher.poin),
           stok: parseInt(newVoucher.stok),
           kategori: newVoucher.kategori,
-          gambar_url: finalImageUrl
+          gambar_url: finalImageUrl,
+          urutan: parseInt(newVoucher.urutan) || 0
         });
       } else {
         await addDoc(collection(db, "Vouchers"), {
@@ -127,6 +132,7 @@ const VoucherTab = () => {
           kategori: newVoucher.kategori,
           gambar_url: finalImageUrl,
           aktif: true,
+          urutan: parseInt(newVoucher.urutan) || 0
         });
 
         // Notifikasi Global Voucher Baru
@@ -140,7 +146,7 @@ const VoucherTab = () => {
       }
       
       setModalVisible(false);
-      setNewVoucher({ id: "", nama: "", poin: "", stok: "", kategori: "Makanan & Minuman", gambar_url: "" });
+      setNewVoucher({ id: "", nama: "", poin: "", stok: "", kategori: "Makanan & Minuman", gambar_url: "", urutan: "" });
     } catch (e) {
       Alert.alert("Error", "Gagal menyimpan voucher");
     }
@@ -148,6 +154,24 @@ const VoucherTab = () => {
 
   const toggleActive = async (id: string, currentStatus: boolean) => {
     await updateDoc(doc(db, "Vouchers", id), { aktif: !currentStatus });
+  };
+
+  const updateVouchersOrder = async (newData: any[]) => {
+    console.log("updateVouchersOrder dipanggil!", newData.map(v => v.nama));
+    setVouchers(newData); // Optimistic UI update
+    const batch = writeBatch(db);
+    newData.forEach((v, index) => {
+      const vRef = doc(db, "Vouchers", v.id);
+      console.log(`Update ${v.nama} ke urutan ${index + 1}`);
+      batch.update(vRef, { urutan: index + 1 });
+    });
+    try {
+      await batch.commit();
+      console.log("Batch commit berhasil!");
+    } catch (e) {
+      console.error("Batch commit gagal:", e);
+      Alert.alert("Error", "Gagal menyimpan urutan baru");
+    }
   };
 
   const deleteVoucher = async (id: string) => {
@@ -164,7 +188,8 @@ const VoucherTab = () => {
       poin: v.poin_dibutuhkan.toString(),
       stok: v.stok.toString(),
       kategori: v.kategori || "Umum",
-      gambar_url: v.gambar_url || ""
+      gambar_url: v.gambar_url || "",
+      urutan: v.urutan !== undefined ? v.urutan.toString() : ""
     });
     setModalVisible(true);
   };
@@ -174,57 +199,76 @@ const VoucherTab = () => {
   return (
     <View style={{ flex: 1 }}>
       <TouchableOpacity style={styles.addButton} onPress={() => {
-        setNewVoucher({ id: "", nama: "", poin: "", stok: "", kategori: "Makanan & Minuman", gambar_url: "" });
+        setNewVoucher({ id: "", nama: "", poin: "", stok: "", kategori: "Makanan & Minuman", gambar_url: "", urutan: "" });
         setModalVisible(true);
       }}>
         <Feather name="plus" size={20} color="white" />
         <Text style={styles.addButtonText}>Tambah Voucher</Text>
       </TouchableOpacity>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-        {vouchers.map((v) => (
-          <View key={v.id} style={[styles.card, { backgroundColor: cardBg }]}>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.cardTitle, { color: textColor }]}>{v.nama}</Text>
-              <Text style={[styles.cardSub, { color: subColor }]}>{v.poin_dibutuhkan} Poin • Sisa: {v.stok}</Text>
-              <View style={[styles.statusBadge, { backgroundColor: v.aktif ? Colors.emerald[100] : Colors.red[100] }]}>
-                <Text style={[styles.statusText, { color: v.aktif ? Colors.emerald[700] : Colors.red[700] }]}>
-                  {v.aktif ? "Aktif" : "Non-Aktif"}
-                </Text>
+      <DraggableFlatList
+        data={vouchers}
+        onDragEnd={({ data }) => updateVouchersOrder(data)}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        renderItem={({ item: v, drag, isActive }) => (
+          <ScaleDecorator>
+            <GHTouchableOpacity
+              activeOpacity={1}
+              onLongPress={drag}
+              disabled={isActive}
+            >
+              <View style={[styles.card, { backgroundColor: cardBg, elevation: isActive ? 5 : 0 }]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.cardTitle, { color: textColor }]}>{v.nama}</Text>
+                  <Text style={[styles.cardSub, { color: subColor }]}>{v.poin_dibutuhkan} Poin • Sisa: {v.stok} • Urutan: {v.urutan || 0}</Text>
+                  <View style={[styles.statusBadge, { backgroundColor: v.aktif ? Colors.emerald[100] : Colors.red[100] }]}>
+                    <Text style={[styles.statusText, { color: v.aktif ? Colors.emerald[700] : Colors.red[700] }]}>
+                      {v.aktif ? "Aktif" : "Non-Aktif"}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.actionRow}>
+                  <TouchableOpacity style={[styles.iconBtn, { backgroundColor: isDark ? Colors.obsidian[800] : Colors.obsidian[100] }]} onPress={() => editVoucher(v)}>
+                    <Feather name="edit-2" size={20} color={textColor} />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.iconBtn, { backgroundColor: isDark ? Colors.obsidian[800] : Colors.obsidian[100] }]} onPress={() => toggleActive(v.id, v.aktif)}>
+                    <Feather name={v.aktif ? "eye-off" : "eye"} size={20} color={textColor} />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.iconBtn, { backgroundColor: isDark ? "rgba(239, 68, 68, 0.2)" : Colors.red[50] }]} onPress={() => deleteVoucher(v.id)}>
+                    <Feather name="trash-2" size={20} color={Colors.red[500]} />
+                  </TouchableOpacity>
+                  <GHTouchableOpacity onPressIn={drag} style={{ justifyContent: 'center', marginLeft: 4, padding: 8 }}>
+                    <Feather name="menu" size={20} color={Colors.obsidian[400]} />
+                  </GHTouchableOpacity>
+                </View>
               </View>
-            </View>
-            <View style={styles.actionRow}>
-              <TouchableOpacity style={[styles.iconBtn, { backgroundColor: isDark ? Colors.obsidian[800] : Colors.obsidian[100] }]} onPress={() => editVoucher(v)}>
-                <Feather name="edit-2" size={20} color={textColor} />
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.iconBtn, { backgroundColor: isDark ? Colors.obsidian[800] : Colors.obsidian[100] }]} onPress={() => toggleActive(v.id, v.aktif)}>
-                <Feather name={v.aktif ? "eye-off" : "eye"} size={20} color={textColor} />
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.iconBtn, { backgroundColor: isDark ? "rgba(239, 68, 68, 0.2)" : Colors.red[50] }]} onPress={() => deleteVoucher(v.id)}>
-                <Feather name="trash-2" size={20} color={Colors.red[500]} />
-              </TouchableOpacity>
-            </View>
-          </View>
-        ))}
-      </ScrollView>
+            </GHTouchableOpacity>
+          </ScaleDecorator>
+        )}
+      />
 
       {/* Add Modal */}
       <Modal visible={modalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: cardBg }]}>
-            <Text style={[styles.modalTitle, { color: textColor }]}>{newVoucher.id ? "Edit Voucher" : "Tambah Voucher Baru"}</Text>
-            
-            <Text style={[styles.inputLabel, { color: textColor }]}>Nama Voucher</Text>
-            <TextInput style={[styles.input, { borderColor: inputBorder, backgroundColor: inputBg, color: textColor }]} placeholderTextColor={subColor} placeholder="Misal: Kopi Susu" value={newVoucher.nama} onChangeText={(t) => setNewVoucher({...newVoucher, nama: t})} />
-            
-            <Text style={[styles.inputLabel, { color: textColor }]}>Harga (Poin)</Text>
-            <TextInput style={[styles.input, { borderColor: inputBorder, backgroundColor: inputBg, color: textColor }]} placeholderTextColor={subColor} placeholder="Misal: 5000" keyboardType="numeric" value={newVoucher.poin} onChangeText={(t) => setNewVoucher({...newVoucher, poin: t})} />
-            
-            <Text style={[styles.inputLabel, { color: textColor }]}>Stok Awal</Text>
-            <TextInput style={[styles.input, { borderColor: inputBorder, backgroundColor: inputBg, color: textColor }]} placeholderTextColor={subColor} placeholder="Misal: 10" keyboardType="numeric" value={newVoucher.stok} onChangeText={(t) => setNewVoucher({...newVoucher, stok: t})} />
+          <ScrollView style={{ width: "100%" }} contentContainerStyle={{ justifyContent: "center", flexGrow: 1, paddingVertical: 20 }}>
+            <View style={[styles.modalContent, { backgroundColor: cardBg }]}>
+              <Text style={[styles.modalTitle, { color: textColor }]}>{newVoucher.id ? "Edit Voucher" : "Tambah Voucher Baru"}</Text>
+              
+              <Text style={[styles.inputLabel, { color: textColor }]}>Nama Voucher</Text>
+              <TextInput style={[styles.input, { borderColor: inputBorder, backgroundColor: inputBg, color: textColor }]} placeholderTextColor={subColor} placeholder="Misal: Kopi Susu" value={newVoucher.nama} onChangeText={(t) => setNewVoucher({...newVoucher, nama: t})} />
+              
+              <Text style={[styles.inputLabel, { color: textColor }]}>Harga (Poin)</Text>
+              <TextInput style={[styles.input, { borderColor: inputBorder, backgroundColor: inputBg, color: textColor }]} placeholderTextColor={subColor} placeholder="Misal: 5000" keyboardType="numeric" value={newVoucher.poin} onChangeText={(t) => setNewVoucher({...newVoucher, poin: t})} />
+              
+              <Text style={[styles.inputLabel, { color: textColor }]}>Stok Awal</Text>
+              <TextInput style={[styles.input, { borderColor: inputBorder, backgroundColor: inputBg, color: textColor }]} placeholderTextColor={subColor} placeholder="Misal: 10" keyboardType="numeric" value={newVoucher.stok} onChangeText={(t) => setNewVoucher({...newVoucher, stok: t})} />
 
-            <Text style={[styles.inputLabel, { color: textColor }]}>Kategori</Text>
-            <TextInput style={[styles.input, { borderColor: inputBorder, backgroundColor: inputBg, color: textColor }]} placeholderTextColor={subColor} placeholder="Misal: Makanan & Minuman" value={newVoucher.kategori} onChangeText={(t) => setNewVoucher({...newVoucher, kategori: t})} />
+              <Text style={[styles.inputLabel, { color: textColor }]}>Kategori</Text>
+              <TextInput style={[styles.input, { borderColor: inputBorder, backgroundColor: inputBg, color: textColor }]} placeholderTextColor={subColor} placeholder="Misal: Makanan & Minuman" value={newVoucher.kategori} onChangeText={(t) => setNewVoucher({...newVoucher, kategori: t})} />
+
+              <Text style={[styles.inputLabel, { color: textColor }]}>Urutan Tampil (Opsional)</Text>
+              <TextInput style={[styles.input, { borderColor: inputBorder, backgroundColor: inputBg, color: textColor }]} placeholderTextColor={subColor} placeholder="Misal: 1" keyboardType="numeric" value={newVoucher.urutan} onChangeText={(t) => setNewVoucher({...newVoucher, urutan: t})} />
 
             <Text style={[styles.inputLabel, { color: textColor }]}>Gambar Voucher (Opsional)</Text>
             
@@ -264,6 +308,7 @@ const VoucherTab = () => {
               </TouchableOpacity>
             </View>
           </View>
+          </ScrollView>
         </View>
       </Modal>
     </View>
@@ -278,9 +323,15 @@ const RvmTab = () => {
   const cardBg = isDark ? Colors.obsidian[900] : "white";
   const textColor = isDark ? Semantic.text.light : Colors.obsidian[900];
   const subColor = isDark ? Colors.obsidian[400] : Colors.obsidian[500];
+  const inputBorder = isDark ? Colors.obsidian[700] : Colors.obsidian[200];
+  const inputBg = isDark ? Colors.obsidian[800] : "white";
 
   const [rvms, setRvms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Edit RVM State
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editRvmData, setEditRvmData] = useState({ id: "", lokasi: "", alamat: "", latitude: "", longitude: "" });
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "RVM"), (snap) => {
@@ -339,6 +390,33 @@ const RvmTab = () => {
     }
   };
 
+  const handleEditRVM = (rvm: any) => {
+    setEditRvmData({
+      id: rvm.id,
+      lokasi: rvm.lokasi || "",
+      alamat: rvm.alamat || "",
+      latitude: rvm.latitude ? rvm.latitude.toString() : "",
+      longitude: rvm.longitude ? rvm.longitude.toString() : ""
+    });
+    setEditModalVisible(true);
+  };
+
+  const saveEditRVM = async () => {
+    if (!editRvmData.lokasi) return Alert.alert("Error", "Lokasi tidak boleh kosong");
+    
+    try {
+      await updateDoc(doc(db, "RVM", editRvmData.id), {
+        lokasi: editRvmData.lokasi,
+        alamat: editRvmData.alamat,
+        latitude: parseFloat(editRvmData.latitude) || 0,
+        longitude: parseFloat(editRvmData.longitude) || 0,
+      });
+      setEditModalVisible(false);
+    } catch (error) {
+      Alert.alert("Error", "Gagal mengupdate RVM");
+    }
+  };
+
   if (loading) return <ActivityIndicator size="large" color={Colors.emerald[500]} style={{ marginTop: 50 }} />;
 
   return (
@@ -374,16 +452,51 @@ const RvmTab = () => {
                   {r.status_mesin.toUpperCase()}
                 </Text>
               </View>
-              <TouchableOpacity style={[styles.iconBtn, { backgroundColor: isDark ? Colors.obsidian[800] : Colors.obsidian[100] }]} onPress={() => toggleStatus(r)}>
-                <Feather name="power" size={20} color={r.status_mesin === "aktif" ? Colors.red[500] : Colors.emerald[500]} />
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.iconBtn, { backgroundColor: isDark ? "rgba(239, 68, 68, 0.2)" : Colors.red[50] }]} onPress={() => deleteDoc(doc(db, "RVM", r.id))}>
-                <Feather name="trash-2" size={20} color={Colors.red[500]} />
-              </TouchableOpacity>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <TouchableOpacity style={[styles.iconBtn, { backgroundColor: isDark ? Colors.obsidian[800] : Colors.obsidian[100] }]} onPress={() => handleEditRVM(r)}>
+                  <Feather name="edit-2" size={20} color={textColor} />
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.iconBtn, { backgroundColor: isDark ? Colors.obsidian[800] : Colors.obsidian[100] }]} onPress={() => toggleStatus(r)}>
+                  <Feather name="power" size={20} color={r.status_mesin === "aktif" ? Colors.red[500] : Colors.emerald[500]} />
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.iconBtn, { backgroundColor: isDark ? "rgba(239, 68, 68, 0.2)" : Colors.red[50] }]} onPress={() => deleteDoc(doc(db, "RVM", r.id))}>
+                  <Feather name="trash-2" size={20} color={Colors.red[500]} />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         ))}
       </ScrollView>
+
+      {/* Edit RVM Modal */}
+      <Modal visible={editModalVisible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: cardBg }]}>
+            <Text style={[styles.modalTitle, { color: textColor }]}>Edit Info RVM</Text>
+            
+            <Text style={[styles.inputLabel, { color: textColor }]}>Lokasi</Text>
+            <TextInput style={[styles.input, { borderColor: inputBorder, backgroundColor: inputBg, color: textColor }]} placeholderTextColor={subColor} placeholder="Misal: Stasiun UI" value={editRvmData.lokasi} onChangeText={(t) => setEditRvmData({...editRvmData, lokasi: t})} />
+            
+            <Text style={[styles.inputLabel, { color: textColor }]}>Alamat Lengkap</Text>
+            <TextInput style={[styles.input, { borderColor: inputBorder, backgroundColor: inputBg, color: textColor }]} placeholderTextColor={subColor} placeholder="Misal: Jl. Margonda Raya No.1..." value={editRvmData.alamat} onChangeText={(t) => setEditRvmData({...editRvmData, alamat: t})} />
+            
+            <Text style={[styles.inputLabel, { color: textColor }]}>Latitude</Text>
+            <TextInput style={[styles.input, { borderColor: inputBorder, backgroundColor: inputBg, color: textColor }]} placeholderTextColor={subColor} placeholder="-6.2000" keyboardType="numeric" value={editRvmData.latitude} onChangeText={(t) => setEditRvmData({...editRvmData, latitude: t})} />
+            
+            <Text style={[styles.inputLabel, { color: textColor }]}>Longitude</Text>
+            <TextInput style={[styles.input, { borderColor: inputBorder, backgroundColor: inputBg, color: textColor }]} placeholderTextColor={subColor} placeholder="106.8166" keyboardType="numeric" value={editRvmData.longitude} onChangeText={(t) => setEditRvmData({...editRvmData, longitude: t})} />
+
+            <View style={{ flexDirection: "row", marginTop: 20, gap: 10 }}>
+              <TouchableOpacity style={[styles.btn, { backgroundColor: isDark ? Colors.obsidian[800] : Colors.obsidian[200] }]} onPress={() => setEditModalVisible(false)}>
+                <Text style={{ fontFamily: Typography.fontFamily.primary, color: isDark ? textColor : Colors.obsidian[900] }}>Batal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.btn, { backgroundColor: Colors.emerald[500] }]} onPress={saveEditRVM}>
+                <Text style={{ fontFamily: Typography.fontFamily.primary, color: "white" }}>Simpan</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
